@@ -4,13 +4,18 @@ Each phase encapsulates a distinct training step in the sleep-inspired
 training paradigm. Phases are called by the Trainer orchestrator.
 """
 
+from __future__ import annotations
+
 import logging
+import math
 from typing import Optional
 
 import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+from nightmarenet.utils.validation import validate_positive_int
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +38,7 @@ class WakePhase:
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
 
-    def run(self, dataloader: DataLoader, num_epochs: int = 1):
+    def run(self, dataloader: DataLoader, num_epochs: int = 1) -> dict:
         """Run the wake phase (standard training).
 
         Args:
@@ -43,6 +48,7 @@ class WakePhase:
         Returns:
             Dict with training metrics (avg_loss, total_steps).
         """
+        validate_positive_int(num_epochs, "num_epochs")
         self.model.train()
         total_loss = 0.0
         total_steps = 0
@@ -57,6 +63,12 @@ class WakePhase:
 
                 outputs = self.model(**batch, labels=batch.get("input_ids"))
                 loss = outputs.loss / self.gradient_accumulation_steps
+
+                if math.isnan(loss.item()) or math.isinf(loss.item()):
+                    logger.warning("Wake Phase - NaN/Inf loss at step %d, skipping.", step)
+                    self.optimizer.zero_grad()
+                    continue
+
                 loss.backward()
 
                 if (step + 1) % self.gradient_accumulation_steps == 0:
@@ -137,7 +149,7 @@ class DreamPhase:
 
         return kl_loss * self.kl_weight
 
-    def run(self, dataloader: DataLoader, num_epochs: int = 1):
+    def run(self, dataloader: DataLoader, num_epochs: int = 1) -> dict:
         """Run the dream phase (distorted data training with KL regularization).
 
         Args:
@@ -147,6 +159,7 @@ class DreamPhase:
         Returns:
             Dict with training metrics.
         """
+        validate_positive_int(num_epochs, "num_epochs")
         self.model.train()
         if self.reference_model is not None:
             self.reference_model.eval()
@@ -166,6 +179,11 @@ class DreamPhase:
 
                 outputs = self.model(**batch, labels=batch.get("input_ids"))
                 loss = outputs.loss / self.gradient_accumulation_steps
+
+                if math.isnan(loss.item()) or math.isinf(loss.item()):
+                    logger.warning("Dream Phase - NaN/Inf loss at step %d, skipping.", step)
+                    self.optimizer.zero_grad()
+                    continue
 
                 # Add KL regularization
                 kl_loss = self._compute_kl_loss(outputs.logits, batch)
@@ -235,7 +253,7 @@ class NightmarePhase:
         for param_group in self.optimizer.param_groups:
             param_group["lr"] *= multiplier
 
-    def run(self, dataloader: DataLoader, num_epochs: int = 1):
+    def run(self, dataloader: DataLoader, num_epochs: int = 1) -> dict:
         """Run the nightmare phase (adversarial training).
 
         Args:
@@ -245,6 +263,7 @@ class NightmarePhase:
         Returns:
             Dict with training metrics.
         """
+        validate_positive_int(num_epochs, "num_epochs")
         self.model.train()
 
         # Increase learning rate for nightmare phase
@@ -267,6 +286,12 @@ class NightmarePhase:
 
                     outputs = self.model(**batch, labels=batch.get("input_ids"))
                     loss = outputs.loss / self.gradient_accumulation_steps
+
+                    if math.isnan(loss.item()) or math.isinf(loss.item()):
+                        logger.warning("Nightmare Phase - NaN/Inf loss at step %d, skipping.", step)
+                        self.optimizer.zero_grad()
+                        continue
+
                     loss.backward()
 
                     if (step + 1) % self.gradient_accumulation_steps == 0:
@@ -322,7 +347,7 @@ class CompressionPhase:
         self,
         dataloader: Optional[DataLoader] = None,
         optimizer=None,
-    ):
+    ) -> dict:
         """Run the compression phase.
 
         Args:
@@ -332,8 +357,6 @@ class CompressionPhase:
         Returns:
             Dict with compression metrics.
         """
-        from nightmarenet.compression.pruning import MagnitudePruner
-
         pruning_ratio = self.config.get("pruning_ratio", 0.2)
         method = self.config.get("pruning_method", "magnitude")
 
@@ -342,8 +365,14 @@ class CompressionPhase:
         )
 
         if method == "magnitude":
-            pruner = MagnitudePruner(pruning_ratio=pruning_ratio)
-            stats = pruner.apply(self.model)
+            try:
+                from nightmarenet.compression.pruning import MagnitudePruner
+
+                pruner = MagnitudePruner(pruning_ratio=pruning_ratio)
+                stats = pruner.apply(self.model)
+            except Exception as exc:
+                logger.error("Compression Phase - Failed to apply pruning: %s", exc)
+                stats = {"pruned_params": 0, "total_params": 0}
         else:
             logger.warning("Unknown pruning method '%s'; skipping.", method)
             stats = {"pruned_params": 0, "total_params": 0}
@@ -366,6 +395,12 @@ class CompressionPhase:
                     batch = {k: v.to(self.device) for k, v in batch.items()}
                     outputs = self.model(**batch, labels=batch.get("input_ids"))
                     loss = outputs.loss
+
+                    if math.isnan(loss.item()) or math.isinf(loss.item()):
+                        logger.warning("Compression fine-tune - NaN/Inf loss, skipping.")
+                        optimizer.zero_grad()
+                        continue
+
                     loss.backward()
                     optimizer.step()
                     optimizer.zero_grad()

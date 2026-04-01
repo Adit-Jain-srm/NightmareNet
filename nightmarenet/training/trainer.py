@@ -4,10 +4,14 @@ Manages the full sleep-cycle training pipeline: instantiates phases,
 manages checkpointing, and logs per-phase metrics.
 """
 
+from __future__ import annotations
+
 import copy
 import json
 import logging
+import math
 import os
+import signal
 from typing import Optional
 
 import torch
@@ -80,7 +84,10 @@ class Trainer:
         model_name = self.model_config.get("name", "gpt2")
         if model is None:
             logger.info("Loading model: %s", model_name)
-            self.model = AutoModelForCausalLM.from_pretrained(model_name)
+            try:
+                self.model = AutoModelForCausalLM.from_pretrained(model_name)
+            except Exception as exc:
+                raise RuntimeError(f"Failed to load model '{model_name}': {exc}") from exc
         else:
             self.model = model
         self.model.to(self.device)
@@ -108,6 +115,9 @@ class Trainer:
         # Training history
         self.history = []
 
+        # Interrupt flag
+        self._interrupted = False
+
         # Checkpoint directory
         self.checkpoint_dir = self.training_config.get("checkpoint_dir", "checkpoints")
         os.makedirs(self.checkpoint_dir, exist_ok=True)
@@ -123,6 +133,11 @@ class Trainer:
         for param in self.reference_model.parameters():
             param.requires_grad = False
         logger.info("Created reference model for KL regularization.")
+
+    def _handle_interrupt(self, signum, frame) -> None:
+        """Handle SIGINT by flagging for a graceful checkpoint save."""
+        logger.warning("Received interrupt signal, will save checkpoint and stop.")
+        self._interrupted = True
 
     def _save_checkpoint(self, cycle: int, phase: str):
         """Save a model checkpoint after a phase."""
@@ -148,7 +163,7 @@ class Trainer:
         dream_dataloader: DataLoader,
         nightmare_dataloader: DataLoader,
         val_dataloader: Optional[DataLoader] = None,
-    ):
+    ) -> list[dict]:
         """Run the full sleep-cycle training pipeline.
 
         Args:
@@ -163,71 +178,98 @@ class Trainer:
         logger.info("Starting training with schedule:\n%s", self.scheduler.summary())
         logger.info("Device: %s", self.device)
 
-        for cycle, phase, num_epochs in self.scheduler:
-            logger.info(
-                "=== Cycle %d - Phase: %s (%d epochs) ===",
-                cycle + 1,
-                phase,
-                num_epochs,
-            )
+        prev_handler = signal.getsignal(signal.SIGINT)
+        signal.signal(signal.SIGINT, self._handle_interrupt)
 
-            if phase == "wake":
-                phase_runner = WakePhase(
-                    model=self.model,
-                    optimizer=self.optimizer,
-                    config=self.training_config,
-                    device=self.device,
+        current_cycle = 0
+        current_phase = "init"
+        try:
+            for cycle, phase, num_epochs in self.scheduler:
+                if self._interrupted:
+                    break
+                current_cycle = cycle
+                current_phase = phase
+                logger.info(
+                    "=== Cycle %d - Phase: %s (%d epochs) ===",
+                    cycle + 1,
+                    phase,
+                    num_epochs,
                 )
-                result = phase_runner.run(train_dataloader, num_epochs=num_epochs)
 
-                # Create reference model after first wake phase
-                if cycle == 0:
-                    self._create_reference_model()
+                if phase == "wake":
+                    phase_runner = WakePhase(
+                        model=self.model,
+                        optimizer=self.optimizer,
+                        config=self.training_config,
+                        device=self.device,
+                    )
+                    result = phase_runner.run(train_dataloader, num_epochs=num_epochs)
 
-            elif phase == "dream":
-                phase_runner = DreamPhase(
-                    model=self.model,
-                    optimizer=self.optimizer,
-                    config=self.training_config,
-                    device=self.device,
-                    reference_model=self.reference_model,
-                    kl_weight=0.1,
-                )
-                result = phase_runner.run(dream_dataloader, num_epochs=num_epochs)
+                    # Create reference model after first wake phase
+                    if cycle == 0:
+                        self._create_reference_model()
 
-            elif phase == "nightmare":
-                lr_multiplier = self.training_config.get("nightmare_lr_multiplier", 2.0)
-                phase_runner = NightmarePhase(
-                    model=self.model,
-                    optimizer=self.optimizer,
-                    config=self.training_config,
-                    device=self.device,
-                    lr_multiplier=lr_multiplier,
-                )
-                result = phase_runner.run(nightmare_dataloader, num_epochs=num_epochs)
+                elif phase == "dream":
+                    phase_runner = DreamPhase(
+                        model=self.model,
+                        optimizer=self.optimizer,
+                        config=self.training_config,
+                        device=self.device,
+                        reference_model=self.reference_model,
+                        kl_weight=0.1,
+                    )
+                    result = phase_runner.run(dream_dataloader, num_epochs=num_epochs)
 
-            elif phase == "compress":
-                phase_runner = CompressionPhase(
-                    model=self.model,
-                    config=self.compression_config,
-                    device=self.device,
-                )
-                result = phase_runner.run(
-                    dataloader=train_dataloader,
-                    optimizer=self.optimizer,
-                )
-            else:
-                logger.warning("Unknown phase: %s", phase)
-                continue
+                elif phase == "nightmare":
+                    lr_multiplier = self.training_config.get("nightmare_lr_multiplier", 2.0)
+                    phase_runner = NightmarePhase(
+                        model=self.model,
+                        optimizer=self.optimizer,
+                        config=self.training_config,
+                        device=self.device,
+                        lr_multiplier=lr_multiplier,
+                    )
+                    result = phase_runner.run(nightmare_dataloader, num_epochs=num_epochs)
 
-            result["cycle"] = cycle
-            self.history.append(result)
+                elif phase == "compress":
+                    phase_runner = CompressionPhase(
+                        model=self.model,
+                        config=self.compression_config,
+                        device=self.device,
+                    )
+                    result = phase_runner.run(
+                        dataloader=train_dataloader,
+                        optimizer=self.optimizer,
+                    )
+                else:
+                    logger.warning("Unknown phase: %s", phase)
+                    continue
 
-            # Save checkpoint
-            self._save_checkpoint(cycle, phase)
+                # NaN/Inf detection on phase avg_loss
+                avg_loss = result.get("avg_loss")
+                if avg_loss is not None and (math.isnan(avg_loss) or math.isinf(avg_loss)):
+                    logger.critical(
+                        "Phase '%s' in cycle %d returned NaN/Inf avg_loss: %s",
+                        phase,
+                        cycle,
+                        avg_loss,
+                    )
 
-            # Log metrics
-            logger.info("Phase result: %s", json.dumps(result, indent=2, default=str))
+                result["cycle"] = cycle
+                self.history.append(result)
+
+                # Save checkpoint
+                self._save_checkpoint(cycle, phase)
+
+                # Log metrics
+                logger.info("Phase result: %s", json.dumps(result, indent=2, default=str))
+        except KeyboardInterrupt:
+            logger.warning("Training interrupted by KeyboardInterrupt.")
+        finally:
+            if self._interrupted:
+                self._save_checkpoint(current_cycle, current_phase)
+                logger.info("Training interrupted, checkpoint saved.")
+            signal.signal(signal.SIGINT, prev_handler)
 
         # Save final model and history
         final_path = os.path.join(self.checkpoint_dir, "final")

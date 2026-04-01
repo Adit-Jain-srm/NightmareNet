@@ -3,8 +3,12 @@
 Controls the sequence and timing of Wake → Dream → Nightmare → Compress cycles.
 """
 
+from __future__ import annotations
+
 import logging
-from typing import Optional
+from typing import Iterator, Optional
+
+from nightmarenet.utils.validation import validate_positive_int
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,11 @@ class CyclicScheduler:
         nightmare_epochs: int = 1,
         compression_rounds: int = 1,
     ):
+        validate_positive_int(num_cycles, "num_cycles")
+        validate_positive_int(wake_epochs, "wake_epochs", allow_zero=True)
+        validate_positive_int(dream_epochs, "dream_epochs", allow_zero=True)
+        validate_positive_int(nightmare_epochs, "nightmare_epochs", allow_zero=True)
+        validate_positive_int(compression_rounds, "compression_rounds", allow_zero=True)
         self.num_cycles = num_cycles
         self.wake_epochs = wake_epochs
         self.dream_epochs = dream_epochs
@@ -67,7 +76,7 @@ class CyclicScheduler:
             "compress": self.compression_rounds,
         }.get(phase, 1)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[int, str, int]]:
         """Iterate over all (cycle, phase, epochs) tuples in the schedule.
 
         Yields:
@@ -119,15 +128,17 @@ class AdaptiveScheduler:
         base_scheduler: Optional[CyclicScheduler] = None,
         patience: int = 2,
         adjustment_factor: float = 0.5,
+        max_epochs: int = 50,
     ):
         self.base_scheduler = base_scheduler or CyclicScheduler()
         self.patience = patience
         self.adjustment_factor = adjustment_factor
-        self._loss_history = []
+        self.max_epochs = max_epochs
+        self._loss_history: list[dict] = []
         self._no_improvement_count = 0
         self._best_loss = float("inf")
 
-    def update(self, phase: str, loss: float):
+    def update(self, phase: str, loss: float) -> None:
         """Update the scheduler with the latest validation loss.
 
         Args:
@@ -144,18 +155,24 @@ class AdaptiveScheduler:
 
         if self._no_improvement_count >= self.patience:
             # Increase dream and nightmare epochs to provide more training signal
-            self.base_scheduler.dream_epochs = max(
-                1,
-                int(
-                    self.base_scheduler.dream_epochs
-                    * (1 + self.adjustment_factor)
+            self.base_scheduler.dream_epochs = min(
+                self.max_epochs,
+                max(
+                    1,
+                    int(
+                        self.base_scheduler.dream_epochs
+                        * (1 + self.adjustment_factor)
+                    ),
                 ),
             )
-            self.base_scheduler.nightmare_epochs = max(
-                1,
-                int(
-                    self.base_scheduler.nightmare_epochs
-                    * (1 + self.adjustment_factor)
+            self.base_scheduler.nightmare_epochs = min(
+                self.max_epochs,
+                max(
+                    1,
+                    int(
+                        self.base_scheduler.nightmare_epochs
+                        * (1 + self.adjustment_factor)
+                    ),
                 ),
             )
             logger.info(
@@ -165,11 +182,11 @@ class AdaptiveScheduler:
             )
             self._no_improvement_count = 0
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[tuple[int, str, int]]:
         """Delegate iteration to the base scheduler."""
         return iter(self.base_scheduler)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """Delegate length to the base scheduler."""
         return len(self.base_scheduler)
 
