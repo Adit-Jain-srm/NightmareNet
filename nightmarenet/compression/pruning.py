@@ -4,6 +4,8 @@ Forces information retention efficiency by removing low-magnitude weights
 or applying bottleneck layers that reduce the model's capacity.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Optional
 
@@ -23,7 +25,7 @@ class MagnitudePruner:
         pruning_ratio: Fraction of weights to prune (0–1). E.g., 0.2 prunes 20%.
     """
 
-    def __init__(self, pruning_ratio: float = 0.2):
+    def __init__(self, pruning_ratio: float = 0.2) -> None:
         if not 0.0 <= pruning_ratio < 1.0:
             raise ValueError(f"pruning_ratio must be in [0, 1), got {pruning_ratio}")
         self.pruning_ratio = pruning_ratio
@@ -53,6 +55,11 @@ class MagnitudePruner:
                 if k == 0:
                     continue
 
+                # Handle edge case where layer has all-zero weights
+                if flat.max() == 0:
+                    logger.info("Layer '%s': all-zero weights, skipping", name)
+                    continue
+
                 threshold = torch.kthvalue(flat, k).values
 
                 # Create mask: 1 for weights above threshold, 0 for below
@@ -60,6 +67,12 @@ class MagnitudePruner:
                 param.mul_(mask)
 
                 pruned_params += k
+                logger.debug(
+                    "Layer '%s': pruned %d/%d params",
+                    name,
+                    k,
+                    flat.numel(),
+                )
 
         sparsity = pruned_params / max(total_params, 1)
         logger.info(
@@ -93,8 +106,10 @@ class BottleneckWrapper(nn.Module):
         original_layer: nn.Module,
         bottleneck_dim: Optional[int] = None,
         rank_ratio: float = 0.5,
-    ):
+    ) -> None:
         super().__init__()
+        if not 0.0 < rank_ratio <= 1.0:
+            raise ValueError(f"rank_ratio must be in (0, 1], got {rank_ratio}")
         self.original_layer = original_layer
 
         # Infer hidden dimension from the layer
@@ -169,4 +184,9 @@ def apply_bottleneck_to_model(
             )
             wrapped_count += child_stats.get("wrapped_count", 0)
 
+    logger.info(
+        "Bottleneck application complete: %d modules wrapped with rank_ratio=%.2f",
+        wrapped_count,
+        rank_ratio,
+    )
     return {"wrapped_count": wrapped_count, "rank_ratio": rank_ratio}

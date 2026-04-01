@@ -4,6 +4,8 @@ Runs metrics before and after training to produce baseline vs. DreamPhase
 comparison tables.
 """
 
+from __future__ import annotations
+
 import json
 import logging
 import os
@@ -32,7 +34,7 @@ class Evaluator:
         device: Device to run evaluations on.
     """
 
-    def __init__(self, model, tokenizer, config, device="cpu"):
+    def __init__(self, model, tokenizer, config, device="cpu") -> None:
         self.model = model
         self.tokenizer = tokenizer
         self.config = config
@@ -68,15 +70,23 @@ class Evaluator:
 
         if "recall" in self.enabled_metrics:
             logger.info("Evaluating: recall")
-            results["recall"] = recall_score(
-                self.model, clean_dataloader, self.tokenizer, self.device
-            )
+            try:
+                results["recall"] = recall_score(
+                    self.model, clean_dataloader, self.tokenizer, self.device
+                )
+            except Exception as e:
+                logger.error("Failed to compute recall: %s", e)
+                results["recall"] = {"error": str(e)}
 
         if "generalization" in self.enabled_metrics and ood_dataloader is not None:
             logger.info("Evaluating: generalization")
-            results["generalization"] = generalization_score(
-                self.model, ood_dataloader, clean_dataloader, self.device
-            )
+            try:
+                results["generalization"] = generalization_score(
+                    self.model, ood_dataloader, clean_dataloader, self.device
+                )
+            except Exception as e:
+                logger.error("Failed to compute generalization: %s", e)
+                results["generalization"] = {"error": str(e)}
 
         if (
             "robustness" in self.enabled_metrics
@@ -84,29 +94,37 @@ class Evaluator:
             and distortion_fn is not None
         ):
             logger.info("Evaluating: robustness")
-            strengths = self.eval_config.get(
-                "robustness_strengths",
-                [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-            )
-            dataset_config = self.config.get("dataset", {})
-            model_config = self.config.get("model", {})
-            results["robustness"] = robustness_score(
-                self.model,
-                base_dataset,
-                self.tokenizer,
-                distortion_fn,
-                strengths=strengths,
-                text_column=dataset_config.get("text_column", "text"),
-                max_length=model_config.get("max_length", 128),
-                batch_size=self.config.get("training", {}).get("batch_size", 8),
-                device=self.device,
-            )
+            try:
+                strengths = self.eval_config.get(
+                    "robustness_strengths",
+                    [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                )
+                dataset_config = self.config.get("dataset", {})
+                model_config = self.config.get("model", {})
+                results["robustness"] = robustness_score(
+                    self.model,
+                    base_dataset,
+                    self.tokenizer,
+                    distortion_fn,
+                    strengths=strengths,
+                    text_column=dataset_config.get("text_column", "text"),
+                    max_length=model_config.get("max_length", 128),
+                    batch_size=self.config.get("training", {}).get("batch_size", 8),
+                    device=self.device,
+                )
+            except Exception as e:
+                logger.error("Failed to compute robustness: %s", e)
+                results["robustness"] = {"error": str(e)}
 
         if "hallucination" in self.enabled_metrics:
             logger.info("Evaluating: hallucination")
-            results["hallucination"] = hallucination_rate(
-                self.model, clean_dataloader, self.tokenizer, self.device
-            )
+            try:
+                results["hallucination"] = hallucination_rate(
+                    self.model, clean_dataloader, self.tokenizer, self.device
+                )
+            except Exception as e:
+                logger.error("Failed to compute hallucination: %s", e)
+                results["hallucination"] = {"error": str(e)}
 
         return results
 
@@ -151,7 +169,7 @@ class Evaluator:
 
         return comparison
 
-    def save_results(self, results: dict, filename: str = "evaluation_results.json"):
+    def save_results(self, results: dict, filename: str = "evaluation_results.json") -> None:
         """Save evaluation results to a JSON file.
 
         Args:
@@ -159,9 +177,12 @@ class Evaluator:
             filename: Name of the output file.
         """
         path = os.path.join(self.output_dir, filename)
-        with open(path, "w") as f:
-            json.dump(results, f, indent=2, default=str)
-        logger.info("Results saved to %s", path)
+        try:
+            with open(path, "w") as f:
+                json.dump(results, f, indent=2, default=str)
+            logger.info("Results saved to %s", path)
+        except Exception as e:
+            logger.error("Failed to save results to %s: %s", path, e)
 
     def generate_report(self, comparison: dict) -> str:
         """Generate a markdown report from a comparison dict.
@@ -184,7 +205,7 @@ class Evaluator:
 
         metrics = comparison.get("metrics", {})
 
-        if "recall" in metrics:
+        if "recall" in metrics and "error" not in metrics["recall"].get("baseline", {}) and "error" not in metrics["recall"].get("trained", {}):
             r = metrics["recall"]
             lines.extend([
                 "### Recall",
@@ -203,7 +224,7 @@ class Evaluator:
                 )
             lines.append("")
 
-        if "generalization" in metrics:
+        if "generalization" in metrics and "error" not in metrics["generalization"].get("baseline", {}) and "error" not in metrics["generalization"].get("trained", {}):
             r = metrics["generalization"]
             lines.extend([
                 "### Generalization",
@@ -222,7 +243,7 @@ class Evaluator:
                 )
             lines.append("")
 
-        if "robustness" in metrics:
+        if "robustness" in metrics and "error" not in metrics["robustness"].get("baseline", {}) and "error" not in metrics["robustness"].get("trained", {}):
             r = metrics["robustness"]
             lines.extend([
                 "### Robustness",
@@ -240,7 +261,7 @@ class Evaluator:
             )
             lines.append("")
 
-        if "hallucination" in metrics:
+        if "hallucination" in metrics and "error" not in metrics["hallucination"].get("baseline", {}) and "error" not in metrics["hallucination"].get("trained", {}):
             r = metrics["hallucination"]
             lines.extend([
                 "### Hallucination",
@@ -261,7 +282,7 @@ class Evaluator:
 
         return "\n".join(lines)
 
-    def save_report(self, comparison: dict, filename: str = "evaluation_report.md"):
+    def save_report(self, comparison: dict, filename: str = "evaluation_report.md") -> str:
         """Generate and save a markdown report.
 
         Args:

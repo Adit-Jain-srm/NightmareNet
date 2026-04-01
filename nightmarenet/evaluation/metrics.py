@@ -7,7 +7,10 @@ Implements metrics for:
 - Hallucination rate
 """
 
+from __future__ import annotations
+
 import logging
+import math
 from typing import Optional
 
 import numpy as np
@@ -16,6 +19,14 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
+
+
+def _safe_float(value: float, default: float = 0.0) -> float:
+    """Return default if value is NaN or Inf."""
+    if math.isnan(value) or math.isinf(value):
+        logger.warning("Detected NaN/Inf metric value, using default %.4f", default)
+        return default
+    return float(value)
 
 
 def compute_perplexity(model, dataloader: DataLoader, device="cpu") -> float:
@@ -33,16 +44,24 @@ def compute_perplexity(model, dataloader: DataLoader, device="cpu") -> float:
     total_loss = 0.0
     total_tokens = 0
 
-    with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Computing perplexity"):
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch, labels=batch.get("input_ids"))
-            total_loss += outputs.loss.item() * batch["input_ids"].numel()
-            total_tokens += batch["input_ids"].numel()
+    try:
+        with torch.no_grad():
+            for batch in tqdm(dataloader, desc="Computing perplexity"):
+                batch = {k: v.to(device) for k, v in batch.items()}
+                outputs = model(**batch, labels=batch.get("input_ids"))
+                total_loss += outputs.loss.item() * batch["input_ids"].numel()
+                total_tokens += batch["input_ids"].numel()
+    except Exception as e:
+        logger.warning("Error during perplexity computation: %s", e)
+        return float("inf")
 
     avg_loss = total_loss / max(total_tokens, 1)
     perplexity = np.exp(min(avg_loss, 100))  # Cap to avoid overflow
-    return float(perplexity)
+    result = float(perplexity)
+    if math.isnan(result) or math.isinf(result):
+        logger.warning("Perplexity is NaN/Inf, returning inf")
+        return float("inf")
+    return result
 
 
 def recall_score(
@@ -66,6 +85,14 @@ def recall_score(
         Dict with perplexity and token-level accuracy.
     """
     model.eval()
+
+    if tokenizer.pad_token_id is None:
+        fallback = getattr(tokenizer, "eos_token_id", None) or 0
+        logger.warning(
+            "tokenizer.pad_token_id is None, falling back to %d", fallback
+        )
+        tokenizer.pad_token_id = fallback
+
     correct = 0
     total = 0
 
@@ -91,8 +118,8 @@ def recall_score(
 
     return {
         "metric": "recall",
-        "token_accuracy": accuracy,
-        "perplexity": perplexity,
+        "token_accuracy": _safe_float(accuracy),
+        "perplexity": _safe_float(perplexity, default=float("inf")),
     }
 
 
@@ -120,14 +147,14 @@ def generalization_score(
     clean_ppl = compute_perplexity(model, clean_dataloader, device)
 
     # Ratio close to 1.0 = good generalization
-    ratio = ood_ppl / max(clean_ppl, 1e-8)
+    ratio = ood_ppl / max(clean_ppl, 1e-6)
 
     return {
         "metric": "generalization",
-        "ood_perplexity": ood_ppl,
-        "clean_perplexity": clean_ppl,
-        "generalization_ratio": ratio,
-        "generalization_score": 1.0 / max(ratio, 1e-8),  # Higher is better
+        "ood_perplexity": _safe_float(ood_ppl, default=float("inf")),
+        "clean_perplexity": _safe_float(clean_ppl, default=float("inf")),
+        "generalization_ratio": _safe_float(ratio, default=float("inf")),
+        "generalization_score": _safe_float(1.0 / max(ratio, 1e-8)),
     }
 
 
@@ -205,8 +232,8 @@ def robustness_score(
     return {
         "metric": "robustness",
         "strengths": strengths,
-        "perplexities": perplexities,
-        "auc_robustness": auc,
+        "perplexities": [_safe_float(p, default=float("inf")) for p in perplexities],
+        "auc_robustness": _safe_float(auc),
     }
 
 
@@ -215,6 +242,7 @@ def hallucination_rate(
     factual_dataloader: DataLoader,
     tokenizer,
     device="cpu",
+    confidence_threshold: float = 0.5,
 ) -> dict:
     """Estimate hallucination rate via next-token prediction confidence.
 
@@ -236,42 +264,53 @@ def hallucination_rate(
     hallucinated = 0
     confidence_scores = []
 
-    with torch.no_grad():
-        for batch in tqdm(factual_dataloader, desc="Computing hallucination rate"):
-            batch = {k: v.to(device) for k, v in batch.items()}
-            outputs = model(**batch, labels=batch.get("input_ids"))
-            logits = outputs.logits
+    try:
+        with torch.no_grad():
+            for batch in tqdm(factual_dataloader, desc="Computing hallucination rate"):
+                batch = {k: v.to(device) for k, v in batch.items()}
+                outputs = model(**batch, labels=batch.get("input_ids"))
+                logits = outputs.logits
 
-            # Shift for next-token prediction
-            shift_logits = logits[:, :-1, :].contiguous()
-            shift_labels = batch["input_ids"][:, 1:].contiguous()
+                # Shift for next-token prediction
+                shift_logits = logits[:, :-1, :].contiguous()
+                shift_labels = batch["input_ids"][:, 1:].contiguous()
 
-            # Get top-1 predictions and their probabilities
-            probs = torch.softmax(shift_logits, dim=-1)
-            top_probs, top_preds = probs.max(dim=-1)
+                # Get top-1 predictions and their probabilities
+                probs = torch.softmax(shift_logits, dim=-1)
+                top_probs, top_preds = probs.max(dim=-1)
 
-            # Only evaluate non-padding tokens
-            mask = shift_labels != tokenizer.pad_token_id
+                # Only evaluate non-padding tokens
+                mask = shift_labels != tokenizer.pad_token_id
 
-            # Count hallucinations: incorrect prediction with high confidence
-            incorrect = (top_preds != shift_labels) & mask
-            high_confidence = top_probs > 0.5
-            hallucinated += (incorrect & high_confidence).sum().item()
-            total_predictions += mask.sum().item()
+                # Count hallucinations: incorrect prediction with high confidence
+                incorrect = (top_preds != shift_labels) & mask
+                high_confidence = top_probs > confidence_threshold
+                hallucinated += (incorrect & high_confidence).sum().item()
+                total_predictions += mask.sum().item()
 
-            # Track confidence on incorrect predictions
-            if incorrect.any():
-                confidence_scores.extend(
-                    top_probs[incorrect].cpu().numpy().tolist()
-                )
+                # Track confidence on incorrect predictions
+                if incorrect.any():
+                    confidence_scores.extend(
+                        top_probs[incorrect].cpu().numpy().tolist()
+                    )
+    except Exception as e:
+        logger.warning("Error during hallucination rate computation: %s", e)
+        return {
+            "metric": "hallucination",
+            "hallucination_rate": 0.0,
+            "total_predictions": 0,
+            "hallucinated_predictions": 0,
+            "avg_hallucination_confidence": 0.0,
+            "error": str(e),
+        }
 
     rate = hallucinated / max(total_predictions, 1)
     avg_confidence = float(np.mean(confidence_scores)) if confidence_scores else 0.0
 
     return {
         "metric": "hallucination",
-        "hallucination_rate": rate,
+        "hallucination_rate": _safe_float(rate),
         "total_predictions": total_predictions,
         "hallucinated_predictions": hallucinated,
-        "avg_hallucination_confidence": avg_confidence,
+        "avg_hallucination_confidence": _safe_float(avg_confidence),
     }
