@@ -280,7 +280,12 @@ def hallucination_rate(
                 top_probs, top_preds = probs.max(dim=-1)
 
                 # Only evaluate non-padding tokens
-                mask = shift_labels != tokenizer.pad_token_id
+                pad_token_id = tokenizer.pad_token_id
+                if pad_token_id is None:
+                    pad_token_id = getattr(tokenizer, "eos_token_id", None)
+                if pad_token_id is None:
+                    pad_token_id = 0
+                mask = shift_labels != pad_token_id
 
                 # Count hallucinations: incorrect prediction with high confidence
                 incorrect = (top_preds != shift_labels) & mask

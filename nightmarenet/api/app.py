@@ -56,37 +56,72 @@ app.add_middleware(
 )
 
 
-def _apply_dream_distortions(text: str, strength: float, config: dict[str, Any] | None = None) -> str:
+def _apply_dream_distortions(
+    text: str,
+    strength: float,
+    config: dict[str, Any] | None = None,
+    seed: int | None = None,
+) -> str:
     """Apply mild dream distortions (text + semantic).
 
     Args:
         text: Input text.
         strength: Distortion strength in [0, 1].
-        config: Optional per-distortion weight overrides.
+        config: Optional nested config with 'text'/'semantic' sub-keys.
+        seed: Optional seed for deterministic output.
 
     Returns:
         Dream-distorted text.
     """
-    result = apply_text_distortions(text, strength=strength, config=config)
-    result = apply_semantic_distortions(result, strength=strength, config=config)
+    if seed is not None:
+        random.seed(seed)
+    text_config = config.get("text") if config else None
+    semantic_config = config.get("semantic") if config else None
+    result = apply_text_distortions(text, strength=strength, config=text_config)
+    result = apply_semantic_distortions(result, strength=strength, config=semantic_config)
     return result
 
 
-def _apply_nightmare_distortions(text: str, strength: float, config: dict[str, Any] | None = None) -> str:
+def _apply_nightmare_distortions(
+    text: str,
+    strength: float,
+    config: dict[str, Any] | None = None,
+    seed: int | None = None,
+) -> str:
     """Apply aggressive nightmare distortions (text + semantic + adversarial).
 
     Args:
         text: Input text.
         strength: Distortion strength in [0, 1].
-        config: Optional per-distortion weight overrides.
+        config: Optional nested config with 'text'/'semantic'/'adversarial' sub-keys.
+        seed: Optional seed for deterministic output.
 
     Returns:
         Nightmare-distorted text.
     """
-    result = apply_text_distortions(text, strength=strength, config=config)
-    result = apply_semantic_distortions(result, strength=strength, config=config)
-    result = apply_adversarial_distortions(result, strength=strength, config=config)
+    if seed is not None:
+        random.seed(seed)
+    text_config = config.get("text") if config else None
+    semantic_config = config.get("semantic") if config else None
+    adversarial_config = config.get("adversarial") if config else None
+    result = apply_text_distortions(text, strength=strength, config=text_config)
+    result = apply_semantic_distortions(
+        result, strength=strength, config=semantic_config
+    )
+    result = apply_adversarial_distortions(
+        result, strength=strength, config=adversarial_config
+    )
     return result
+
+
+def _char_similarity(a: str, b: str) -> float:
+    """Compute character-level similarity between two strings."""
+    if not a and not b:
+        return 1.0
+    if not a or not b:
+        return 0.0
+    matches = sum(1 for ca, cb in zip(a, b) if ca == cb)
+    return matches / max(len(a), len(b))
 
 
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["System"])
@@ -109,11 +144,11 @@ async def generate_dream(request: DistortionRequest) -> DistortionResponse:
     training data that forces pattern generalization.
     """
     try:
-        if request.seed is not None:
-            random.seed(request.seed)
-
         distorted = _apply_dream_distortions(
-            request.text, strength=request.strength, config=request.config
+            request.text,
+            strength=request.strength,
+            config=request.config,
+            seed=request.seed,
         )
 
         return DistortionResponse(
@@ -127,7 +162,10 @@ async def generate_dream(request: DistortionRequest) -> DistortionResponse:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.exception("Dream generation failed: %s", e)
-        raise HTTPException(status_code=500, detail="Internal error during dream generation")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error during dream generation",
+        )
 
 
 @app.post(
@@ -144,11 +182,11 @@ async def generate_nightmare(request: DistortionRequest) -> DistortionResponse:
     model robustness.
     """
     try:
-        if request.seed is not None:
-            random.seed(request.seed)
-
         distorted = _apply_nightmare_distortions(
-            request.text, strength=request.strength, config=request.config
+            request.text,
+            strength=request.strength,
+            config=request.config,
+            seed=request.seed,
         )
 
         return DistortionResponse(
@@ -162,7 +200,10 @@ async def generate_nightmare(request: DistortionRequest) -> DistortionResponse:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.exception("Nightmare generation failed: %s", e)
-        raise HTTPException(status_code=500, detail="Internal error during nightmare generation")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error during nightmare generation",
+        )
 
 
 @app.post(
@@ -180,27 +221,31 @@ async def evaluate_robustness(request: RobustnessRequest) -> RobustnessResponse:
     try:
         scores: dict[str, Any] = {"dream": {}, "nightmare": {}}
 
-        for strength in request.strengths:
-            random.seed(42)  # Deterministic for comparison
-            dream_result = _apply_dream_distortions(request.text, strength=strength)
-            nightmare_result = _apply_nightmare_distortions(request.text, strength=strength)
-
-            # Simple character-level similarity as a quick metric
-            def _char_similarity(a: str, b: str) -> float:
-                if not a and not b:
-                    return 1.0
-                if not a or not b:
-                    return 0.0
-                matches = sum(1 for ca, cb in zip(a, b) if ca == cb)
-                return matches / max(len(a), len(b))
+        for i, strength in enumerate(request.strengths):
+            # Use per-strength deterministic seed for reproducibility
+            strength_seed = 42 + i
+            dream_result = _apply_dream_distortions(
+                request.text, strength=strength, seed=strength_seed
+            )
+            nightmare_result = _apply_nightmare_distortions(
+                request.text, strength=strength, seed=strength_seed
+            )
 
             scores["dream"][str(strength)] = {
-                "similarity": round(_char_similarity(request.text, dream_result), 4),
-                "length_ratio": round(len(dream_result) / max(len(request.text), 1), 4),
+                "similarity": round(
+                    _char_similarity(request.text, dream_result), 4
+                ),
+                "length_ratio": round(
+                    len(dream_result) / max(len(request.text), 1), 4
+                ),
             }
             scores["nightmare"][str(strength)] = {
-                "similarity": round(_char_similarity(request.text, nightmare_result), 4),
-                "length_ratio": round(len(nightmare_result) / max(len(request.text), 1), 4),
+                "similarity": round(
+                    _char_similarity(request.text, nightmare_result), 4
+                ),
+                "length_ratio": round(
+                    len(nightmare_result) / max(len(request.text), 1), 4
+                ),
             }
 
         # Summary
@@ -226,4 +271,7 @@ async def evaluate_robustness(request: RobustnessRequest) -> RobustnessResponse:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         logger.exception("Robustness evaluation failed: %s", e)
-        raise HTTPException(status_code=500, detail="Internal error during robustness evaluation")
+        raise HTTPException(
+            status_code=500,
+            detail="Internal error during robustness evaluation",
+        )

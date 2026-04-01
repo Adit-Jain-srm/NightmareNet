@@ -111,15 +111,28 @@ def main():
             logger.info("Loading baseline model from %s", args.baseline)
             baseline_model = AutoModelForCausalLM.from_pretrained(args.baseline).to(device)
 
+            # Load baseline tokenizer to ensure correct encoding for the baseline model
+            baseline_tokenizer = AutoTokenizer.from_pretrained(args.baseline)
+            if baseline_tokenizer.pad_token is None:
+                baseline_tokenizer.pad_token = baseline_tokenizer.eos_token
+
+            baseline_dataloader = _tokenize_dataset(
+                dataset_wrapper.test_data,
+                baseline_tokenizer,
+                text_column,
+                max_length,
+                batch_size,
+            )
+
             baseline_evaluator = Evaluator(
                 model=baseline_model,
-                tokenizer=tokenizer,
+                tokenizer=baseline_tokenizer,
                 config=config,
                 device=device,
             )
 
             baseline_results = baseline_evaluator.evaluate(
-                clean_dataloader=clean_dataloader,
+                clean_dataloader=baseline_dataloader,
                 base_dataset=dataset_wrapper.test_data,
                 distortion_fn=apply_text_distortions,
                 label="baseline",

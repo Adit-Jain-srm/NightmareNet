@@ -43,8 +43,8 @@ class TestDreamDatasetGenerator:
         differences = sum(
             1 for o, g in zip(original_texts, generated_texts) if o != g
         )
-        # With strength=0.5, expect at least some modifications
-        assert differences >= 0  # Probabilistic; just verify no crash
+        # With strength=0.5 and seed=42, expect at least some modifications
+        assert differences > 0, "Expected some texts to be modified at strength=0.5"
 
     def test_generate_preserves_schema(self):
         dataset = _make_sample_dataset(10)

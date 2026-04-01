@@ -146,7 +146,9 @@ class DreamPhase:
             return 0.0
 
         with torch.no_grad():
-            ref_outputs = self.reference_model(**batch, labels=batch.get("input_ids"))
+            # Remove labels to avoid unnecessary loss computation in the reference model
+            ref_batch = {k: v for k, v in batch.items() if k != "labels"}
+            ref_outputs = self.reference_model(**ref_batch)
             ref_logits = ref_outputs.logits
 
         # KL(P_ref || P_current) to keep current close to reference

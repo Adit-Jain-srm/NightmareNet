@@ -66,11 +66,13 @@ class MagnitudePruner:
                 mask = (param.abs() > threshold).float()
                 param.mul_(mask)
 
-                pruned_params += k
+                # Count actual zeros introduced (may differ from k due to ties)
+                actual_pruned = int((mask == 0).sum().item())
+                pruned_params += actual_pruned
                 logger.debug(
                     "Layer '%s': pruned %d/%d params",
                     name,
-                    k,
+                    actual_pruned,
                     flat.numel(),
                 )
 
