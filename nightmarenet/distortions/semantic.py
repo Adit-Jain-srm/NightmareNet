@@ -97,6 +97,9 @@ def synonym_replace(text, strength=0.3):
 
     result = []
     for word in words:
+        if not word:
+            result.append(word)
+            continue
         lower_word = word.lower().strip(".,!?;:'\"")
         if lower_word in SYNONYM_MAP and random.random() < strength * 0.5:
             synonym = random.choice(SYNONYM_MAP[lower_word])
