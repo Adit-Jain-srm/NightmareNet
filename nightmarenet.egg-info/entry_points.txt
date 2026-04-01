@@ -1,4 +1,0 @@
-[console_scripts]
-nightmarenet-evaluate = scripts.evaluate:main
-nightmarenet-generate = scripts.generate_data:main
-nightmarenet-train = scripts.train:main
