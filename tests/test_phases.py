@@ -1,7 +1,5 @@
 """Tests for training phases and scheduler."""
 
-import pytest
-
 from nightmarenet.training.scheduler import (
     AdaptiveScheduler,
     CyclicScheduler,

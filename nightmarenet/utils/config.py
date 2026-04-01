@@ -33,6 +33,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "dream_epochs": 2,
         "nightmare_epochs": 1,
         "num_cycles": 3,
+        "compression_rounds": 1,
         "batch_size": 8,
         "learning_rate": 5e-5,
         "nightmare_lr_multiplier": 2.0,
@@ -84,6 +85,9 @@ DEFAULT_CONFIG: dict[str, Any] = {
 }
 
 # Schema for type validation: maps dotted key paths to (expected_type, min, max, required).
+# Max pruning ratio just below 1.0 because MagnitudePruner rejects ratio=1.0 (would prune all).
+_MAX_PRUNING_RATIO = 1.0 - 1e-4
+
 _SCHEMA: dict[str, tuple] = {
     "model.name": (str, None, None, True),
     "model.max_length": (int, 1, 8192, True),
@@ -94,6 +98,7 @@ _SCHEMA: dict[str, tuple] = {
     "training.dream_epochs": (int, 0, 1000, True),
     "training.nightmare_epochs": (int, 0, 1000, True),
     "training.num_cycles": (int, 1, 1000, True),
+    "training.compression_rounds": (int, 0, 1000, True),
     "training.batch_size": (int, 1, 4096, True),
     "training.learning_rate": (float, 1e-10, 1.0, True),
     "training.nightmare_lr_multiplier": (float, 0.1, 100.0, True),
@@ -101,7 +106,7 @@ _SCHEMA: dict[str, tuple] = {
     "training.gradient_accumulation_steps": (int, 1, 1024, True),
     "distortion.dream_strength": (float, 0.0, 1.0, True),
     "distortion.nightmare_strength": (float, 0.0, 1.0, True),
-    "compression.pruning_ratio": (float, 0.0, 1.0, True),
+    "compression.pruning_ratio": (float, 0.0, _MAX_PRUNING_RATIO, True),
     "compression.bottleneck_rank_ratio": (float, 0.01, 1.0, True),
     "seed": (int, 0, 2**31 - 1, True),
 }

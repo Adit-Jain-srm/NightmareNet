@@ -14,7 +14,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/Adit-Jain-srm/NightmareNet",
-    packages=find_packages(),
+    packages=find_packages(include=["nightmarenet*", "scripts*"]),
     python_requires=">=3.9",
     install_requires=requirements,
     classifiers=[

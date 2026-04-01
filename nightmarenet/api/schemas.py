@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from pydantic import BaseModel, Field
+
+StrengthFloat = Annotated[float, Field(ge=0.0, le=1.0)]
 
 
 class DistortionRequest(BaseModel):
@@ -40,9 +42,10 @@ class RobustnessRequest(BaseModel):
     """Request body for robustness evaluation endpoint."""
 
     text: str = Field(..., min_length=1, max_length=50000, description="Text to evaluate.")
-    strengths: list[float] = Field(
+    strengths: list[StrengthFloat] = Field(
         default=[0.1, 0.3, 0.5, 0.7, 0.9],
-        description="Distortion strengths to test at.",
+        min_length=1,
+        description="Distortion strengths to test at (each must be in [0, 1]).",
     )
 
 

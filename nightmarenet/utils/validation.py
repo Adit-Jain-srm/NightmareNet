@@ -1,7 +1,7 @@
 """Centralized input validation utilities for NightmareNet.
 
 Provides reusable validators for common parameter types used across the codebase.
-All validators raise ValueError with descriptive messages on failure.
+Validators raise descriptive ValueError or TypeError exceptions on failure.
 """
 
 from __future__ import annotations

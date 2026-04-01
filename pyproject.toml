@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "nightmarenet"
@@ -68,4 +68,4 @@ line-length = 100
 select = ["E", "F", "W", "I", "N", "UP", "B"]
 
 [tool.setuptools.packages.find]
-include = ["nightmarenet*"]
+include = ["nightmarenet*", "scripts"]

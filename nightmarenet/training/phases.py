@@ -48,7 +48,14 @@ class WakePhase:
         Returns:
             Dict with training metrics (avg_loss, total_steps).
         """
-        validate_positive_int(num_epochs, "num_epochs")
+        validate_positive_int(num_epochs, "num_epochs", allow_zero=True)
+        if num_epochs == 0:
+            logger.info("Wake Phase - Skipping training because num_epochs=0.")
+            return {
+                "phase": "wake",
+                "avg_loss": 0.0,
+                "total_steps": 0,
+            }
         self.model.train()
         total_loss = 0.0
         total_steps = 0
@@ -159,7 +166,15 @@ class DreamPhase:
         Returns:
             Dict with training metrics.
         """
-        validate_positive_int(num_epochs, "num_epochs")
+        validate_positive_int(num_epochs, "num_epochs", allow_zero=True)
+        if num_epochs == 0:
+            logger.info("Dream Phase - Skipping training because num_epochs=0.")
+            return {
+                "phase": "dream",
+                "avg_loss": 0.0,
+                "avg_kl_loss": 0.0,
+                "total_steps": 0,
+            }
         self.model.train()
         if self.reference_model is not None:
             self.reference_model.eval()
@@ -263,7 +278,14 @@ class NightmarePhase:
         Returns:
             Dict with training metrics.
         """
-        validate_positive_int(num_epochs, "num_epochs")
+        validate_positive_int(num_epochs, "num_epochs", allow_zero=True)
+        if num_epochs == 0:
+            logger.info("Nightmare Phase - Skipping training because num_epochs=0.")
+            return {
+                "phase": "nightmare",
+                "avg_loss": 0.0,
+                "total_steps": 0,
+            }
         self.model.train()
 
         # Increase learning rate for nightmare phase

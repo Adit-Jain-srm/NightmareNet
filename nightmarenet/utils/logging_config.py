@@ -69,5 +69,7 @@ def reset_logging() -> None:
     """Reset logging configuration (primarily for testing)."""
     global _INITIALIZED
     root_logger = logging.getLogger("nightmarenet")
-    root_logger.handlers.clear()
+    for handler in list(root_logger.handlers):
+        handler.close()
+        root_logger.removeHandler(handler)
     _INITIALIZED = False

@@ -1,8 +1,5 @@
 """Tests for dream and nightmare dataset generators."""
 
-import random
-
-import pytest
 from datasets import Dataset
 
 from nightmarenet.data.generator import (

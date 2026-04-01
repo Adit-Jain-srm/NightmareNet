@@ -193,6 +193,19 @@ class Evaluator:
         Returns:
             Markdown-formatted comparison report.
         """
+        def _fmt(val, signed: bool = False) -> str:
+            """Format a metric value: floats get .4f, others pass through."""
+            if isinstance(val, float):
+                return f"{val:+.4f}" if signed else f"{val:.4f}"
+            return str(val)
+
+        def _metric_ok(metric_data: dict) -> bool:
+            """Check a metric section has no errors in baseline or trained."""
+            return (
+                "error" not in metric_data.get("baseline", {})
+                and "error" not in metric_data.get("trained", {})
+            )
+
         lines = [
             "# NightmareNet Evaluation Report",
             "",
@@ -205,7 +218,7 @@ class Evaluator:
 
         metrics = comparison.get("metrics", {})
 
-        if "recall" in metrics and "error" not in metrics["recall"].get("baseline", {}) and "error" not in metrics["recall"].get("trained", {}):
+        if "recall" in metrics and _metric_ok(metrics["recall"]):
             r = metrics["recall"]
             lines.extend([
                 "### Recall",
@@ -218,13 +231,13 @@ class Evaluator:
                 tr = r.get("trained", {}).get(key, "N/A")
                 delta = r.get("deltas", {}).get(key, "N/A")
                 lines.append(
-                    f"| {key} | {bl:.4f if isinstance(bl, float) else bl} "
-                    f"| {tr:.4f if isinstance(tr, float) else tr} "
-                    f"| {delta:+.4f if isinstance(delta, float) else delta} |"
+                    f"| {key} | {_fmt(bl)} "
+                    f"| {_fmt(tr)} "
+                    f"| {_fmt(delta, signed=True)} |"
                 )
             lines.append("")
 
-        if "generalization" in metrics and "error" not in metrics["generalization"].get("baseline", {}) and "error" not in metrics["generalization"].get("trained", {}):
+        if "generalization" in metrics and _metric_ok(metrics["generalization"]):
             r = metrics["generalization"]
             lines.extend([
                 "### Generalization",
@@ -237,13 +250,13 @@ class Evaluator:
                 tr = r.get("trained", {}).get(key, "N/A")
                 delta = r.get("deltas", {}).get(key, "N/A")
                 lines.append(
-                    f"| {key} | {bl:.4f if isinstance(bl, float) else bl} "
-                    f"| {tr:.4f if isinstance(tr, float) else tr} "
-                    f"| {delta:+.4f if isinstance(delta, float) else delta} |"
+                    f"| {key} | {_fmt(bl)} "
+                    f"| {_fmt(tr)} "
+                    f"| {_fmt(delta, signed=True)} |"
                 )
             lines.append("")
 
-        if "robustness" in metrics and "error" not in metrics["robustness"].get("baseline", {}) and "error" not in metrics["robustness"].get("trained", {}):
+        if "robustness" in metrics and _metric_ok(metrics["robustness"]):
             r = metrics["robustness"]
             lines.extend([
                 "### Robustness",
@@ -255,13 +268,13 @@ class Evaluator:
             tr_auc = r.get("trained", {}).get("auc_robustness", "N/A")
             delta_auc = r.get("deltas", {}).get("auc_robustness", "N/A")
             lines.append(
-                f"| AUC Robustness | {bl_auc:.4f if isinstance(bl_auc, float) else bl_auc} "
-                f"| {tr_auc:.4f if isinstance(tr_auc, float) else tr_auc} "
-                f"| {delta_auc:+.4f if isinstance(delta_auc, float) else delta_auc} |"
+                f"| AUC Robustness | {_fmt(bl_auc)} "
+                f"| {_fmt(tr_auc)} "
+                f"| {_fmt(delta_auc, signed=True)} |"
             )
             lines.append("")
 
-        if "hallucination" in metrics and "error" not in metrics["hallucination"].get("baseline", {}) and "error" not in metrics["hallucination"].get("trained", {}):
+        if "hallucination" in metrics and _metric_ok(metrics["hallucination"]):
             r = metrics["hallucination"]
             lines.extend([
                 "### Hallucination",
@@ -274,9 +287,9 @@ class Evaluator:
                 tr = r.get("trained", {}).get(key, "N/A")
                 delta = r.get("deltas", {}).get(key, "N/A")
                 lines.append(
-                    f"| {key} | {bl:.4f if isinstance(bl, float) else bl} "
-                    f"| {tr:.4f if isinstance(tr, float) else tr} "
-                    f"| {delta:+.4f if isinstance(delta, float) else delta} |"
+                    f"| {key} | {_fmt(bl)} "
+                    f"| {_fmt(tr)} "
+                    f"| {_fmt(delta, signed=True)} |"
                 )
             lines.append("")
 
