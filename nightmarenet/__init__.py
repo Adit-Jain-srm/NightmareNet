@@ -1,3 +1,3 @@
-"""NightmareNet: A Sleep-Inspired Training Paradigm for AI."""
+"""NightmareNet: Autonomous AI Self-Improvement Platform."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

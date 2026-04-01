@@ -1,8 +1,8 @@
 # NightmareNet 🧠💤
 
-**A Sleep-Inspired Training Paradigm for AI**
+**Autonomous AI Self-Improvement Platform**
 
-> *"We give AI a sleep cycle—so it learns what to forget, not just what to remember."*
+> *"We're building the first platform where AI systems don't just learn—they continuously evolve through structured self-improvement cycles inspired by how humans dream and forget."*
 
 ---
 
@@ -15,6 +15,38 @@ NightmareNet is a biologically inspired training framework that introduces **dre
 - **Adversarial stress testing** (Nightmare Phase)
 
 This forces models to learn **invariant structures** rather than memorize patterns.
+
+### Platform Vision
+
+NightmareNet is evolving from a single-model training tool into a **multi-tenant SaaS platform** where organizations deploy AI systems that continuously learn, stress-test themselves, and improve via Dream + Nightmare cycles:
+
+```
+Users (Org A, B, C...)
+        │
+        ▼
+┌──────────────────────────────┐
+│     API Gateway (Auth)       │
+└────────────┬─────────────────┘
+             ▼
+┌──────────────────────────────┐
+│ Multi-Tenant Control Plane   │
+│ - User & project management  │
+│ - Pipeline orchestration     │
+└────────────┬─────────────────┘
+             ▼
+┌────────────────────────────────────────────┐
+│              Data Plane                    │
+│  ┌──────────────┐  ┌──────────────┐       │
+│  │ Dream Engine │  │ Nightmare    │       │
+│  │              │  │ Engine       │       │
+│  └──────┬───────┘  └──────┬───────┘       │
+│         ▼                  ▼              │
+│  ┌─────────────────────────────────────┐  │
+│  │ Self-Improvement Orchestrator       │  │
+│  │ (Evaluation + Feedback + Metrics)   │  │
+│  └─────────────────────────────────────┘  │
+└────────────────────────────────────────────┘
+```
 
 ## Architecture
 
@@ -60,11 +92,14 @@ This forces models to learn **invariant structures** rather than memorize patter
 git clone https://github.com/Adit-Jain-srm/NightmareNet.git
 cd NightmareNet
 
-# Install dependencies
-pip install -r requirements.txt
-
-# Install as editable package
+# Install core dependencies
 pip install -e .
+
+# Install with dev tools (pytest, ruff)
+pip install -e ".[dev]"
+
+# Install with API server support
+pip install -e ".[api]"
 ```
 
 ## Quick Start
@@ -86,6 +121,19 @@ python scripts/train.py --config configs/default.yaml
 ```bash
 python scripts/evaluate.py --checkpoint checkpoints/best_model --config configs/default.yaml
 ```
+
+### 4. Start the API Server
+
+```bash
+pip install -e ".[api]"
+uvicorn nightmarenet.api.app:app --host 0.0.0.0 --port 8000
+```
+
+API endpoints:
+- `POST /api/v1/generate/dream` — Generate dream-distorted text
+- `POST /api/v1/generate/nightmare` — Generate nightmare-distorted text
+- `POST /api/v1/evaluate/robustness` — Evaluate text robustness score
+- `GET /api/v1/health` — Health check
 
 ## Configuration
 
@@ -111,6 +159,8 @@ compression:
   pruning_ratio: 0.2
 ```
 
+Config loading uses schema validation with defaults merging—see `nightmarenet/utils/config.py`.
+
 ## Expected Outcomes
 
 | Metric | Baseline Model | DreamPhase Model |
@@ -125,14 +175,16 @@ compression:
 ```
 NightmareNet/
 ├── nightmarenet/          # Core library
+│   ├── api/               # FastAPI platform service
 │   ├── data/              # Dataset loading & generation
 │   ├── distortions/       # Text, semantic, adversarial distortions
 │   ├── training/          # Phase-based training pipeline
 │   ├── compression/       # Pruning & bottleneck utilities
-│   └── evaluation/        # Metrics & evaluation engine
+│   ├── evaluation/        # Metrics & evaluation engine
+│   └── utils/             # Validation, config, logging
 ├── configs/               # YAML configuration files
 ├── scripts/               # CLI entry points
-├── tests/                 # Unit tests
+├── tests/                 # Unit & edge-case tests (142 tests)
 ├── notebooks/             # Demo notebooks
 └── data/                  # Raw & generated datasets
 ```
@@ -140,8 +192,33 @@ NightmareNet/
 ## Running Tests
 
 ```bash
+# Run all tests
 python -m pytest tests/ -v
+
+# Run with coverage
+python -m pytest tests/ -v --cov=nightmarenet --cov-report=term-missing
 ```
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `ModuleNotFoundError: No module named 'nightmarenet'` | Run `pip install -e .` from the repo root |
+| `FileNotFoundError: Configuration file not found` | Verify the `--config` path exists; default is `configs/default.yaml` |
+| `ValueError: Configuration validation errors` | Check your YAML against the schema in `nightmarenet/utils/config.py` |
+| `CUDA out of memory` | Reduce `batch_size` or `max_length` in config, or set `device: cpu` |
+| `KeyError` on dataset columns | Ensure your dataset has the column specified in `dataset.text_column` |
+| Tests fail with import errors | Run `pip install -e ".[dev]"` to install test dependencies |
+
+## Production Hardening
+
+All modules include:
+- **Input validation** — strength, ratio, type, and range checks via `nightmarenet/utils/validation.py`
+- **Error isolation** — try/except with fallback behavior in distortion pipelines
+- **NaN/Inf guards** — loss checks during training phases
+- **Graceful shutdown** — SIGINT handling with checkpoint saves
+- **Structured logging** — configurable via `nightmarenet/utils/logging_config.py`
+- **Config schema validation** — type and range checks on all YAML fields
 
 ## License
 
