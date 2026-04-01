@@ -4,8 +4,15 @@ Each function accepts a `strength` float (0–1) controlling distortion intensit
 Low strength (0.2–0.3) is used for Dream phase; high strength (0.7–0.9) for Nightmare.
 """
 
+from __future__ import annotations
+
+import logging
 import random
 import string
+
+from nightmarenet.utils.validation import validate_strength
+
+logger = logging.getLogger(__name__)
 
 
 # Keyboard adjacency map for simulating typos
@@ -20,7 +27,7 @@ KEYBOARD_ADJACENT = {
 }
 
 
-def char_swap(text, strength=0.3):
+def char_swap(text, strength=0.3) -> str:
     """Randomly swap adjacent characters in the text.
 
     Args:
@@ -43,7 +50,7 @@ def char_swap(text, strength=0.3):
     return "".join(chars)
 
 
-def char_insert(text, strength=0.3):
+def char_insert(text, strength=0.3) -> str:
     """Randomly insert characters into the text.
 
     Args:
@@ -64,7 +71,7 @@ def char_insert(text, strength=0.3):
     return "".join(result)
 
 
-def char_delete(text, strength=0.3):
+def char_delete(text, strength=0.3) -> str:
     """Randomly delete characters from the text.
 
     Args:
@@ -79,7 +86,7 @@ def char_delete(text, strength=0.3):
     return "".join(ch for ch in text if random.random() > strength * 0.15)
 
 
-def keyboard_typo(text, strength=0.3):
+def keyboard_typo(text, strength=0.3) -> str:
     """Replace characters with keyboard-adjacent characters to simulate typos.
 
     Args:
@@ -100,7 +107,7 @@ def keyboard_typo(text, strength=0.3):
     return "".join(chars)
 
 
-def word_shuffle(text, strength=0.3, window_size=5):
+def word_shuffle(text, strength=0.3, window_size=5) -> str:
     """Shuffle words within a sliding window.
 
     Args:
@@ -130,7 +137,7 @@ def word_shuffle(text, strength=0.3, window_size=5):
     return " ".join(result)
 
 
-def token_mask(text, strength=0.3, mask_token="[MASK]"):
+def token_mask(text, strength=0.3, mask_token="[MASK]") -> str:
     """Replace random words with a mask token.
 
     Args:
@@ -149,7 +156,7 @@ def token_mask(text, strength=0.3, mask_token="[MASK]"):
     )
 
 
-def token_replace(text, strength=0.3, vocabulary=None):
+def token_replace(text, strength=0.3, vocabulary=None) -> str:
     """Replace random words with random vocabulary tokens.
 
     Args:
@@ -181,7 +188,7 @@ def token_replace(text, strength=0.3, vocabulary=None):
     )
 
 
-def apply_text_distortions(text, strength=0.3, config=None):
+def apply_text_distortions(text, strength=0.3, config=None) -> str:
     """Apply a combination of text-level distortions based on config weights.
 
     Args:
@@ -192,31 +199,37 @@ def apply_text_distortions(text, strength=0.3, config=None):
     Returns:
         Corrupted text after applying selected distortions.
     """
+    validate_strength(strength)
+
     if not text or not text.strip():
         return text
 
-    default_config = {
-        "char_swap": 0.3,
-        "char_insert": 0.2,
-        "char_delete": 0.2,
-        "keyboard_typo": 0.3,
-        "word_shuffle": 0.2,
-        "token_mask": 0.3,
-    }
-    config = config or default_config
+    try:
+        default_config = {
+            "char_swap": 0.3,
+            "char_insert": 0.2,
+            "char_delete": 0.2,
+            "keyboard_typo": 0.3,
+            "word_shuffle": 0.2,
+            "token_mask": 0.3,
+        }
+        config = config or default_config
 
-    distortion_funcs = {
-        "char_swap": char_swap,
-        "char_insert": char_insert,
-        "char_delete": char_delete,
-        "keyboard_typo": keyboard_typo,
-        "word_shuffle": word_shuffle,
-        "token_mask": token_mask,
-    }
+        distortion_funcs = {
+            "char_swap": char_swap,
+            "char_insert": char_insert,
+            "char_delete": char_delete,
+            "keyboard_typo": keyboard_typo,
+            "word_shuffle": word_shuffle,
+            "token_mask": token_mask,
+        }
 
-    result = text
-    for name, prob in config.items():
-        if name in distortion_funcs and random.random() < prob:
-            result = distortion_funcs[name](result, strength=strength)
+        result = text
+        for name, prob in config.items():
+            if name in distortion_funcs and random.random() < prob:
+                result = distortion_funcs[name](result, strength=strength)
 
-    return result
+        return result
+    except Exception:
+        logger.warning("Text distortion failed; returning original text", exc_info=True)
+        return text

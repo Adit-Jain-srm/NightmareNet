@@ -5,7 +5,14 @@ prompts, and deliberately misleading context. Each function accepts a
 `strength` float (0–1).
 """
 
+from __future__ import annotations
+
+import logging
 import random
+
+from nightmarenet.utils.validation import validate_strength
+
+logger = logging.getLogger(__name__)
 
 
 # Templates for contradictory premises
@@ -73,7 +80,7 @@ MISLEADING_PREFIXES = [
 ]
 
 
-def inject_contradiction(text, strength=0.3):
+def inject_contradiction(text, strength=0.3) -> str:
     """Inject contradictory premises into the text.
 
     Args:
@@ -118,7 +125,7 @@ def inject_contradiction(text, strength=0.3):
     return ". ".join(result)
 
 
-def inject_ambiguity(text, strength=0.3):
+def inject_ambiguity(text, strength=0.3) -> str:
     """Wrap text in ambiguous framing to create under-specified queries.
 
     Args:
@@ -146,7 +153,7 @@ def inject_ambiguity(text, strength=0.3):
     return template.format(phrase=phrase, text=text.strip())
 
 
-def cross_domain_splice(text, strength=0.3, source_domain=None, target_domain=None):
+def cross_domain_splice(text, strength=0.3, source_domain=None, target_domain=None) -> str:
     """Reframe text through the lens of an unrelated domain.
 
     E.g., a medical question framed with legal terminology.
@@ -190,7 +197,7 @@ def cross_domain_splice(text, strength=0.3, source_domain=None, target_domain=No
     return ". ".join(result)
 
 
-def inject_misleading_context(text, strength=0.3):
+def inject_misleading_context(text, strength=0.3) -> str:
     """Prepend deliberately misleading context to the text.
 
     Args:
@@ -222,7 +229,7 @@ def inject_misleading_context(text, strength=0.3):
     return ". ".join(result)
 
 
-def construct_adversarial_prompt(text, strength=0.3):
+def construct_adversarial_prompt(text, strength=0.3) -> str:
     """Create a structured adversarial prompt with misleading instructions.
 
     Combines multiple adversarial techniques into a single challenging prompt.
@@ -260,7 +267,7 @@ def construct_adversarial_prompt(text, strength=0.3):
     return " ".join(components)
 
 
-def apply_adversarial_distortions(text, strength=0.3, config=None):
+def apply_adversarial_distortions(text, strength=0.3, config=None) -> str:
     """Apply a combination of adversarial distortions based on config weights.
 
     Args:
@@ -271,27 +278,33 @@ def apply_adversarial_distortions(text, strength=0.3, config=None):
     Returns:
         Adversarially distorted text.
     """
+    validate_strength(strength)
+
     if not text or not text.strip():
         return text
 
-    default_config = {
-        "contradiction": 0.3,
-        "ambiguity": 0.3,
-        "cross_domain": 0.2,
-        "misleading_context": 0.2,
-    }
-    config = config or default_config
+    try:
+        default_config = {
+            "contradiction": 0.3,
+            "ambiguity": 0.3,
+            "cross_domain": 0.2,
+            "misleading_context": 0.2,
+        }
+        config = config or default_config
 
-    distortion_funcs = {
-        "contradiction": inject_contradiction,
-        "ambiguity": inject_ambiguity,
-        "cross_domain": cross_domain_splice,
-        "misleading_context": inject_misleading_context,
-    }
+        distortion_funcs = {
+            "contradiction": inject_contradiction,
+            "ambiguity": inject_ambiguity,
+            "cross_domain": cross_domain_splice,
+            "misleading_context": inject_misleading_context,
+        }
 
-    result = text
-    for name, prob in config.items():
-        if name in distortion_funcs and random.random() < prob:
-            result = distortion_funcs[name](result, strength=strength)
+        result = text
+        for name, prob in config.items():
+            if name in distortion_funcs and random.random() < prob:
+                result = distortion_funcs[name](result, strength=strength)
 
-    return result
+        return result
+    except Exception:
+        logger.warning("Adversarial distortion failed; returning original text", exc_info=True)
+        return text

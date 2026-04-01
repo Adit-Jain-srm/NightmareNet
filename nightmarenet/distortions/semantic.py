@@ -4,7 +4,14 @@ Meaning-level distortions that alter the semantics of text rather than just
 surface characters. Each function accepts a `strength` float (0–1).
 """
 
+from __future__ import annotations
+
+import logging
 import random
+
+from nightmarenet.utils.validation import validate_strength
+
+logger = logging.getLogger(__name__)
 
 
 # Simple synonym dictionary for lightweight synonym replacement
@@ -81,7 +88,7 @@ DOMAIN_FRAGMENTS = {
 }
 
 
-def synonym_replace(text, strength=0.3):
+def synonym_replace(text, strength=0.3) -> str:
     """Replace words with their synonyms based on a lightweight dictionary.
 
     Args:
@@ -120,7 +127,7 @@ def synonym_replace(text, strength=0.3):
     return " ".join(result)
 
 
-def negation_inject(text, strength=0.3):
+def negation_inject(text, strength=0.3) -> str:
     """Inject negation words into sentences to flip their meaning.
 
     Args:
@@ -168,7 +175,7 @@ def negation_inject(text, strength=0.3):
     return ". ".join(result)
 
 
-def topic_splice(text, strength=0.3, domains=None):
+def topic_splice(text, strength=0.3, domains=None) -> str:
     """Splice in sentences from unrelated domains to create out-of-distribution noise.
 
     Args:
@@ -200,7 +207,7 @@ def topic_splice(text, strength=0.3, domains=None):
     return ". ".join(result)
 
 
-def entity_swap(text, strength=0.3):
+def entity_swap(text, strength=0.3) -> str:
     """Swap named entities or key nouns between sentences.
 
     A lightweight approximation: swaps capitalized words between sentences.
@@ -264,7 +271,7 @@ def entity_swap(text, strength=0.3):
     return ". ".join(sentences)
 
 
-def apply_semantic_distortions(text, strength=0.3, config=None):
+def apply_semantic_distortions(text, strength=0.3, config=None) -> str:
     """Apply a combination of semantic-level distortions based on config weights.
 
     Args:
@@ -275,26 +282,32 @@ def apply_semantic_distortions(text, strength=0.3, config=None):
     Returns:
         Semantically distorted text.
     """
+    validate_strength(strength)
+
     if not text or not text.strip():
         return text
 
-    default_config = {
-        "synonym_replace": 0.4,
-        "negation_inject": 0.3,
-        "topic_splice": 0.3,
-    }
-    config = config or default_config
+    try:
+        default_config = {
+            "synonym_replace": 0.4,
+            "negation_inject": 0.3,
+            "topic_splice": 0.3,
+        }
+        config = config or default_config
 
-    distortion_funcs = {
-        "synonym_replace": synonym_replace,
-        "negation_inject": negation_inject,
-        "topic_splice": topic_splice,
-        "entity_swap": entity_swap,
-    }
+        distortion_funcs = {
+            "synonym_replace": synonym_replace,
+            "negation_inject": negation_inject,
+            "topic_splice": topic_splice,
+            "entity_swap": entity_swap,
+        }
 
-    result = text
-    for name, prob in config.items():
-        if name in distortion_funcs and random.random() < prob:
-            result = distortion_funcs[name](result, strength=strength)
+        result = text
+        for name, prob in config.items():
+            if name in distortion_funcs and random.random() < prob:
+                result = distortion_funcs[name](result, strength=strength)
 
-    return result
+        return result
+    except Exception:
+        logger.warning("Semantic distortion failed; returning original text", exc_info=True)
+        return text
