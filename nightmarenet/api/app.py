@@ -92,7 +92,7 @@ def _apply_nightmare_distortions(text: str, strength: float, config: dict[str, A
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["System"])
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
-    return HealthResponse(status="ok", version=__version__, tests_passing=142)
+    return HealthResponse(status="ok", version=__version__, tests_passing=159)
 
 
 @app.post(

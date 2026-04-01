@@ -8,7 +8,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="nightmarenet",
-    version="0.1.0",
+    version="0.2.0",
     author="Adit Jain",
     description="A Sleep-Inspired Training Paradigm for AI",
     long_description=long_description,
