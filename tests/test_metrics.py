@@ -83,14 +83,15 @@ class TestBottleneckWrapper:
     def test_wraps_linear_layer(self):
         original = nn.Linear(32, 64)
         wrapper = BottleneckWrapper(original, rank_ratio=0.5)
-        assert wrapper.hidden_dim == 64
-        assert wrapper.bottleneck_dim == 32
+        # _infer_hidden_dim gets the last dim of the weight matrix [64, 32] → 32
+        assert wrapper.hidden_dim == 32
+        assert wrapper.bottleneck_dim == 16
 
     def test_forward_pass(self):
         original = nn.Linear(32, 64)
         wrapper = BottleneckWrapper(original, rank_ratio=0.5)
-        x = torch.randn(2, 10, 64)
-        # This will pass through down_project → up_project → original
+        # Input dim matches hidden_dim (32), output goes through original (32→64)
+        x = torch.randn(2, 10, 32)
         output = wrapper(x)
         assert output.shape == (2, 10, 64)
 
