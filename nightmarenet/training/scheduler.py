@@ -121,6 +121,7 @@ class AdaptiveScheduler:
         base_scheduler: A CyclicScheduler instance to adapt.
         patience: Number of phases without improvement before adjusting.
         adjustment_factor: Factor to increase/decrease epochs by.
+        max_epochs: Maximum epoch count to cap unbounded growth during adaptation.
     """
 
     def __init__(
