@@ -4,10 +4,17 @@ Wraps HuggingFace `datasets` to provide a unified interface for loading text
 datasets and returning raw, dream, and nightmare splits.
 """
 
+from __future__ import annotations
+
 import logging
 from typing import Optional
 
 from datasets import Dataset, load_dataset
+
+from nightmarenet.utils.validation import (
+    validate_dataset_columns,
+    validate_positive_int,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +50,15 @@ class DatasetWrapper:
         self._train_dataset = None
         self._test_dataset = None
 
-    def load(self):
+    def load(self) -> DatasetWrapper:
         """Load the dataset from HuggingFace Hub.
 
         Returns:
             self for chaining.
         """
+        if self.max_samples is not None:
+            validate_positive_int(self.max_samples, "max_samples")
+
         logger.info(
             "Loading dataset '%s' (subset=%s)", self.dataset_name, self.subset
         )
@@ -57,7 +67,13 @@ class DatasetWrapper:
         if self.subset:
             kwargs["name"] = self.subset
 
-        raw = load_dataset(**kwargs)
+        try:
+            raw = load_dataset(**kwargs)
+        except Exception as exc:
+            raise RuntimeError(
+                f"Failed to load dataset '{self.dataset_name}' "
+                f"(subset={self.subset}): {exc}"
+            ) from exc
 
         # Get train and test splits
         if "train" in raw:
@@ -85,13 +101,36 @@ class DatasetWrapper:
             self._test_dataset = split["test"]
             logger.info("Created test split from training data (10%%).")
 
+        # Validate that the text column exists
+        validate_dataset_columns(self._train_dataset, [self.text_column])
+        validate_dataset_columns(self._test_dataset, [self.text_column])
+
         # Filter out empty texts
+        train_count_before = len(self._train_dataset)
+        test_count_before = len(self._test_dataset)
         self._train_dataset = self._train_dataset.filter(
             lambda x: bool(x[self.text_column] and x[self.text_column].strip())
         )
         self._test_dataset = self._test_dataset.filter(
             lambda x: bool(x[self.text_column] and x[self.text_column].strip())
         )
+
+        train_filtered = train_count_before - len(self._train_dataset)
+        test_filtered = test_count_before - len(self._test_dataset)
+        if train_count_before > 0 and train_filtered > train_count_before * 0.5:
+            logger.warning(
+                "More than 50%% of training data was filtered as empty "
+                "(%d of %d samples removed).",
+                train_filtered,
+                train_count_before,
+            )
+        if test_count_before > 0 and test_filtered > test_count_before * 0.5:
+            logger.warning(
+                "More than 50%% of test data was filtered as empty "
+                "(%d of %d samples removed).",
+                test_filtered,
+                test_count_before,
+            )
 
         # Limit samples if requested
         if self.max_samples is not None:
@@ -125,7 +164,7 @@ class DatasetWrapper:
             raise RuntimeError("Dataset not loaded. Call .load() first.")
         return self._test_dataset
 
-    def get_texts(self, split: str = "train"):
+    def get_texts(self, split: str = "train") -> list[str]:
         """Return a list of text strings from the specified split.
 
         Args:

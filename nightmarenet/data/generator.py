@@ -4,6 +4,8 @@ Applies distortions to a base dataset to produce dream (mildly distorted)
 and nightmare (extremely perturbed) training splits.
 """
 
+from __future__ import annotations
+
 import logging
 import os
 from typing import Optional
@@ -13,6 +15,11 @@ from datasets import Dataset
 from nightmarenet.distortions.adversarial import apply_adversarial_distortions
 from nightmarenet.distortions.semantic import apply_semantic_distortions
 from nightmarenet.distortions.text import apply_text_distortions
+from nightmarenet.utils.validation import (
+    validate_dataset_columns,
+    validate_non_empty_dataset,
+    validate_strength,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,12 +44,12 @@ class DreamDatasetGenerator:
         config: Optional[dict] = None,
         seed: int = 42,
     ):
-        self.strength = strength
+        self.strength = validate_strength(strength, "strength")
         self.text_column = text_column
         self.config = config or {}
         self.seed = seed
 
-    def _distort(self, example):
+    def _distort(self, example: dict) -> dict:
         """Apply dream-level distortions to a single example."""
         text = example[self.text_column]
         if not text or not text.strip():
@@ -73,18 +80,30 @@ class DreamDatasetGenerator:
 
         random.seed(self.seed)
 
+        validate_dataset_columns(dataset, [self.text_column])
+        validate_non_empty_dataset(dataset, "dataset")
+
         logger.info(
             "Generating dream data (strength=%.2f) from %d samples...",
             self.strength,
             len(dataset),
         )
 
+        original_texts = dataset[self.text_column]
+
         dream_data = dataset.map(
             self._distort,
             desc="Generating dream data",
         )
 
-        logger.info("Dream data generation complete. %d samples produced.", len(dream_data))
+        modified_count = sum(
+            1 for o, g in zip(original_texts, dream_data[self.text_column]) if o != g
+        )
+        logger.info(
+            "Dream data generation complete. %d samples produced, %d texts modified.",
+            len(dream_data),
+            modified_count,
+        )
         return dream_data
 
     def generate_and_save(self, dataset: Dataset, output_dir: str) -> Dataset:
@@ -99,8 +118,13 @@ class DreamDatasetGenerator:
         """
         dream_data = self.generate(dataset)
         save_path = os.path.join(output_dir, "dream")
-        os.makedirs(save_path, exist_ok=True)
-        dream_data.save_to_disk(save_path)
+        try:
+            os.makedirs(save_path, exist_ok=True)
+            dream_data.save_to_disk(save_path)
+        except OSError as exc:
+            raise OSError(
+                f"Failed to save dream data to '{save_path}': {exc}"
+            ) from exc
         logger.info("Dream data saved to %s", save_path)
         return dream_data
 
@@ -125,12 +149,12 @@ class NightmareDatasetGenerator:
         config: Optional[dict] = None,
         seed: int = 42,
     ):
-        self.strength = strength
+        self.strength = validate_strength(strength, "strength")
         self.text_column = text_column
         self.config = config or {}
         self.seed = seed
 
-    def _distort(self, example):
+    def _distort(self, example: dict) -> dict:
         """Apply nightmare-level distortions to a single example."""
         text = example[self.text_column]
         if not text or not text.strip():
@@ -167,20 +191,29 @@ class NightmareDatasetGenerator:
 
         random.seed(self.seed)
 
+        validate_dataset_columns(dataset, [self.text_column])
+        validate_non_empty_dataset(dataset, "dataset")
+
         logger.info(
             "Generating nightmare data (strength=%.2f) from %d samples...",
             self.strength,
             len(dataset),
         )
 
+        original_texts = dataset[self.text_column]
+
         nightmare_data = dataset.map(
             self._distort,
             desc="Generating nightmare data",
         )
 
+        modified_count = sum(
+            1 for o, g in zip(original_texts, nightmare_data[self.text_column]) if o != g
+        )
         logger.info(
-            "Nightmare data generation complete. %d samples produced.",
+            "Nightmare data generation complete. %d samples produced, %d texts modified.",
             len(nightmare_data),
+            modified_count,
         )
         return nightmare_data
 
@@ -196,13 +229,18 @@ class NightmareDatasetGenerator:
         """
         nightmare_data = self.generate(dataset)
         save_path = os.path.join(output_dir, "nightmare")
-        os.makedirs(save_path, exist_ok=True)
-        nightmare_data.save_to_disk(save_path)
+        try:
+            os.makedirs(save_path, exist_ok=True)
+            nightmare_data.save_to_disk(save_path)
+        except OSError as exc:
+            raise OSError(
+                f"Failed to save nightmare data to '{save_path}': {exc}"
+            ) from exc
         logger.info("Nightmare data saved to %s", save_path)
         return nightmare_data
 
 
-def create_generators_from_config(config: dict):
+def create_generators_from_config(config: dict) -> tuple[DreamDatasetGenerator, NightmareDatasetGenerator]:
     """Create dream and nightmare generators from a config dictionary.
 
     Args:
