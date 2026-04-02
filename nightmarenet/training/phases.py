@@ -11,7 +11,7 @@ import math
 from typing import Optional, Union
 
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -30,7 +30,14 @@ class WakePhase:
         device: Device to train on.
     """
 
-    def __init__(self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, config: dict, device: Union[str, torch.device] = "cpu", scaler: Optional[torch.amp.GradScaler] = None) -> None:
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        device: Union[str, torch.device] = "cpu",
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
@@ -154,7 +161,11 @@ class DreamPhase:
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
 
-    def _compute_kl_loss(self, logits: torch.Tensor, batch: dict[str, torch.Tensor]) -> Union[torch.Tensor, float]:
+    def _compute_kl_loss(
+        self,
+        logits: torch.Tensor,
+        batch: dict[str, torch.Tensor],
+    ) -> Union[torch.Tensor, float]:
         """Compute KL divergence between current and reference model outputs."""
         if self.reference_model is None:
             return 0.0
@@ -283,7 +294,15 @@ class NightmarePhase:
         lr_multiplier: Factor to multiply the learning rate by during this phase.
     """
 
-    def __init__(self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, config: dict, device: Union[str, torch.device] = "cpu", lr_multiplier: float = 2.0, scaler: Optional[torch.amp.GradScaler] = None) -> None:
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        device: Union[str, torch.device] = "cpu",
+        lr_multiplier: float = 2.0,
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
@@ -419,7 +438,13 @@ class CompressionPhase:
         device: Device to use.
     """
 
-    def __init__(self, model: torch.nn.Module, config: dict, device: Union[str, torch.device] = "cpu", scaler: Optional[torch.amp.GradScaler] = None) -> None:
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        config: dict,
+        device: Union[str, torch.device] = "cpu",
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.config = config
         self.device = device

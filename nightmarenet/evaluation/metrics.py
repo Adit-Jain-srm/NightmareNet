@@ -196,8 +196,8 @@ def robustness_score(
     for strength in strengths:
         # Apply distortion at this strength
         distorted = base_dataset.map(
-            lambda x: {
-                text_column: distortion_fn(x[text_column], strength=strength)
+            lambda x, _s=strength: {
+                text_column: distortion_fn(x[text_column], strength=_s)
             },
             desc=f"Distorting at strength {strength:.1f}",
         )

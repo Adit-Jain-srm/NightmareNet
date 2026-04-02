@@ -14,6 +14,7 @@ from typing import Any, Optional
 
 from torch.utils.data import DataLoader
 
+from nightmarenet.evaluation.glue import evaluate_glue
 from nightmarenet.evaluation.metrics import (
     classification_metrics,
     generalization_score,
@@ -21,7 +22,6 @@ from nightmarenet.evaluation.metrics import (
     recall_score,
     robustness_score,
 )
-from nightmarenet.evaluation.glue import evaluate_glue
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,16 @@ class Evaluator:
         )
         self.output_dir = self.eval_config.get("output_dir", "results")
         os.makedirs(self.output_dir, exist_ok=True)
+
+    def _log_eval(self, prefix: str, metrics: dict) -> None:
+        """Log evaluation metrics to the experiment tracker."""
+        if self.tracker is None:
+            return
+        self.tracker.log_metrics({
+            f"eval/{k}": v
+            for k, v in metrics.items()
+            if isinstance(v, (int, float))
+        })
 
     def evaluate(
         self,
@@ -78,7 +88,9 @@ class Evaluator:
                     self.model, clean_dataloader, self.tokenizer, self.device
                 )
                 if self.tracker:
-                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["recall"].items() if isinstance(v, (int, float))})
+                    self._log_eval(
+                        "recall", results["recall"]
+                    )
             except Exception as e:
                 logger.error("Failed to compute recall: %s", e)
                 results["recall"] = {"error": str(e)}
@@ -90,7 +102,10 @@ class Evaluator:
                     self.model, ood_dataloader, clean_dataloader, self.device
                 )
                 if self.tracker:
-                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["generalization"].items() if isinstance(v, (int, float))})
+                    self._log_eval(
+                        "generalization",
+                        results["generalization"],
+                    )
             except Exception as e:
                 logger.error("Failed to compute generalization: %s", e)
                 results["generalization"] = {"error": str(e)}
@@ -120,7 +135,10 @@ class Evaluator:
                     device=self.device,
                 )
                 if self.tracker:
-                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["robustness"].items() if isinstance(v, (int, float))})
+                    self._log_eval(
+                        "robustness",
+                        results["robustness"],
+                    )
             except Exception as e:
                 logger.error("Failed to compute robustness: %s", e)
                 results["robustness"] = {"error": str(e)}
@@ -132,7 +150,10 @@ class Evaluator:
                     self.model, clean_dataloader, self.tokenizer, self.device
                 )
                 if self.tracker:
-                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["hallucination"].items() if isinstance(v, (int, float))})
+                    self._log_eval(
+                        "hallucination",
+                        results["hallucination"],
+                    )
             except Exception as e:
                 logger.error("Failed to compute hallucination: %s", e)
                 results["hallucination"] = {"error": str(e)}
@@ -144,7 +165,10 @@ class Evaluator:
                     self.model, clean_dataloader, self.device
                 )
                 if self.tracker:
-                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["classification"].items() if isinstance(v, (int, float))})
+                    self._log_eval(
+                        "classification",
+                        results["classification"],
+                    )
             except Exception as e:
                 logger.error("Failed to compute classification: %s", e)
                 results["classification"] = {"error": str(e)}

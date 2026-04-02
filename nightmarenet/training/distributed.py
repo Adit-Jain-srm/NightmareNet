@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 logger = logging.getLogger(__name__)
 
 _ACCELERATE_AVAILABLE: bool = False
+Accelerator: Any = None
 try:
     from accelerate import Accelerator  # type: ignore[import-untyped]
 

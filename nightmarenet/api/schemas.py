@@ -62,7 +62,7 @@ class HealthResponse(BaseModel):
 
     status: str = "ok"
     version: str
-    tests_passing: int
+    tests_passing: Optional[int] = None
 
 
 class ErrorResponse(BaseModel):

@@ -103,7 +103,10 @@ def inject_contradiction(text, strength=0.3) -> str:
             negated_words = list(words)
 
             # Simple negation: insert "not" or flip key words
-            negation_targets = {"is", "are", "was", "were", "will", "can", "has", "have", "does", "do"}
+            negation_targets = {
+                "is", "are", "was", "were",
+                "will", "can", "has", "have", "does", "do",
+            }
             inserted = False
             for i, w in enumerate(negated_words):
                 if w.lower() in negation_targets and i + 1 < len(negated_words):
@@ -257,7 +260,9 @@ def construct_adversarial_prompt(text, strength=0.3) -> str:
         sentences = text.split(". ")
         if sentences and len(sentences[0].split()) > 3:
             components.append(
-                f"Note: The above may be incorrect. Consider that {sentences[0].strip().lower()}... or perhaps not."
+                f"Note: The above may be incorrect."
+                f" Consider that {sentences[0].strip().lower()}"
+                "... or perhaps not."
             )
 
     # Add ambiguous question

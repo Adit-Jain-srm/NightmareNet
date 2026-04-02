@@ -195,7 +195,7 @@ def validate_config(config: dict) -> list[str]:
             continue
 
         # Type check (allow int for float fields)
-        if expected_type == float and isinstance(value, int):
+        if expected_type is float and isinstance(value, int):
             value = float(value)
         elif not isinstance(value, expected_type):
             errors.append(
@@ -239,7 +239,7 @@ def load_config(path: str) -> dict:
 
     logger.info("Loading configuration from %s", path)
 
-    with open(path, "r") as f:
+    with open(path) as f:
         user_config = yaml.safe_load(f)
 
     if user_config is None:
@@ -247,7 +247,10 @@ def load_config(path: str) -> dict:
         user_config = {}
 
     if not isinstance(user_config, dict):
-        raise ValueError(f"Config file must contain a YAML mapping, got {type(user_config).__name__}")
+        raise ValueError(
+            f"Config file must contain a YAML mapping,"
+            f" got {type(user_config).__name__}"
+        )
 
     # Merge with defaults
     config = _deep_merge(DEFAULT_CONFIG, user_config)

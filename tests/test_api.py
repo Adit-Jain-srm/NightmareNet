@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-import os
-
 import pytest
 
 # Only run if fastapi is installed
 fastapi = pytest.importorskip("fastapi")
 httpx = pytest.importorskip("httpx")
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from nightmarenet.api.app import app
+from nightmarenet.api.app import app  # noqa: E402
 
 client = TestClient(app)
 
@@ -99,7 +97,10 @@ class TestNightmareEndpoint:
         response = client.post(
             "/api/v1/generate/nightmare",
             json={
-                "text": "Machine learning is a subset of artificial intelligence. It allows computers to learn from data.",
+                "text": (
+                    "Machine learning is a subset of artificial intelligence."
+                    " It allows computers to learn from data."
+                ),
                 "strength": 0.8,
             },
         )
@@ -155,7 +156,10 @@ class TestRobustnessEndpoint:
         response = client.post(
             "/api/v1/evaluate/robustness",
             json={
-                "text": "A fairly long sentence that should show degradation at higher strengths clearly.",
+                "text": (
+                    "A fairly long sentence that should"
+                    " show degradation at higher strengths clearly."
+                ),
                 "strengths": [0.0, 0.5, 1.0],
             },
         )
@@ -196,8 +200,9 @@ class TestAuthentication:
     def test_health_bypasses_auth(self, monkeypatch):
         """Health endpoint should always be accessible, even with auth enabled."""
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
-        from nightmarenet.api import app as app_module
         import importlib
+
+        from nightmarenet.api import app as app_module
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
         auth_client = TestClient(reloaded_app)
@@ -220,6 +225,7 @@ class TestAuthentication:
         """Requests with correct key should succeed."""
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
+
         from nightmarenet.api import app as app_module
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
@@ -237,6 +243,7 @@ class TestAuthentication:
         """Requests with wrong key should get 401."""
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
+
         from nightmarenet.api import app as app_module
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
@@ -255,6 +262,7 @@ class TestAuthentication:
         """Requests without key header should get 401 when auth is enabled."""
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
+
         from nightmarenet.api import app as app_module
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app

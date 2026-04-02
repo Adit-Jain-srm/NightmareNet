@@ -6,7 +6,8 @@ Controls the sequence and timing of Wake → Dream → Nightmare → Compress cy
 from __future__ import annotations
 
 import logging
-from typing import Iterator, Optional, Union
+from collections.abc import Iterator
+from typing import Optional, Union
 
 from nightmarenet.utils.validation import validate_positive_int
 

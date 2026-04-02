@@ -270,7 +270,9 @@ class NightmareDatasetGenerator:
         return nightmare_data
 
 
-def create_generators_from_config(config: dict) -> tuple[DreamDatasetGenerator, NightmareDatasetGenerator]:
+def create_generators_from_config(
+    config: dict,
+) -> tuple[DreamDatasetGenerator, NightmareDatasetGenerator]:
     """Create dream and nightmare generators from a config dictionary.
 
     Args:

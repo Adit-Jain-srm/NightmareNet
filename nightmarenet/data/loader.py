@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from datasets import Dataset, IterableDataset, load_dataset
+from datasets import IterableDataset, load_dataset
 
 from nightmarenet.utils.validation import (
     validate_dataset_columns,

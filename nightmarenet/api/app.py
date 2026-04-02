@@ -22,6 +22,7 @@ try:
     from fastapi.middleware.cors import CORSMiddleware
     from slowapi import Limiter
     from slowapi.errors import RateLimitExceeded
+    from slowapi.middleware import SlowAPIMiddleware
     from slowapi.util import get_remote_address
 
     from nightmarenet.api.auth import APIKeyMiddleware
@@ -33,14 +34,16 @@ try:
         RobustnessRequest,
         RobustnessResponse,
     )
+    from nightmarenet.distortions.adversarial import apply_adversarial_distortions
+    from nightmarenet.distortions.semantic import apply_semantic_distortions
+    from nightmarenet.distortions.text import apply_text_distortions
 except ImportError as e:
     raise ImportError(
         "FastAPI dependencies not installed. Install with: pip install nightmarenet[api]"
     ) from e
 
-from nightmarenet.distortions.adversarial import apply_adversarial_distortions
-from nightmarenet.distortions.semantic import apply_semantic_distortions
-from nightmarenet.distortions.text import apply_text_distortions
+_DISTORTION_BODY = Body(...)
+_ROBUSTNESS_BODY = Body(...)
 
 app = FastAPI(
     title="NightmareNet API",
@@ -53,6 +56,7 @@ app = FastAPI(
 # --- Rate limiting ---
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
 
 
 @app.exception_handler(RateLimitExceeded)
@@ -69,7 +73,11 @@ async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
 app.add_middleware(APIKeyMiddleware)
 
 # --- CORS ---
-_cors_origins = os.environ.get("NIGHTMARENET_CORS_ORIGINS", "*").split(",")
+_cors_origins = [
+    o.strip()
+    for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "*").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
@@ -150,17 +158,25 @@ def _char_similarity(a: str, b: str) -> float:
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["System"])
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
-    return HealthResponse(status="ok", version=__version__, tests_passing=159)
+    return HealthResponse(
+        status="ok", version=__version__
+    )
 
 
 @app.post(
     "/api/v1/generate/dream",
     response_model=DistortionResponse,
-    responses={400: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
     tags=["Distortion"],
 )
 @limiter.limit("60/minute")
-async def generate_dream(request: Request, body: DistortionRequest = Body(...)) -> DistortionResponse:
+async def generate_dream(
+    request: Request, body: DistortionRequest = _DISTORTION_BODY
+) -> DistortionResponse:
     """Generate dream-distorted text with mild perturbations.
 
     Dream distortions use text-level and semantic-level transformations
@@ -183,23 +199,29 @@ async def generate_dream(request: Request, body: DistortionRequest = Body(...)) 
             seed=body.seed,
         )
     except (TypeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.exception("Dream generation failed: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Internal error during dream generation",
-        )
+        ) from None
 
 
 @app.post(
     "/api/v1/generate/nightmare",
     response_model=DistortionResponse,
-    responses={400: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
     tags=["Distortion"],
 )
 @limiter.limit("60/minute")
-async def generate_nightmare(request: Request, body: DistortionRequest = Body(...)) -> DistortionResponse:
+async def generate_nightmare(
+    request: Request, body: DistortionRequest = _DISTORTION_BODY
+) -> DistortionResponse:
     """Generate nightmare-distorted text with aggressive perturbations.
 
     Nightmare distortions apply text-level, semantic-level, AND adversarial
@@ -222,23 +244,29 @@ async def generate_nightmare(request: Request, body: DistortionRequest = Body(..
             seed=body.seed,
         )
     except (TypeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.exception("Nightmare generation failed: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Internal error during nightmare generation",
-        )
+        ) from None
 
 
 @app.post(
     "/api/v1/evaluate/robustness",
     response_model=RobustnessResponse,
-    responses={400: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
     tags=["Evaluation"],
 )
 @limiter.limit("10/minute")
-async def evaluate_robustness(request: Request, body: RobustnessRequest = Body(...)) -> RobustnessResponse:
+async def evaluate_robustness(
+    request: Request, body: RobustnessRequest = _ROBUSTNESS_BODY
+) -> RobustnessResponse:
     """Evaluate text robustness across multiple distortion strengths.
 
     Applies dream and nightmare distortions at each specified strength level
@@ -294,10 +322,10 @@ async def evaluate_robustness(request: Request, body: RobustnessRequest = Body(.
             summary=summary,
         )
     except (TypeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.exception("Robustness evaluation failed: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Internal error during robustness evaluation",
-        )
+        ) from None

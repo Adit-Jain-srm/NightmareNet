@@ -22,6 +22,37 @@ All 3 phases implemented and verified. 169 tests passing.
 
 ---
 
+## Phase 5: PR Review Hardening (current)
+- [x] Fix SlowAPIMiddleware not registered (rate limiting was a no-op)
+- [x] Fix CORS origins not stripped of whitespace
+- [x] Remove hardcoded `tests_passing=159` from health endpoint
+- [x] Fix DDP save races: tokenizer + history gated behind main process
+- [x] Gate tracker creation behind `dist_ctx.is_main_process`
+- [x] Fix 22+ Ruff line-length violations across 8 files
+- [x] Add `test_integration.py` — end-to-end pipeline tests
+- [x] Update documentation (overview, lessons, todo)
+
+## Phase 6: Full Lint Cleanup
+- [x] Move ruff `select` to `lint.select` (fix deprecated config warning)
+- [x] Ignore UP007/UP045 in ruff config (incompatible with Python 3.9 target)
+- [x] Fix I001: import sorting across all files (auto-fixed)
+- [x] Fix F401: remove unused imports (Dataset, CyclicScheduler, Optional, os, pytest)
+- [x] Fix B904: add `from e`/`from None` to all `raise` in except blocks (app.py)
+- [x] Fix E402: move distortion imports inside try/except block (app.py)
+- [x] Fix B008: move `Body(...)` to module-level singletons (app.py)
+- [x] Fix B023: bind loop variable in lambda via default arg (metrics.py)
+- [x] Fix E721: use `is` instead of `==` for type comparison (config.py)
+- [x] Fix N805: rename `self_dl` to `self` in test helper classes (test_metrics.py)
+- [x] Fix B007: prefix unused loop vars with `_` (pruning.py, test_phases.py)
+- [x] Fix F841: remove unused `dataset` variable (test_metrics.py)
+- [x] Fix N812: add `# noqa: N812` for `torch.nn.functional as F` (phases.py)
+- [x] Fix UP035: import `Iterator`/`Sequence` from `collections.abc` (scheduler.py, validation.py)
+- [x] Fix UP015: remove unnecessary open mode `"r"` (config.py)
+- [x] `ruff check` passes clean — 0 errors
+- [x] All 206 tests passing
+
+---
+
 ## Verification Audit (April 2, 2026)
 
 All 18 improvement suggestions verified against actual code. 3 subagents used for parallel audit.

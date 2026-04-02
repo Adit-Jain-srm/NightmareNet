@@ -11,12 +11,12 @@ Biologically-inspired training framework for autonomous AI self-improvement via 
 4. **Compression** → magnitude pruning or bottleneck projection
 
 ## Key Modules
-- `nightmarenet/training/` — Trainer, phases (Wake/Dream/Nightmare/Compress), schedulers (Cyclic/Adaptive)
+- `nightmarenet/training/` — Trainer, phases (Wake/Dream/Nightmare/Compress), schedulers (Cyclic/Adaptive), distributed (Accelerate DDP), experiment tracking
 - `nightmarenet/distortions/` — text.py (char-level), semantic.py (meaning-level), adversarial.py (reasoning-level)
 - `nightmarenet/data/` — HuggingFace loader, Dream/Nightmare dataset generators
 - `nightmarenet/evaluation/` — recall, generalization, robustness curves, hallucination rate
 - `nightmarenet/compression/` — MagnitudePruner, BottleneckWrapper
-- `nightmarenet/api/` — FastAPI server (health, dream/nightmare distortion, robustness eval)
+- `nightmarenet/api/` — FastAPI server with SlowAPI rate limiting, HMAC auth, CORS, module-level Body singletons, proper exception chaining (health, dream/nightmare distortion, robustness eval)
 - `nightmarenet/utils/` — config loading/validation, logging
 
 ## Default Model: gpt2 (AutoModelForCausalLM)
@@ -28,4 +28,13 @@ Biologically-inspired training framework for autonomous AI self-improvement via 
 - `scripts/generate_data.py` — distorted data generation
 - `scripts/evaluate.py` — checkpoint evaluation vs baseline
 
-## Tests: ~159 tests across 6 test files
+## Tests: 206 tests across 9 test files (unit + integration)
+- `test_distortions.py` — text/semantic/adversarial distortion unit tests
+- `test_generator.py` — dream/nightmare data generator tests
+- `test_phases.py` — scheduler + phase unit tests
+- `test_metrics.py` — evaluation metric unit tests
+- `test_glue.py` — GLUE benchmark evaluation tests
+- `test_api.py` — FastAPI endpoint + auth + rate limit tests
+- `test_distributed.py` — distributed training context tests
+- `test_edge_cases.py` — edge case coverage
+- `test_integration.py` — end-to-end pipeline tests (data→train→eval, API multi-endpoint)

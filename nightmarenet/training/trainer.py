@@ -15,6 +15,7 @@ import signal
 from typing import Optional
 
 import torch
+from datasets import IterableDataset
 from torch.utils.data import DataLoader
 from transformers import (
     AutoModelForCausalLM,
@@ -23,16 +24,14 @@ from transformers import (
     AutoTokenizer,
 )
 
-from datasets import IterableDataset
-
+from nightmarenet.training.distributed import DistributedContext
 from nightmarenet.training.phases import (
     CompressionPhase,
     DreamPhase,
     NightmarePhase,
     WakePhase,
 )
-from nightmarenet.training.scheduler import CyclicScheduler, create_scheduler_from_config
-from nightmarenet.training.distributed import DistributedContext
+from nightmarenet.training.scheduler import create_scheduler_from_config
 from nightmarenet.utils.tracking import create_tracker_from_config
 
 logger = logging.getLogger(__name__)
@@ -192,9 +191,6 @@ class Trainer:
         self.log_dir = self.training_config.get("log_dir", "logs")
         os.makedirs(self.log_dir, exist_ok=True)
 
-        # Experiment tracker
-        self.tracker = create_tracker_from_config(config)
-
         # Distributed training context
         distributed_cfg = self.training_config.get("distributed", False)
         amp_mode = "fp16" if self.use_amp else "no"
@@ -205,6 +201,12 @@ class Trainer:
                 "gradient_accumulation_steps", 1
             ),
         )
+
+        # Experiment tracker (only on main process to avoid duplicates)
+        if self.dist_ctx.is_main_process:
+            self.tracker = create_tracker_from_config(config)
+        else:
+            self.tracker = create_tracker_from_config({})
 
     def _create_reference_model(self) -> None:
         """Create a frozen copy of the current model for KL regularization."""
@@ -394,10 +396,13 @@ class Trainer:
         if self.dist_ctx.enabled:
             self.dist_ctx.wait_for_everyone()
             self.dist_ctx.save_model(self.model, final_path)
+            if self.dist_ctx.is_main_process:
+                self.tokenizer.save_pretrained(final_path)
+                self._save_history()
         else:
             self.model.save_pretrained(final_path)
-        self.tokenizer.save_pretrained(final_path)
-        self._save_history()
+            self.tokenizer.save_pretrained(final_path)
+            self._save_history()
 
         self.tracker.finish()
         logger.info("Training complete. Final model saved to %s", final_path)

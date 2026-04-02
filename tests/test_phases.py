@@ -60,7 +60,7 @@ class TestCyclicScheduler:
 
     def test_current_properties(self):
         scheduler = CyclicScheduler(num_cycles=1)
-        for cycle, phase, epochs in scheduler:
+        for cycle, phase, _epochs in scheduler:
             assert scheduler.current_cycle == cycle
             assert scheduler.current_phase == phase
 

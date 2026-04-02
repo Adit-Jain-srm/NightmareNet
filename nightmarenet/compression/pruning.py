@@ -139,7 +139,7 @@ class BottleneckWrapper(nn.Module):
     @staticmethod
     def _infer_hidden_dim(layer: nn.Module) -> int:
         """Try to infer the hidden dimension from the layer's parameters."""
-        for name, param in layer.named_parameters():
+        for _name, param in layer.named_parameters():
             if param.dim() >= 2:
                 return param.shape[-1]
         raise ValueError("Could not infer hidden dimension from layer parameters.")

@@ -110,10 +110,9 @@ class TestMetricsComputation:
         model = SimpleModel()
         # Create a simple dataloader
         input_ids = torch.randint(0, 100, (4, 16))
-        dataset = torch.utils.data.TensorDataset(input_ids)
 
         class SimpleDataLoader:
-            def __iter__(self_dl):
+            def __iter__(self):
                 for i in range(0, len(input_ids), 2):
                     yield {"input_ids": input_ids[i : i + 2]}
 
@@ -132,7 +131,7 @@ class TestMetricsComputation:
             pad_token_id = 0
 
         class SimpleDataLoader:
-            def __iter__(self_dl):
+            def __iter__(self):
                 yield {"input_ids": input_ids}
 
         result = recall_score(
@@ -154,7 +153,7 @@ class TestMetricsComputation:
             pad_token_id = 0
 
         class SimpleDataLoader:
-            def __iter__(self_dl):
+            def __iter__(self):
                 yield {"input_ids": input_ids}
 
         result = hallucination_rate(

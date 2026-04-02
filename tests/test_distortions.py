@@ -2,8 +2,6 @@
 
 import random
 
-import pytest
-
 from nightmarenet.distortions.adversarial import (
     apply_adversarial_distortions,
     construct_adversarial_prompt,
