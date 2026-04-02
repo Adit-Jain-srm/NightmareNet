@@ -175,6 +175,14 @@ class DatasetWrapper:
             self._test_dataset = self._train_dataset
             logger.warning("No test split available in streaming mode; using train split.")
 
+        # Validate text column when metadata is available
+        features = getattr(self._train_dataset, "features", None)
+        if features is not None and self.text_column not in features:
+            raise ValueError(
+                f"Text column '{self.text_column}' not found in streaming dataset. "
+                f"Available columns: {list(features)}"
+            )
+
         # Filter empty texts
         self._train_dataset = self._train_dataset.filter(
             lambda x: bool(x[self.text_column] and x[self.text_column].strip())

@@ -266,3 +266,27 @@ class TestAuthentication:
         assert response.status_code == 401
         monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
         importlib.reload(app_module)
+
+
+class TestRateLimiting:
+    """Test rate limiting returns 429 with expected body."""
+
+    def test_rate_limit_returns_429(self):
+        """The rate-limit exception handler should return 429 with JSON error body."""
+        import asyncio
+        import json
+        from unittest.mock import MagicMock
+
+        from nightmarenet.api.app import _rate_limit_handler
+
+        fake_request = MagicMock()
+        fake_exc = MagicMock()
+        fake_exc.detail = "1 per 1 minute"
+
+        response = asyncio.new_event_loop().run_until_complete(
+            _rate_limit_handler(fake_request, fake_exc)
+        )
+        assert response.status_code == 429
+        body = json.loads(response.body)
+        assert body["error"] == "Rate limit exceeded"
+        assert "detail" in body

@@ -86,6 +86,13 @@ class DreamDatasetGenerator:
                 "Generating dream data (strength=%.2f) in streaming mode...",
                 self.strength,
             )
+            # Validate column when metadata is available
+            features = getattr(dataset, "features", None)
+            if features is not None and self.text_column not in features:
+                raise ValueError(
+                    f"Text column '{self.text_column}' not found in streaming dataset. "
+                    f"Available columns: {list(features)}"
+                )
             return dataset.map(self._distort)
 
         validate_dataset_columns(dataset, [self.text_column])
@@ -205,6 +212,13 @@ class NightmareDatasetGenerator:
                 "Generating nightmare data (strength=%.2f) in streaming mode...",
                 self.strength,
             )
+            # Validate column when metadata is available
+            features = getattr(dataset, "features", None)
+            if features is not None and self.text_column not in features:
+                raise ValueError(
+                    f"Text column '{self.text_column}' not found in streaming dataset. "
+                    f"Available columns: {list(features)}"
+                )
             return dataset.map(self._distort)
 
         validate_dataset_columns(dataset, [self.text_column])

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hmac
 import logging
 import os
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
     Public paths (health, docs) are always exempt.
     """
 
-    def __init__(self, app, api_key: str | None = None):
+    def __init__(self, app, api_key: Optional[str] = None):
         super().__init__(app)
         self.api_key = api_key or os.environ.get("NIGHTMARENET_API_KEY")
         if not self.api_key:

@@ -223,10 +223,15 @@ class Trainer:
         """Save a model checkpoint after a phase."""
         if not self.training_config.get("save_every_phase", True):
             return
+        if not self.dist_ctx.is_main_process:
+            return
 
         path = os.path.join(self.checkpoint_dir, f"cycle{cycle}_{phase}")
         os.makedirs(path, exist_ok=True)
-        self.model.save_pretrained(path)
+        if self.dist_ctx.enabled:
+            self.dist_ctx.save_model(self.model, path)
+        else:
+            self.model.save_pretrained(path)
         self.tokenizer.save_pretrained(path)
         logger.info("Checkpoint saved: %s", path)
 

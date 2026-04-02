@@ -6,7 +6,7 @@ Controls the sequence and timing of Wake → Dream → Nightmare → Compress cy
 from __future__ import annotations
 
 import logging
-from typing import Iterator, Optional
+from typing import Iterator, Optional, Union
 
 from nightmarenet.utils.validation import validate_positive_int
 
@@ -225,7 +225,7 @@ class AdaptiveScheduler:
         return len(self.base_scheduler)
 
 
-def create_scheduler_from_config(config: dict) -> CyclicScheduler | AdaptiveScheduler:
+def create_scheduler_from_config(config: dict) -> Union[CyclicScheduler, AdaptiveScheduler]:
     """Create a scheduler from a configuration dictionary.
 
     Returns a plain CyclicScheduler unless early stopping is enabled,

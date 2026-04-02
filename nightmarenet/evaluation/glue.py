@@ -7,7 +7,7 @@ using HuggingFace ``datasets`` and reports accuracy / F1 per task.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import numpy as np
 import torch
@@ -110,7 +110,7 @@ def evaluate_glue_task(
     model: torch.nn.Module,
     tokenizer: Any,
     task_name: str,
-    device: str | torch.device = "cpu",
+    device: Union[str, torch.device] = "cpu",
     max_length: int = 128,
     batch_size: int = 32,
     max_samples: Optional[int] = None,
@@ -198,7 +198,7 @@ def evaluate_glue(
     model: torch.nn.Module,
     tokenizer: Any,
     tasks: Optional[list[str]] = None,
-    device: str | torch.device = "cpu",
+    device: Union[str, torch.device] = "cpu",
     max_length: int = 128,
     batch_size: int = 32,
     max_samples: Optional[int] = None,
