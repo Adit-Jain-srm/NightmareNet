@@ -261,9 +261,26 @@ class NightmarePhase:
         self.optimizer = optimizer
         self.config = config
         self.device = device
+        if lr_multiplier <= 0:
+            raise ValueError(f"lr_multiplier must be > 0, got {lr_multiplier}")
         self.lr_multiplier = lr_multiplier
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+
+    def _save_lr(self) -> list[float]:
+        """Save current learning rates."""
+        return [pg["lr"] for pg in self.optimizer.param_groups]
+
+    def _restore_lr(self, saved_lrs: list[float]) -> None:
+        """Restore learning rates from saved values."""
+        if len(saved_lrs) != len(self.optimizer.param_groups):
+            logger.warning(
+                "LR restore mismatch: %d saved vs %d param groups",
+                len(saved_lrs),
+                len(self.optimizer.param_groups),
+            )
+        for pg, lr in zip(self.optimizer.param_groups, saved_lrs):
+            pg["lr"] = lr
 
     def _adjust_lr(self, multiplier):
         """Temporarily adjust learning rate."""
@@ -290,7 +307,8 @@ class NightmarePhase:
             }
         self.model.train()
 
-        # Increase learning rate for nightmare phase
+        # Save and increase learning rate for nightmare phase
+        saved_lrs = self._save_lr()
         self._adjust_lr(self.lr_multiplier)
 
         total_loss = 0.0
@@ -340,8 +358,8 @@ class NightmarePhase:
                 )
                 total_loss += avg_epoch_loss
         finally:
-            # Restore original learning rate
-            self._adjust_lr(1.0 / self.lr_multiplier)
+            # Restore original learning rate from saved values
+            self._restore_lr(saved_lrs)
 
         return {
             "phase": "nightmare",

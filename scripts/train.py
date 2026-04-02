@@ -58,6 +58,17 @@ def main():
         if torch.cuda.is_available():
             torch.cuda.manual_seed_all(seed)
 
+        if args.dry_run:
+            logger.info("Dry-run mode: skipping data generation and training.")
+            logger.info(
+                "Config summary: model=%s, cycles=%d, batch_size=%d, lr=%s",
+                config["model"]["name"],
+                config["training"]["num_cycles"],
+                config["training"]["batch_size"],
+                config["training"]["learning_rate"],
+            )
+            return None
+
         # Load dataset
         logger.info("Loading dataset...")
         dataset_wrapper = load_from_config(config)
@@ -67,17 +78,6 @@ def main():
         dream_gen, nightmare_gen = create_generators_from_config(config)
         dream_data = dream_gen.generate(dataset_wrapper.train_data)
         nightmare_data = nightmare_gen.generate(dataset_wrapper.train_data)
-
-        if args.dry_run:
-            logger.info("Dry-run mode: skipping training.")
-            logger.info(
-                "Config summary: model=%s, cycles=%d, batch_size=%d, lr=%s",
-                config["model"]["name"],
-                config["training"]["num_cycles"],
-                config["training"]["batch_size"],
-                config["training"]["learning_rate"],
-            )
-            return None
 
         # Create trainer
         trainer = Trainer(config=config)

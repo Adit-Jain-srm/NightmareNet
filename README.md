@@ -184,7 +184,7 @@ NightmareNet/
 │   └── utils/             # Validation, config, logging
 ├── configs/               # YAML configuration files
 ├── scripts/               # CLI entry points
-├── tests/                 # Unit & edge-case tests (142 tests)
+├── tests/                 # Unit & edge-case tests
 ├── notebooks/             # Demo notebooks
 └── data/                  # Raw & generated datasets
 ```

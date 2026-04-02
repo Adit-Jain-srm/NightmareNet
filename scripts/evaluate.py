@@ -47,7 +47,7 @@ def main():
         type=str,
         choices=["json", "markdown"],
         default="json",
-        help="Output format for results.",
+        help="Output format for results (json or markdown).",
     )
     parser.add_argument(
         "--log-level",
@@ -140,10 +140,14 @@ def main():
 
             comparison = evaluator.compare(baseline_results, trained_results)
 
-            evaluator.save_results(comparison, "comparison_results.json")
-            report = evaluator.save_report(comparison)
-            logger.info("\n%s", report)
+            if args.output_format == "markdown":
+                report = evaluator.save_report(comparison)
+                logger.info("\n%s", report)
+            else:
+                evaluator.save_results(comparison, "comparison_results.json")
         else:
+            if args.output_format == "markdown":
+                logger.info("Markdown report requires --baseline for comparison.")
             evaluator.save_results(trained_results, "evaluation_results.json")
 
         logger.info("Evaluation complete.")
