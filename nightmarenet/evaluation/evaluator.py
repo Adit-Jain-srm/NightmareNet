@@ -10,7 +10,7 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 from torch.utils.data import DataLoader
 
@@ -21,6 +21,7 @@ from nightmarenet.evaluation.metrics import (
     recall_score,
     robustness_score,
 )
+from nightmarenet.evaluation.glue import evaluate_glue
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +69,7 @@ class Evaluator:
         Returns:
             Dict mapping metric names to their results.
         """
-        results = {"label": label, "timestamp": datetime.now().isoformat()}
+        results: dict[str, Any] = {"label": label, "timestamp": datetime.now().isoformat()}
 
         if "recall" in self.enabled_metrics:
             logger.info("Evaluating: recall")
@@ -147,6 +148,31 @@ class Evaluator:
             except Exception as e:
                 logger.error("Failed to compute classification: %s", e)
                 results["classification"] = {"error": str(e)}
+
+        if "glue" in self.enabled_metrics:
+            logger.info("Evaluating: GLUE benchmark")
+            try:
+                glue_tasks = self.eval_config.get("glue_tasks", None)
+                glue_max_samples = self.eval_config.get("glue_max_samples", None)
+                results["glue"] = evaluate_glue(
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                    tasks=glue_tasks,
+                    device=self.device,
+                    max_length=self.config.get("model", {}).get("max_length", 128),
+                    batch_size=self.config.get("training", {}).get("batch_size", 8),
+                    max_samples=glue_max_samples,
+                )
+                avg = results["glue"].get("average", {})
+                if self.tracker and isinstance(avg, dict):
+                    self.tracker.log_metrics({
+                        f"eval/glue_{k}": v
+                        for k, v in avg.items()
+                        if isinstance(v, (int, float))
+                    })
+            except Exception as e:
+                logger.error("Failed to compute GLUE: %s", e)
+                results["glue"] = {"error": str(e)}
 
         return results
 

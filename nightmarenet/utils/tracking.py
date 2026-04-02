@@ -39,7 +39,7 @@ class ExperimentTracker:
 
         if self.backend == "wandb":
             try:
-                import wandb
+                import wandb  # type: ignore[import-untyped]
 
                 self._run = wandb.init(
                     project=project,
@@ -88,7 +88,7 @@ class ExperimentTracker:
             self._step = step + 1
 
         if self.backend == "wandb":
-            import wandb
+            import wandb  # type: ignore[import-untyped]
 
             wandb.log(metrics, step=step)
 
@@ -116,7 +116,7 @@ class ExperimentTracker:
             config: Configuration dictionary.
         """
         if self.backend == "wandb":
-            import wandb
+            import wandb  # type: ignore[import-untyped]
 
             wandb.config.update(config, allow_val_change=True)
 
@@ -135,7 +135,7 @@ class ExperimentTracker:
     def finish(self) -> None:
         """Finalize and close the tracking session."""
         if self.backend == "wandb" and self._run is not None:
-            import wandb
+            import wandb  # type: ignore[import-untyped]
 
             wandb.finish()
             logger.info("Wandb run finished.")

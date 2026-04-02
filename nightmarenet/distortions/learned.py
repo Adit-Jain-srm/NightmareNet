@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import logging
 import random
-from typing import Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ class LearnedAdversarialGenerator:
         self.model_name = model_name
         self.device = device
         self.strength = strength
-        self._model = None
-        self._tokenizer = None
+        self._model: Any = None
+        self._tokenizer: Any = None
         self._available = True
 
         try:
@@ -68,8 +68,8 @@ class LearnedAdversarialGenerator:
 
         import torch
 
-        tokens = self._tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
-        tokens = {k: v.to(self.device) for k, v in tokens.items()}
+        encoding = self._tokenizer(text, return_tensors="pt", truncation=True, max_length=512)
+        tokens = {k: v.to(self.device) for k, v in encoding.items()}
 
         with torch.no_grad():
             outputs = self._model(**tokens, output_attentions=True)
@@ -79,7 +79,7 @@ class LearnedAdversarialGenerator:
         avg_attention = torch.stack(attentions).mean(dim=(0, 1, 2))  # (seq_len,)
 
         # Map subword attention back to word-level
-        word_ids = tokens.word_ids() if hasattr(tokens, "word_ids") else None
+        word_ids = encoding.word_ids() if hasattr(encoding, "word_ids") else None
         if word_ids is None:
             # Fall back: use subword scores directly, one per word
             scores = avg_attention[1:-1].cpu().tolist()  # skip [CLS] and [SEP]

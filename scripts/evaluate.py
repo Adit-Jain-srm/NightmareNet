@@ -13,9 +13,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from nightmarenet.data.loader import load_from_config
 from nightmarenet.distortions.text import apply_text_distortions
 from nightmarenet.evaluation.evaluator import Evaluator
-from nightmarenet.training.trainer import _tokenize_dataset
+from nightmarenet.training.trainer import _MODEL_TYPE_MAP, _tokenize_dataset
 from nightmarenet.utils.config import load_config
 from nightmarenet.utils.logging_config import setup_logging
+from nightmarenet.utils.tracking import create_tracker_from_config
 
 logger = logging.getLogger(__name__)
 
@@ -84,8 +85,10 @@ def main():
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         # Load trained model
-        logger.info("Loading trained model from %s", args.checkpoint)
-        trained_model = AutoModelForCausalLM.from_pretrained(args.checkpoint).to(device)
+        model_type = config.get("model", {}).get("type", "causal_lm")
+        model_cls = _MODEL_TYPE_MAP.get(model_type, AutoModelForCausalLM)
+        logger.info("Loading trained model from %s (type=%s)", args.checkpoint, model_type)
+        trained_model = model_cls.from_pretrained(args.checkpoint).to(device)
         tokenizer = AutoTokenizer.from_pretrained(args.checkpoint)
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
@@ -103,11 +106,13 @@ def main():
         )
 
         # Evaluate trained model
+        tracker = create_tracker_from_config(config)
         evaluator = Evaluator(
             model=trained_model,
             tokenizer=tokenizer,
             config=config,
             device=device,
+            tracker=tracker,
         )
 
         trained_results = evaluator.evaluate(
@@ -120,7 +125,7 @@ def main():
         # If baseline provided, evaluate and compare
         if args.baseline:
             logger.info("Loading baseline model from %s", args.baseline)
-            baseline_model = AutoModelForCausalLM.from_pretrained(args.baseline).to(device)
+            baseline_model = model_cls.from_pretrained(args.baseline).to(device)
 
             # Load baseline tokenizer to ensure correct encoding for the baseline model
             baseline_tokenizer = AutoTokenizer.from_pretrained(args.baseline)
@@ -162,6 +167,7 @@ def main():
             evaluator.save_results(trained_results, "evaluation_results.json")
 
         logger.info("Evaluation complete.")
+        tracker.finish()
 
     except FileNotFoundError as exc:
         logger.error("File not found: %s", exc)

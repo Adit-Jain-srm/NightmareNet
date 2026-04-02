@@ -41,6 +41,7 @@ dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
     "ruff>=0.1.0",
+    "mypy>=1.8.0",
 ]
 api = [
     "fastapi>=0.104.0",
@@ -52,6 +53,9 @@ api = [
 tracking = [
     "wandb>=0.16.0",
     "tensorboard>=2.14.0",
+]
+distributed = [
+    "accelerate>=0.25.0",
 ]
 
 [project.urls]
@@ -72,6 +76,14 @@ addopts = "-v --tb=short"
 target-version = "py39"
 line-length = 100
 select = ["E", "F", "W", "I", "N", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true
 
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "scripts"]

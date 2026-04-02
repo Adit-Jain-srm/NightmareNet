@@ -46,6 +46,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "max_grad_norm": 1.0,
         "use_amp": False,
         "gradient_checkpointing": False,
+        "early_stopping": False,
+        "early_stopping_patience": 3,
+        "early_stopping_min_delta": 1e-4,
+        "distributed": False,
         "save_every_phase": True,
         "checkpoint_dir": "checkpoints",
         "log_dir": "logs",
@@ -121,6 +125,10 @@ _SCHEMA: dict[str, tuple] = {
     "training.gradient_accumulation_steps": (int, 1, 1024, True),
     "training.use_amp": (bool, None, None, False),
     "training.gradient_checkpointing": (bool, None, None, False),
+    "training.early_stopping": (bool, None, None, False),
+    "training.early_stopping_patience": (int, 1, 100, False),
+    "training.early_stopping_min_delta": (float, 0.0, 1.0, False),
+    "training.distributed": (bool, None, None, False),
     "tracking.backend": (str, None, None, False),
     "tracking.project": (str, None, None, False),
     "distortion.dream_strength": (float, 0.0, 1.0, True),
@@ -131,7 +139,7 @@ _SCHEMA: dict[str, tuple] = {
 }
 
 
-def _deep_merge(base: dict, override: dict) -> dict:
+def _deep_merge(base: dict, override: dict) -> dict[str, Any]:
     """Deep-merge override dict into base dict, returning a new dict.
 
     Args:

@@ -29,6 +29,10 @@ training:
   max_grad_norm: 1.0
   use_amp: false               # Mixed-precision training (requires CUDA)
   gradient_checkpointing: false # Trade compute for memory savings
+  early_stopping: false         # Stop training when loss plateaus
+  early_stopping_patience: 3    # Phases without improvement before stopping
+  early_stopping_min_delta: 0.0001  # Minimum loss decrease to count as improvement
+  distributed: false            # Multi-GPU via HuggingFace Accelerate
   save_every_phase: true
   checkpoint_dir: "checkpoints"
   log_dir: "logs"
@@ -72,7 +76,10 @@ evaluation:
     - "generalization"
     - "robustness"
     - "hallucination"
+    # - "glue"                  # Uncomment for GLUE benchmark (requires seq_classification model)
   robustness_strengths: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  # glue_tasks: null            # null = all tasks; or list: ["sst2", "mrpc"]
+  # glue_max_samples: null      # Limit per-task samples for quick runs
 
 # Experiment tracking
 tracking:

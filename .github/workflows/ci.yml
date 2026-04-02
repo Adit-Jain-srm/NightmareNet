@@ -30,6 +30,9 @@ jobs:
       - name: Lint with ruff
         run: ruff check nightmarenet/ scripts/ tests/
 
+      - name: Type check with mypy
+        run: mypy nightmarenet/ --ignore-missing-imports
+
       - name: Run tests with coverage
         run: pytest --cov=nightmarenet --cov-report=xml --cov-report=term-missing
 

@@ -30,14 +30,14 @@ class WakePhase:
         device: Device to train on.
     """
 
-    def __init__(self, model, optimizer, config, device="cpu", scaler=None):
+    def __init__(self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, config: dict, device: str | torch.device = "cpu", scaler: Optional[torch.amp.GradScaler] = None) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
         self.device = device
         self.scaler = scaler
-        self.max_grad_norm = config.get("max_grad_norm", 1.0)
-        self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+        self.max_grad_norm: float = config.get("max_grad_norm", 1.0)
+        self.gradient_accumulation_steps: int = config.get("gradient_accumulation_steps", 1)
 
     def run(self, dataloader: DataLoader, num_epochs: int = 1) -> dict:
         """Run the wake phase (standard training).
@@ -136,14 +136,14 @@ class DreamPhase:
 
     def __init__(
         self,
-        model,
-        optimizer,
-        config,
-        device="cpu",
-        reference_model=None,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        device: str | torch.device = "cpu",
+        reference_model: Optional[torch.nn.Module] = None,
         kl_weight: float = 0.1,
-        scaler=None,
-    ):
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
@@ -154,7 +154,7 @@ class DreamPhase:
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
 
-    def _compute_kl_loss(self, logits, batch):
+    def _compute_kl_loss(self, logits: torch.Tensor, batch: dict[str, torch.Tensor]) -> torch.Tensor | float:
         """Compute KL divergence between current and reference model outputs."""
         if self.reference_model is None:
             return 0.0
@@ -283,7 +283,7 @@ class NightmarePhase:
         lr_multiplier: Factor to multiply the learning rate by during this phase.
     """
 
-    def __init__(self, model, optimizer, config, device="cpu", lr_multiplier=2.0, scaler=None):
+    def __init__(self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, config: dict, device: str | torch.device = "cpu", lr_multiplier: float = 2.0, scaler: Optional[torch.amp.GradScaler] = None) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
@@ -310,7 +310,7 @@ class NightmarePhase:
         for pg, lr in zip(self.optimizer.param_groups, saved_lrs):
             pg["lr"] = lr
 
-    def _adjust_lr(self, multiplier):
+    def _adjust_lr(self, multiplier: float) -> None:
         """Temporarily adjust learning rate."""
         for param_group in self.optimizer.param_groups:
             param_group["lr"] *= multiplier
@@ -419,7 +419,7 @@ class CompressionPhase:
         device: Device to use.
     """
 
-    def __init__(self, model, config, device="cpu", scaler=None):
+    def __init__(self, model: torch.nn.Module, config: dict, device: str | torch.device = "cpu", scaler: Optional[torch.amp.GradScaler] = None) -> None:
         self.model = model
         self.config = config
         self.device = device
@@ -428,7 +428,7 @@ class CompressionPhase:
     def run(
         self,
         dataloader: Optional[DataLoader] = None,
-        optimizer=None,
+        optimizer: Optional[torch.optim.Optimizer] = None,
     ) -> dict:
         """Run the compression phase.
 

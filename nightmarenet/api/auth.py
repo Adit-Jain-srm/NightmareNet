@@ -2,15 +2,16 @@
 
 from __future__ import annotations
 
+import hmac
 import logging
 import os
 
 logger = logging.getLogger(__name__)
 
 try:
-    from fastapi import Request, Response
-    from fastapi.responses import JSONResponse
-    from starlette.middleware.base import BaseHTTPMiddleware
+    from fastapi import Request, Response  # type: ignore[import-untyped]
+    from fastapi.responses import JSONResponse  # type: ignore[import-untyped]
+    from starlette.middleware.base import BaseHTTPMiddleware  # type: ignore[import-untyped]
 except ImportError as e:
     raise ImportError(
         "FastAPI dependencies not installed. Install with: pip install nightmarenet[api]"
@@ -51,7 +52,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         provided_key = request.headers.get("X-API-Key")
-        if not provided_key or provided_key != self.api_key:
+        if not provided_key or not hmac.compare_digest(provided_key, self.api_key):
             return JSONResponse(
                 status_code=401,
                 content={"error": "Unauthorized", "detail": "Invalid or missing API key."},
