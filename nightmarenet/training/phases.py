@@ -8,10 +8,10 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Optional
+from typing import Optional, Union
 
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
@@ -30,13 +30,21 @@ class WakePhase:
         device: Device to train on.
     """
 
-    def __init__(self, model, optimizer, config, device="cpu"):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        device: Union[str, torch.device] = "cpu",
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
         self.device = device
-        self.max_grad_norm = config.get("max_grad_norm", 1.0)
-        self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+        self.scaler = scaler
+        self.max_grad_norm: float = config.get("max_grad_norm", 1.0)
+        self.gradient_accumulation_steps: int = config.get("gradient_accumulation_steps", 1)
 
     def run(self, dataloader: DataLoader, num_epochs: int = 1) -> dict:
         """Run the wake phase (standard training).
@@ -59,6 +67,7 @@ class WakePhase:
         self.model.train()
         total_loss = 0.0
         total_steps = 0
+        use_amp = self.scaler is not None
 
         for epoch in range(num_epochs):
             epoch_loss = 0.0
@@ -68,21 +77,31 @@ class WakePhase:
             for step, batch in enumerate(progress):
                 batch = {k: v.to(self.device) for k, v in batch.items()}
 
-                outputs = self.model(**batch, labels=batch.get("input_ids"))
-                loss = outputs.loss / self.gradient_accumulation_steps
+                with torch.amp.autocast("cuda", enabled=use_amp):
+                    outputs = self.model(**batch, labels=batch.get("input_ids"))
+                    loss = outputs.loss / self.gradient_accumulation_steps
 
                 if math.isnan(loss.item()) or math.isinf(loss.item()):
                     logger.warning("Wake Phase - NaN/Inf loss at step %d, skipping.", step)
                     self.optimizer.zero_grad()
                     continue
 
-                loss.backward()
+                if self.scaler is not None:
+                    self.scaler.scale(loss).backward()
+                else:
+                    loss.backward()
 
                 if (step + 1) % self.gradient_accumulation_steps == 0:
+                    if self.scaler is not None:
+                        self.scaler.unscale_(self.optimizer)
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(), self.max_grad_norm
                     )
-                    self.optimizer.step()
+                    if self.scaler is not None:
+                        self.scaler.step(self.optimizer)
+                        self.scaler.update()
+                    else:
+                        self.optimizer.step()
                     self.optimizer.zero_grad()
 
                 epoch_loss += loss.item() * self.gradient_accumulation_steps
@@ -124,23 +143,29 @@ class DreamPhase:
 
     def __init__(
         self,
-        model,
-        optimizer,
-        config,
-        device="cpu",
-        reference_model=None,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        device: Union[str, torch.device] = "cpu",
+        reference_model: Optional[torch.nn.Module] = None,
         kl_weight: float = 0.1,
-    ):
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
         self.device = device
         self.reference_model = reference_model
         self.kl_weight = kl_weight
+        self.scaler = scaler
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
 
-    def _compute_kl_loss(self, logits, batch):
+    def _compute_kl_loss(
+        self,
+        logits: torch.Tensor,
+        batch: dict[str, torch.Tensor],
+    ) -> Union[torch.Tensor, float]:
         """Compute KL divergence between current and reference model outputs."""
         if self.reference_model is None:
             return 0.0
@@ -184,6 +209,7 @@ class DreamPhase:
         total_loss = 0.0
         total_kl = 0.0
         total_steps = 0
+        use_amp = self.scaler is not None
 
         for epoch in range(num_epochs):
             epoch_loss = 0.0
@@ -194,8 +220,9 @@ class DreamPhase:
             for step, batch in enumerate(progress):
                 batch = {k: v.to(self.device) for k, v in batch.items()}
 
-                outputs = self.model(**batch, labels=batch.get("input_ids"))
-                loss = outputs.loss / self.gradient_accumulation_steps
+                with torch.amp.autocast("cuda", enabled=use_amp):
+                    outputs = self.model(**batch, labels=batch.get("input_ids"))
+                    loss = outputs.loss / self.gradient_accumulation_steps
 
                 if math.isnan(loss.item()) or math.isinf(loss.item()):
                     logger.warning("Dream Phase - NaN/Inf loss at step %d, skipping.", step)
@@ -203,15 +230,26 @@ class DreamPhase:
                     continue
 
                 # Add KL regularization
-                kl_loss = self._compute_kl_loss(outputs.logits, batch)
-                total_phase_loss = loss + kl_loss / self.gradient_accumulation_steps
-                total_phase_loss.backward()
+                with torch.amp.autocast("cuda", enabled=use_amp):
+                    kl_loss = self._compute_kl_loss(outputs.logits, batch)
+                    total_phase_loss = loss + kl_loss / self.gradient_accumulation_steps
+
+                if self.scaler is not None:
+                    self.scaler.scale(total_phase_loss).backward()
+                else:
+                    total_phase_loss.backward()
 
                 if (step + 1) % self.gradient_accumulation_steps == 0:
+                    if self.scaler is not None:
+                        self.scaler.unscale_(self.optimizer)
                     torch.nn.utils.clip_grad_norm_(
                         self.model.parameters(), self.max_grad_norm
                     )
-                    self.optimizer.step()
+                    if self.scaler is not None:
+                        self.scaler.step(self.optimizer)
+                        self.scaler.update()
+                    else:
+                        self.optimizer.step()
                     self.optimizer.zero_grad()
 
                 epoch_loss += loss.item() * self.gradient_accumulation_steps
@@ -256,7 +294,15 @@ class NightmarePhase:
         lr_multiplier: Factor to multiply the learning rate by during this phase.
     """
 
-    def __init__(self, model, optimizer, config, device="cpu", lr_multiplier=2.0):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        config: dict,
+        device: Union[str, torch.device] = "cpu",
+        lr_multiplier: float = 2.0,
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
@@ -264,6 +310,7 @@ class NightmarePhase:
         if lr_multiplier <= 0:
             raise ValueError(f"lr_multiplier must be > 0, got {lr_multiplier}")
         self.lr_multiplier = lr_multiplier
+        self.scaler = scaler
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
 
@@ -282,7 +329,7 @@ class NightmarePhase:
         for pg, lr in zip(self.optimizer.param_groups, saved_lrs):
             pg["lr"] = lr
 
-    def _adjust_lr(self, multiplier):
+    def _adjust_lr(self, multiplier: float) -> None:
         """Temporarily adjust learning rate."""
         for param_group in self.optimizer.param_groups:
             param_group["lr"] *= multiplier
@@ -313,6 +360,7 @@ class NightmarePhase:
 
         total_loss = 0.0
         total_steps = 0
+        use_amp = self.scaler is not None
 
         try:
             for epoch in range(num_epochs):
@@ -326,21 +374,31 @@ class NightmarePhase:
                 for step, batch in enumerate(progress):
                     batch = {k: v.to(self.device) for k, v in batch.items()}
 
-                    outputs = self.model(**batch, labels=batch.get("input_ids"))
-                    loss = outputs.loss / self.gradient_accumulation_steps
+                    with torch.amp.autocast("cuda", enabled=use_amp):
+                        outputs = self.model(**batch, labels=batch.get("input_ids"))
+                        loss = outputs.loss / self.gradient_accumulation_steps
 
                     if math.isnan(loss.item()) or math.isinf(loss.item()):
                         logger.warning("Nightmare Phase - NaN/Inf loss at step %d, skipping.", step)
                         self.optimizer.zero_grad()
                         continue
 
-                    loss.backward()
+                    if self.scaler is not None:
+                        self.scaler.scale(loss).backward()
+                    else:
+                        loss.backward()
 
                     if (step + 1) % self.gradient_accumulation_steps == 0:
+                        if self.scaler is not None:
+                            self.scaler.unscale_(self.optimizer)
                         torch.nn.utils.clip_grad_norm_(
                             self.model.parameters(), self.max_grad_norm
                         )
-                        self.optimizer.step()
+                        if self.scaler is not None:
+                            self.scaler.step(self.optimizer)
+                            self.scaler.update()
+                        else:
+                            self.optimizer.step()
                         self.optimizer.zero_grad()
 
                     epoch_loss += loss.item() * self.gradient_accumulation_steps
@@ -380,15 +438,22 @@ class CompressionPhase:
         device: Device to use.
     """
 
-    def __init__(self, model, config, device="cpu"):
+    def __init__(
+        self,
+        model: torch.nn.Module,
+        config: dict,
+        device: Union[str, torch.device] = "cpu",
+        scaler: Optional[torch.amp.GradScaler] = None,
+    ) -> None:
         self.model = model
         self.config = config
         self.device = device
+        self.scaler = scaler
 
     def run(
         self,
         dataloader: Optional[DataLoader] = None,
-        optimizer=None,
+        optimizer: Optional[torch.optim.Optimizer] = None,
     ) -> dict:
         """Run the compression phase.
 
@@ -435,16 +500,24 @@ class CompressionPhase:
                     dataloader, desc=f"Post-compression fine-tune - Epoch {epoch + 1}"
                 ):
                     batch = {k: v.to(self.device) for k, v in batch.items()}
-                    outputs = self.model(**batch, labels=batch.get("input_ids"))
-                    loss = outputs.loss
+                    use_amp = self.scaler is not None
+                    with torch.amp.autocast("cuda", enabled=use_amp):
+                        outputs = self.model(**batch, labels=batch.get("input_ids"))
+                        loss = outputs.loss
 
                     if math.isnan(loss.item()) or math.isinf(loss.item()):
                         logger.warning("Compression fine-tune - NaN/Inf loss, skipping.")
                         optimizer.zero_grad()
                         continue
 
-                    loss.backward()
-                    optimizer.step()
+                    if self.scaler is not None:
+                        self.scaler.scale(loss).backward()
+                        self.scaler.unscale_(optimizer)
+                        self.scaler.step(optimizer)
+                        self.scaler.update()
+                    else:
+                        loss.backward()
+                        optimizer.step()
                     optimizer.zero_grad()
 
         return {

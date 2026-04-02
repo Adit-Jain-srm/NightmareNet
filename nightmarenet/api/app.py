@@ -8,20 +8,24 @@ Usage:
     uvicorn nightmarenet.api.app:app --host 0.0.0.0 --port 8000
 """
 
-from __future__ import annotations
-
 import logging
+import os
 import random
-from typing import Any
+from typing import Any, Optional
 
 from nightmarenet import __version__
 
 logger = logging.getLogger(__name__)
 
 try:
-    from fastapi import FastAPI, HTTPException
+    from fastapi import Body, FastAPI, HTTPException, Request
     from fastapi.middleware.cors import CORSMiddleware
+    from slowapi import Limiter
+    from slowapi.errors import RateLimitExceeded
+    from slowapi.middleware import SlowAPIMiddleware
+    from slowapi.util import get_remote_address
 
+    from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.schemas import (
         DistortionRequest,
         DistortionResponse,
@@ -30,14 +34,16 @@ try:
         RobustnessRequest,
         RobustnessResponse,
     )
+    from nightmarenet.distortions.adversarial import apply_adversarial_distortions
+    from nightmarenet.distortions.semantic import apply_semantic_distortions
+    from nightmarenet.distortions.text import apply_text_distortions
 except ImportError as e:
     raise ImportError(
         "FastAPI dependencies not installed. Install with: pip install nightmarenet[api]"
     ) from e
 
-from nightmarenet.distortions.adversarial import apply_adversarial_distortions
-from nightmarenet.distortions.semantic import apply_semantic_distortions
-from nightmarenet.distortions.text import apply_text_distortions
+_DISTORTION_BODY = Body(...)
+_ROBUSTNESS_BODY = Body(...)
 
 app = FastAPI(
     title="NightmareNet API",
@@ -47,9 +53,34 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
+# --- Rate limiting ---
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+
+@app.exception_handler(RateLimitExceeded)
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(
+        status_code=429,
+        content={"error": "Rate limit exceeded", "detail": str(exc.detail)},
+    )
+
+
+# --- Authentication middleware ---
+app.add_middleware(APIKeyMiddleware)
+
+# --- CORS ---
+_cors_origins = [
+    o.strip()
+    for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "*").split(",")
+    if o.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -59,8 +90,8 @@ app.add_middleware(
 def _apply_dream_distortions(
     text: str,
     strength: float,
-    config: dict[str, Any] | None = None,
-    seed: int | None = None,
+    config: Optional[dict[str, Any]] = None,
+    seed: Optional[int] = None,
 ) -> str:
     """Apply mild dream distortions (text + semantic).
 
@@ -85,8 +116,8 @@ def _apply_dream_distortions(
 def _apply_nightmare_distortions(
     text: str,
     strength: float,
-    config: dict[str, Any] | None = None,
-    seed: int | None = None,
+    config: Optional[dict[str, Any]] = None,
+    seed: Optional[int] = None,
 ) -> str:
     """Apply aggressive nightmare distortions (text + semantic + adversarial).
 
@@ -127,16 +158,25 @@ def _char_similarity(a: str, b: str) -> float:
 @app.get("/api/v1/health", response_model=HealthResponse, tags=["System"])
 async def health_check() -> HealthResponse:
     """Health check endpoint."""
-    return HealthResponse(status="ok", version=__version__, tests_passing=159)
+    return HealthResponse(
+        status="ok", version=__version__
+    )
 
 
 @app.post(
     "/api/v1/generate/dream",
     response_model=DistortionResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
     tags=["Distortion"],
 )
-async def generate_dream(request: DistortionRequest) -> DistortionResponse:
+@limiter.limit("60/minute")
+async def generate_dream(
+    request: Request, body: DistortionRequest = _DISTORTION_BODY
+) -> DistortionResponse:
     """Generate dream-distorted text with mild perturbations.
 
     Dream distortions use text-level and semantic-level transformations
@@ -145,36 +185,43 @@ async def generate_dream(request: DistortionRequest) -> DistortionResponse:
     """
     try:
         distorted = _apply_dream_distortions(
-            request.text,
-            strength=request.strength,
-            config=request.config,
-            seed=request.seed,
+            body.text,
+            strength=body.strength,
+            config=body.config,
+            seed=body.seed,
         )
 
         return DistortionResponse(
-            original_text=request.text,
+            original_text=body.text,
             distorted_text=distorted,
             distortion_type="dream",
-            strength=request.strength,
-            seed=request.seed,
+            strength=body.strength,
+            seed=body.seed,
         )
     except (TypeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.exception("Dream generation failed: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Internal error during dream generation",
-        )
+        ) from None
 
 
 @app.post(
     "/api/v1/generate/nightmare",
     response_model=DistortionResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
     tags=["Distortion"],
 )
-async def generate_nightmare(request: DistortionRequest) -> DistortionResponse:
+@limiter.limit("60/minute")
+async def generate_nightmare(
+    request: Request, body: DistortionRequest = _DISTORTION_BODY
+) -> DistortionResponse:
     """Generate nightmare-distorted text with aggressive perturbations.
 
     Nightmare distortions apply text-level, semantic-level, AND adversarial
@@ -183,36 +230,43 @@ async def generate_nightmare(request: DistortionRequest) -> DistortionResponse:
     """
     try:
         distorted = _apply_nightmare_distortions(
-            request.text,
-            strength=request.strength,
-            config=request.config,
-            seed=request.seed,
+            body.text,
+            strength=body.strength,
+            config=body.config,
+            seed=body.seed,
         )
 
         return DistortionResponse(
-            original_text=request.text,
+            original_text=body.text,
             distorted_text=distorted,
             distortion_type="nightmare",
-            strength=request.strength,
-            seed=request.seed,
+            strength=body.strength,
+            seed=body.seed,
         )
     except (TypeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.exception("Nightmare generation failed: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Internal error during nightmare generation",
-        )
+        ) from None
 
 
 @app.post(
     "/api/v1/evaluate/robustness",
     response_model=RobustnessResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
     tags=["Evaluation"],
 )
-async def evaluate_robustness(request: RobustnessRequest) -> RobustnessResponse:
+@limiter.limit("10/minute")
+async def evaluate_robustness(
+    request: Request, body: RobustnessRequest = _ROBUSTNESS_BODY
+) -> RobustnessResponse:
     """Evaluate text robustness across multiple distortion strengths.
 
     Applies dream and nightmare distortions at each specified strength level
@@ -221,30 +275,30 @@ async def evaluate_robustness(request: RobustnessRequest) -> RobustnessResponse:
     try:
         scores: dict[str, Any] = {"dream": {}, "nightmare": {}}
 
-        for i, strength in enumerate(request.strengths):
+        for i, strength in enumerate(body.strengths):
             # Use per-strength deterministic seed for reproducibility
             strength_seed = 42 + i
             dream_result = _apply_dream_distortions(
-                request.text, strength=strength, seed=strength_seed
+                body.text, strength=strength, seed=strength_seed
             )
             nightmare_result = _apply_nightmare_distortions(
-                request.text, strength=strength, seed=strength_seed
+                body.text, strength=strength, seed=strength_seed
             )
 
             scores["dream"][str(strength)] = {
                 "similarity": round(
-                    _char_similarity(request.text, dream_result), 4
+                    _char_similarity(body.text, dream_result), 4
                 ),
                 "length_ratio": round(
-                    len(dream_result) / max(len(request.text), 1), 4
+                    len(dream_result) / max(len(body.text), 1), 4
                 ),
             }
             scores["nightmare"][str(strength)] = {
                 "similarity": round(
-                    _char_similarity(request.text, nightmare_result), 4
+                    _char_similarity(body.text, nightmare_result), 4
                 ),
                 "length_ratio": round(
-                    len(nightmare_result) / max(len(request.text), 1), 4
+                    len(nightmare_result) / max(len(body.text), 1), 4
                 ),
             }
 
@@ -259,19 +313,19 @@ async def evaluate_robustness(request: RobustnessRequest) -> RobustnessResponse:
         summary = (
             f"Dream avg similarity: {avg_dream_sim:.2%}, "
             f"Nightmare avg similarity: {avg_nightmare_sim:.2%}. "
-            f"Text tested at {len(request.strengths)} strength levels."
+            f"Text tested at {len(body.strengths)} strength levels."
         )
 
         return RobustnessResponse(
-            original_text=request.text,
+            original_text=body.text,
             scores=scores,
             summary=summary,
         )
     except (TypeError, ValueError) as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.exception("Robustness evaluation failed: %s", e)
         raise HTTPException(
             status_code=500,
             detail="Internal error during robustness evaluation",
-        )
+        ) from None

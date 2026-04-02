@@ -62,7 +62,7 @@ class HealthResponse(BaseModel):
 
     status: str = "ok"
     version: str
-    tests_passing: int
+    tests_passing: Optional[int] = None
 
 
 class ErrorResponse(BaseModel):
@@ -70,3 +70,10 @@ class ErrorResponse(BaseModel):
 
     error: str
     detail: Optional[str] = None
+
+
+class AuthErrorResponse(BaseModel):
+    """Authentication error response."""
+
+    error: str = "Unauthorized"
+    detail: str = "Invalid or missing API key."

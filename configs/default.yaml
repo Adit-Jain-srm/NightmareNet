@@ -1,6 +1,8 @@
 # Model configuration
 model:
   name: "gpt2"
+  type: "causal_lm"        # "causal_lm" | "masked_lm" | "seq_classification"
+  num_labels: 2             # Only used when type is "seq_classification"
   max_length: 128
   device: "auto"  # "auto", "cuda", "cpu"
 
@@ -10,6 +12,7 @@ dataset:
   subset: "wikitext-2-raw-v1"
   text_column: "text"
   max_samples: 5000  # Limit samples for faster iteration; null for full dataset
+  streaming: false    # Stream data instead of loading into memory
 
 # Training configuration
 training:
@@ -24,6 +27,12 @@ training:
   warmup_steps: 100
   gradient_accumulation_steps: 4
   max_grad_norm: 1.0
+  use_amp: false               # Mixed-precision training (requires CUDA)
+  gradient_checkpointing: false # Trade compute for memory savings
+  early_stopping: false         # Stop training when loss plateaus
+  early_stopping_patience: 3    # Phases without improvement before stopping
+  early_stopping_min_delta: 0.0001  # Minimum loss decrease to count as improvement
+  distributed: false            # Multi-GPU via HuggingFace Accelerate
   save_every_phase: true
   checkpoint_dir: "checkpoints"
   log_dir: "logs"
@@ -49,6 +58,8 @@ distortion:
     ambiguity: 0.3
     cross_domain: 0.2
     misleading_context: 0.2
+    learned: 0.0                        # Weight for learned adversarial (0 = disabled)
+    learned_model: "distilbert-base-uncased"  # MLM model for learned adversarial
 
 # Compression configuration
 compression:
@@ -65,7 +76,16 @@ evaluation:
     - "generalization"
     - "robustness"
     - "hallucination"
+    # - "glue"                  # Uncomment for GLUE benchmark (requires seq_classification model)
   robustness_strengths: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  # glue_tasks: null            # null = all tasks; or list: ["sst2", "mrpc"]
+  # glue_max_samples: null      # Limit per-task samples for quick runs
+
+# Experiment tracking
+tracking:
+  backend: none        # none|wandb|tensorboard
+  project: nightmarenet
+  log_dir: logs/runs
   output_dir: "results"
   output_format: "json"  # "json" or "markdown"
 

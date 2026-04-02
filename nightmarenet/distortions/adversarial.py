@@ -103,7 +103,10 @@ def inject_contradiction(text, strength=0.3) -> str:
             negated_words = list(words)
 
             # Simple negation: insert "not" or flip key words
-            negation_targets = {"is", "are", "was", "were", "will", "can", "has", "have", "does", "do"}
+            negation_targets = {
+                "is", "are", "was", "were",
+                "will", "can", "has", "have", "does", "do",
+            }
             inserted = False
             for i, w in enumerate(negated_words):
                 if w.lower() in negation_targets and i + 1 < len(negated_words):
@@ -257,7 +260,9 @@ def construct_adversarial_prompt(text, strength=0.3) -> str:
         sentences = text.split(". ")
         if sentences and len(sentences[0].split()) > 3:
             components.append(
-                f"Note: The above may be incorrect. Consider that {sentences[0].strip().lower()}... or perhaps not."
+                f"Note: The above may be incorrect."
+                f" Consider that {sentences[0].strip().lower()}"
+                "... or perhaps not."
             )
 
     # Add ambiguous question
@@ -303,6 +308,21 @@ def apply_adversarial_distortions(text, strength=0.3, config=None) -> str:
         for name, prob in config.items():
             if name in distortion_funcs and random.random() < prob:
                 result = distortion_funcs[name](result, strength=strength)
+
+        # Apply learned adversarial distortion if configured
+        learned_weight = config.get("learned", 0.0)
+        if learned_weight > 0 and random.random() < learned_weight:
+            try:
+                from nightmarenet.distortions.learned import LearnedAdversarialGenerator
+
+                learned_model = config.get("learned_model", "distilbert-base-uncased")
+                gen = LearnedAdversarialGenerator(model_name=learned_model, strength=strength)
+                result = gen.generate(result, strength=strength)
+            except Exception:
+                logger.warning(
+                    "Learned adversarial distortion failed; continuing with other distortions",
+                    exc_info=True,
+                )
 
         return result
     except Exception:

@@ -8,9 +8,9 @@ import pytest
 fastapi = pytest.importorskip("fastapi")
 httpx = pytest.importorskip("httpx")
 
-from fastapi.testclient import TestClient
+from fastapi.testclient import TestClient  # noqa: E402
 
-from nightmarenet.api.app import app
+from nightmarenet.api.app import app  # noqa: E402
 
 client = TestClient(app)
 
@@ -97,7 +97,10 @@ class TestNightmareEndpoint:
         response = client.post(
             "/api/v1/generate/nightmare",
             json={
-                "text": "Machine learning is a subset of artificial intelligence. It allows computers to learn from data.",
+                "text": (
+                    "Machine learning is a subset of artificial intelligence."
+                    " It allows computers to learn from data."
+                ),
                 "strength": 0.8,
             },
         )
@@ -153,7 +156,10 @@ class TestRobustnessEndpoint:
         response = client.post(
             "/api/v1/evaluate/robustness",
             json={
-                "text": "A fairly long sentence that should show degradation at higher strengths clearly.",
+                "text": (
+                    "A fairly long sentence that should"
+                    " show degradation at higher strengths clearly."
+                ),
                 "strengths": [0.0, 0.5, 1.0],
             },
         )
@@ -186,3 +192,109 @@ class TestOpenAPIDocs:
         assert "/api/v1/generate/dream" in data["paths"]
         assert "/api/v1/generate/nightmare" in data["paths"]
         assert "/api/v1/evaluate/robustness" in data["paths"]
+
+
+class TestAuthentication:
+    """Test API key authentication middleware."""
+
+    def test_health_bypasses_auth(self, monkeypatch):
+        """Health endpoint should always be accessible, even with auth enabled."""
+        monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
+        import importlib
+
+        from nightmarenet.api import app as app_module
+        importlib.reload(app_module)
+        from nightmarenet.api.app import app as reloaded_app
+        auth_client = TestClient(reloaded_app)
+        response = auth_client.get("/api/v1/health")
+        assert response.status_code == 200
+        # Cleanup: reload without the key
+        monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+        importlib.reload(app_module)
+
+    def test_no_key_dev_mode_allows_requests(self):
+        """Without NIGHTMARENET_API_KEY set, all requests should pass (dev mode)."""
+        # The default test client has no key set
+        response = client.post(
+            "/api/v1/generate/dream",
+            json={"text": "Dev mode test.", "strength": 0.1},
+        )
+        assert response.status_code == 200
+
+    def test_valid_key_allows_request(self, monkeypatch):
+        """Requests with correct key should succeed."""
+        monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
+        import importlib
+
+        from nightmarenet.api import app as app_module
+        importlib.reload(app_module)
+        from nightmarenet.api.app import app as reloaded_app
+        auth_client = TestClient(reloaded_app)
+        response = auth_client.post(
+            "/api/v1/generate/dream",
+            json={"text": "Auth test.", "strength": 0.1},
+            headers={"X-API-Key": "test-secret-key"},
+        )
+        assert response.status_code == 200
+        monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+        importlib.reload(app_module)
+
+    def test_invalid_key_returns_401(self, monkeypatch):
+        """Requests with wrong key should get 401."""
+        monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
+        import importlib
+
+        from nightmarenet.api import app as app_module
+        importlib.reload(app_module)
+        from nightmarenet.api.app import app as reloaded_app
+        auth_client = TestClient(reloaded_app)
+        response = auth_client.post(
+            "/api/v1/generate/dream",
+            json={"text": "Auth test.", "strength": 0.1},
+            headers={"X-API-Key": "wrong-key"},
+        )
+        assert response.status_code == 401
+        assert response.json()["error"] == "Unauthorized"
+        monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+        importlib.reload(app_module)
+
+    def test_missing_key_returns_401(self, monkeypatch):
+        """Requests without key header should get 401 when auth is enabled."""
+        monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
+        import importlib
+
+        from nightmarenet.api import app as app_module
+        importlib.reload(app_module)
+        from nightmarenet.api.app import app as reloaded_app
+        auth_client = TestClient(reloaded_app)
+        response = auth_client.post(
+            "/api/v1/generate/dream",
+            json={"text": "Auth test.", "strength": 0.1},
+        )
+        assert response.status_code == 401
+        monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+        importlib.reload(app_module)
+
+
+class TestRateLimiting:
+    """Test rate limiting returns 429 with expected body."""
+
+    def test_rate_limit_returns_429(self):
+        """The rate-limit exception handler should return 429 with JSON error body."""
+        import asyncio
+        import json
+        from unittest.mock import MagicMock
+
+        from nightmarenet.api.app import _rate_limit_handler
+
+        fake_request = MagicMock()
+        fake_exc = MagicMock()
+        fake_exc.detail = "1 per 1 minute"
+
+        response = asyncio.new_event_loop().run_until_complete(
+            _rate_limit_handler(fake_request, fake_exc)
+        )
+        assert response.status_code == 429
+        body = json.loads(response.body)
+        assert body["error"] == "Rate limit exceeded"
+        assert "detail" in body

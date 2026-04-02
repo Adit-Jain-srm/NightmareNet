@@ -7,7 +7,8 @@ Validators raise descriptive ValueError or TypeError exceptions on failure.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,11 @@ def validate_non_empty_dataset(dataset: Any, name: str = "dataset") -> None:
         raise ValueError(f"{name} is empty (0 samples)")
 
 
-def validate_config_keys(config: dict, required_keys: Sequence[str], context: str = "config") -> None:
+def validate_config_keys(
+    config: dict,
+    required_keys: Sequence[str],
+    context: str = "config",
+) -> None:
     """Validate that a config dictionary contains required keys.
 
     Args:

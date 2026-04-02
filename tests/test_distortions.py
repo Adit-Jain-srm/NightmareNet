@@ -2,8 +2,6 @@
 
 import random
 
-import pytest
-
 from nightmarenet.distortions.adversarial import (
     apply_adversarial_distortions,
     construct_adversarial_prompt,
@@ -224,3 +222,55 @@ class TestAdversarialDistortions:
 
     def test_apply_adversarial_distortions_empty_input(self):
         assert apply_adversarial_distortions("", strength=0.5) == ""
+
+
+class TestLearnedAdversarialDistortions:
+    """Test learned adversarial distortion (with mocked model)."""
+
+    def test_generator_fallback_no_model(self):
+        """When model is unavailable, generator falls back to random replacements."""
+        from nightmarenet.distortions.learned import LearnedAdversarialGenerator
+
+        gen = LearnedAdversarialGenerator(model_name="nonexistent-model-xyz", device="cpu")
+        assert not gen._available
+        result = gen.generate(LONG_TEXT, strength=0.5)
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_generator_empty_input(self):
+        from nightmarenet.distortions.learned import LearnedAdversarialGenerator
+
+        gen = LearnedAdversarialGenerator(model_name="nonexistent-model-xyz", device="cpu")
+        assert gen.generate("", strength=0.5) == ""
+        assert gen.generate("  ", strength=0.5) == "  "
+
+    def test_generator_single_word(self):
+        from nightmarenet.distortions.learned import LearnedAdversarialGenerator
+
+        gen = LearnedAdversarialGenerator(model_name="nonexistent-model-xyz", device="cpu")
+        result = gen.generate("hello", strength=0.5)
+        assert result == "hello"
+
+    def test_importance_fallback(self):
+        """Fallback importance scores are random floats."""
+        from nightmarenet.distortions.learned import LearnedAdversarialGenerator
+
+        gen = LearnedAdversarialGenerator(model_name="nonexistent-model-xyz", device="cpu")
+        scores = gen._get_token_importance("hello world test")
+        assert len(scores) == 3
+        assert all(isinstance(s, float) for s in scores)
+
+    def test_adversarial_via_config(self):
+        """apply_adversarial_distortions with learned=1.0 activates learned distortion."""
+        config = {
+            "contradiction": 0.0,
+            "ambiguity": 0.0,
+            "cross_domain": 0.0,
+            "misleading_context": 0.0,
+            "learned": 1.0,
+            "learned_model": "nonexistent-model-xyz",
+        }
+        random.seed(SEED)
+        result = apply_adversarial_distortions(LONG_TEXT, strength=0.5, config=config)
+        assert isinstance(result, str)
+        assert len(result) > 0

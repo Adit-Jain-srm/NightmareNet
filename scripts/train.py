@@ -36,6 +36,13 @@ def main():
         action="store_true",
         help="Load config and data but skip training. Prints config summary and exits.",
     )
+    parser.add_argument(
+        "--tracker",
+        type=str,
+        default=None,
+        choices=["none", "wandb", "tensorboard"],
+        help="Override tracking backend (none, wandb, tensorboard).",
+    )
     args = parser.parse_args()
 
     setup_logging(log_level=args.log_level)
@@ -44,6 +51,10 @@ def main():
         # Load config
         config = load_config(args.config)
         logger.info("Loaded config from %s", args.config)
+
+        # Override tracker backend from CLI
+        if args.tracker is not None:
+            config.setdefault("tracking", {})["backend"] = args.tracker
 
         # Set seed
         seed = config.get("seed", 42)

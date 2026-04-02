@@ -1,0 +1,16 @@
+.git
+.venv
+__pycache__
+*.pyc
+checkpoints/
+logs/
+.pytest_cache/
+.ruff_cache/
+*.egg-info
+dist/
+build/
+.github/
+tests/
+tasks/
+*.md
+!README.md

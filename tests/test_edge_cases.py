@@ -11,6 +11,25 @@ import random
 import pytest
 from datasets import Dataset
 
+from nightmarenet.data.generator import (
+    DreamDatasetGenerator,
+    NightmareDatasetGenerator,
+    create_generators_from_config,
+)
+from nightmarenet.distortions.adversarial import apply_adversarial_distortions
+from nightmarenet.distortions.semantic import apply_semantic_distortions
+from nightmarenet.distortions.text import apply_text_distortions
+from nightmarenet.training.scheduler import (
+    AdaptiveScheduler,
+    CyclicScheduler,
+)
+from nightmarenet.utils.config import (
+    DEFAULT_CONFIG,
+    _deep_merge,
+    load_config,
+    validate_config,
+)
+from nightmarenet.utils.logging_config import reset_logging, setup_logging
 from nightmarenet.utils.validation import (
     validate_config_keys,
     validate_dataloader,
@@ -21,25 +40,6 @@ from nightmarenet.utils.validation import (
     validate_ratio,
     validate_strength,
     validate_text,
-)
-from nightmarenet.utils.config import (
-    DEFAULT_CONFIG,
-    _deep_merge,
-    load_config,
-    validate_config,
-)
-from nightmarenet.utils.logging_config import reset_logging, setup_logging
-from nightmarenet.distortions.text import apply_text_distortions
-from nightmarenet.distortions.semantic import apply_semantic_distortions
-from nightmarenet.distortions.adversarial import apply_adversarial_distortions
-from nightmarenet.data.generator import (
-    DreamDatasetGenerator,
-    NightmareDatasetGenerator,
-    create_generators_from_config,
-)
-from nightmarenet.training.scheduler import (
-    AdaptiveScheduler,
-    CyclicScheduler,
 )
 
 # ---------------------------------------------------------------------------

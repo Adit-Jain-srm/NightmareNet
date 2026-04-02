@@ -148,8 +148,11 @@ def negation_inject(text, strength=0.3) -> str:
             result.append(sentence)
             continue
 
-        # Find verb-like positions (words after "is", "are", "was", "were", "has", "have", "will", "can")
-        verb_indicators = {"is", "are", "was", "were", "has", "have", "will", "can", "do", "does", "did"}
+        # Find verb-like positions (words after common auxiliaries)
+        verb_indicators = {
+            "is", "are", "was", "were", "has",
+            "have", "will", "can", "do", "does", "did",
+        }
         inserted = False
         new_words = []
         for i, word in enumerate(words):

@@ -6,7 +6,8 @@ Controls the sequence and timing of Wake → Dream → Nightmare → Compress cy
 from __future__ import annotations
 
 import logging
-from typing import Iterator, Optional
+from collections.abc import Iterator
+from typing import Optional, Union
 
 from nightmarenet.utils.validation import validate_positive_int
 
@@ -130,6 +131,9 @@ class AdaptiveScheduler:
         patience: int = 2,
         adjustment_factor: float = 0.5,
         max_epochs: int = 50,
+        early_stopping: bool = False,
+        early_stopping_patience: int = 3,
+        early_stopping_min_delta: float = 1e-4,
     ):
         self.base_scheduler = base_scheduler or CyclicScheduler()
         self.patience = patience
@@ -138,6 +142,18 @@ class AdaptiveScheduler:
         self._loss_history: list[dict] = []
         self._no_improvement_count = 0
         self._best_loss = float("inf")
+        # Early stopping
+        self.early_stopping = early_stopping
+        self.early_stopping_patience = early_stopping_patience
+        self.early_stopping_min_delta = early_stopping_min_delta
+        self._es_no_improvement = 0
+        self._es_best_loss = float("inf")
+        self._should_stop = False
+
+    @property
+    def should_stop(self) -> bool:
+        """Return True if early stopping criterion has been met."""
+        return self._should_stop
 
     def update(self, phase: str, loss: float) -> None:
         """Update the scheduler with the latest validation loss.
@@ -153,6 +169,24 @@ class AdaptiveScheduler:
             self._no_improvement_count = 0
         else:
             self._no_improvement_count += 1
+
+        # Early stopping check
+        if self.early_stopping:
+            if loss < self._es_best_loss - self.early_stopping_min_delta:
+                self._es_best_loss = loss
+                self._es_no_improvement = 0
+            else:
+                self._es_no_improvement += 1
+
+            if self._es_no_improvement >= self.early_stopping_patience:
+                logger.info(
+                    "Early stopping triggered: no improvement for %d phases "
+                    "(best=%.6f, current=%.6f).",
+                    self.early_stopping_patience,
+                    self._es_best_loss,
+                    loss,
+                )
+                self._should_stop = True
 
         if self._no_improvement_count >= self.patience:
             # Increase dream and nightmare epochs to provide more training signal
@@ -192,20 +226,31 @@ class AdaptiveScheduler:
         return len(self.base_scheduler)
 
 
-def create_scheduler_from_config(config: dict) -> CyclicScheduler:
-    """Create a CyclicScheduler from a configuration dictionary.
+def create_scheduler_from_config(config: dict) -> Union[CyclicScheduler, AdaptiveScheduler]:
+    """Create a scheduler from a configuration dictionary.
+
+    Returns a plain CyclicScheduler unless early stopping is enabled,
+    in which case an AdaptiveScheduler wrapping it is returned.
 
     Args:
         config: Full configuration dictionary.
 
     Returns:
-        Configured CyclicScheduler instance.
+        Configured scheduler instance.
     """
     training_config = config.get("training", {})
-    return CyclicScheduler(
+    base = CyclicScheduler(
         num_cycles=training_config.get("num_cycles", 3),
         wake_epochs=training_config.get("wake_epochs", 3),
         dream_epochs=training_config.get("dream_epochs", 2),
         nightmare_epochs=training_config.get("nightmare_epochs", 1),
         compression_rounds=training_config.get("compression_rounds", 1),
     )
+    if training_config.get("early_stopping", False):
+        return AdaptiveScheduler(
+            base_scheduler=base,
+            early_stopping=True,
+            early_stopping_patience=training_config.get("early_stopping_patience", 3),
+            early_stopping_min_delta=training_config.get("early_stopping_min_delta", 1e-4),
+        )
+    return base

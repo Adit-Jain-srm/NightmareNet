@@ -60,7 +60,7 @@ class TestCyclicScheduler:
 
     def test_current_properties(self):
         scheduler = CyclicScheduler(num_cycles=1)
-        for cycle, phase, epochs in scheduler:
+        for cycle, phase, _epochs in scheduler:
             assert scheduler.current_cycle == cycle
             assert scheduler.current_phase == phase
 
@@ -130,3 +130,90 @@ class TestCreateSchedulerFromConfig:
         scheduler = create_scheduler_from_config({})
         assert isinstance(scheduler, CyclicScheduler)
         assert scheduler.num_cycles == 3
+
+    def test_early_stopping_returns_adaptive(self):
+        config = {
+            "training": {
+                "num_cycles": 2,
+                "wake_epochs": 1,
+                "dream_epochs": 1,
+                "nightmare_epochs": 1,
+                "early_stopping": True,
+                "early_stopping_patience": 4,
+                "early_stopping_min_delta": 0.001,
+            }
+        }
+        scheduler = create_scheduler_from_config(config)
+        assert isinstance(scheduler, AdaptiveScheduler)
+        assert scheduler.early_stopping is True
+        assert scheduler.early_stopping_patience == 4
+
+
+class TestEarlyStopping:
+    """Test early stopping in AdaptiveScheduler."""
+
+    def test_no_stop_with_improvement(self):
+        base = CyclicScheduler(num_cycles=1)
+        adaptive = AdaptiveScheduler(
+            base_scheduler=base,
+            early_stopping=True,
+            early_stopping_patience=2,
+            early_stopping_min_delta=0.01,
+        )
+        adaptive.update("wake", 2.0)
+        adaptive.update("dream", 1.5)
+        adaptive.update("nightmare", 1.0)
+        assert adaptive.should_stop is False
+
+    def test_stop_on_plateau(self):
+        base = CyclicScheduler(num_cycles=1)
+        adaptive = AdaptiveScheduler(
+            base_scheduler=base,
+            early_stopping=True,
+            early_stopping_patience=2,
+            early_stopping_min_delta=0.1,
+        )
+        adaptive.update("wake", 2.0)
+        adaptive.update("dream", 2.0)    # No improvement
+        adaptive.update("nightmare", 2.0)  # Triggers stop (patience=2)
+        assert adaptive.should_stop is True
+
+    def test_stop_on_degradation(self):
+        base = CyclicScheduler(num_cycles=1)
+        adaptive = AdaptiveScheduler(
+            base_scheduler=base,
+            early_stopping=True,
+            early_stopping_patience=3,
+            early_stopping_min_delta=0.0,
+        )
+        adaptive.update("wake", 1.0)
+        adaptive.update("dream", 1.5)      # Worse
+        adaptive.update("nightmare", 2.0)   # Worse
+        assert adaptive.should_stop is False  # patience=3, only 2 bad updates
+        adaptive.update("compress", 2.5)     # Worse → triggers stop
+        assert adaptive.should_stop is True
+
+    def test_min_delta_sensitivity(self):
+        base = CyclicScheduler(num_cycles=1)
+        adaptive = AdaptiveScheduler(
+            base_scheduler=base,
+            early_stopping=True,
+            early_stopping_patience=2,
+            early_stopping_min_delta=0.5,
+        )
+        # Improve, but by less than min_delta
+        adaptive.update("wake", 2.0)
+        adaptive.update("dream", 1.8)     # Improved by 0.2 < delta 0.5
+        adaptive.update("nightmare", 1.6)  # Still < delta from best
+        assert adaptive.should_stop is True
+
+    def test_disabled_early_stopping(self):
+        base = CyclicScheduler(num_cycles=1)
+        adaptive = AdaptiveScheduler(
+            base_scheduler=base,
+            early_stopping=False,
+            early_stopping_patience=1,
+        )
+        adaptive.update("wake", 2.0)
+        adaptive.update("dream", 5.0)
+        assert adaptive.should_stop is False

@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from datasets import Dataset, load_dataset
+from datasets import IterableDataset, load_dataset
 
 from nightmarenet.utils.validation import (
     validate_dataset_columns,
@@ -40,12 +40,14 @@ class DatasetWrapper:
         text_column: str = "text",
         max_samples: Optional[int] = None,
         seed: int = 42,
+        streaming: bool = False,
     ):
         self.dataset_name = dataset_name
         self.subset = subset
         self.text_column = text_column
         self.max_samples = max_samples
         self.seed = seed
+        self.streaming = streaming
 
         self._train_dataset = None
         self._test_dataset = None
@@ -66,6 +68,8 @@ class DatasetWrapper:
         kwargs = {"path": self.dataset_name}
         if self.subset:
             kwargs["name"] = self.subset
+        if self.streaming:
+            kwargs["streaming"] = True
 
         try:
             raw = load_dataset(**kwargs)
@@ -74,6 +78,9 @@ class DatasetWrapper:
                 f"Failed to load dataset '{self.dataset_name}' "
                 f"(subset={self.subset}): {exc}"
             ) from exc
+
+        if self.streaming:
+            return self._load_streaming(raw)
 
         # Get train and test splits
         if "train" in raw:
@@ -150,16 +157,58 @@ class DatasetWrapper:
         )
         return self
 
+    def _load_streaming(self, raw) -> DatasetWrapper:
+        """Load dataset in streaming mode, returning IterableDatasets."""
+        if "train" in raw:
+            self._train_dataset = raw["train"]
+        else:
+            first_split = list(raw.keys())[0]
+            self._train_dataset = raw[first_split]
+            logger.warning("No 'train' split found; using '%s' split.", first_split)
+
+        if "test" in raw:
+            self._test_dataset = raw["test"]
+        elif "validation" in raw:
+            self._test_dataset = raw["validation"]
+        else:
+            # For streaming, we cannot train_test_split; use train for both
+            self._test_dataset = self._train_dataset
+            logger.warning("No test split available in streaming mode; using train split.")
+
+        # Validate text column when metadata is available
+        features = getattr(self._train_dataset, "features", None)
+        if features is not None and self.text_column not in features:
+            raise ValueError(
+                f"Text column '{self.text_column}' not found in streaming dataset. "
+                f"Available columns: {list(features)}"
+            )
+
+        # Filter empty texts
+        self._train_dataset = self._train_dataset.filter(
+            lambda x: bool(x[self.text_column] and x[self.text_column].strip())
+        )
+        self._test_dataset = self._test_dataset.filter(
+            lambda x: bool(x[self.text_column] and x[self.text_column].strip())
+        )
+
+        # Limit samples if requested
+        if self.max_samples is not None:
+            self._train_dataset = self._train_dataset.take(self.max_samples)
+            self._test_dataset = self._test_dataset.take(max(self.max_samples // 5, 1))
+
+        logger.info("Loaded streaming dataset '%s'.", self.dataset_name)
+        return self
+
     @property
-    def train_data(self) -> Dataset:
-        """Return the training dataset."""
+    def train_data(self):
+        """Return the training dataset (Dataset or IterableDataset)."""
         if self._train_dataset is None:
             raise RuntimeError("Dataset not loaded. Call .load() first.")
         return self._train_dataset
 
     @property
-    def test_data(self) -> Dataset:
-        """Return the test dataset."""
+    def test_data(self):
+        """Return the test dataset (Dataset or IterableDataset)."""
         if self._test_dataset is None:
             raise RuntimeError("Dataset not loaded. Call .load() first.")
         return self._test_dataset
@@ -172,8 +221,16 @@ class DatasetWrapper:
 
         Returns:
             List of text strings.
+
+        Raises:
+            RuntimeError: If called on a streaming dataset.
         """
         dataset = self.train_data if split == "train" else self.test_data
+        if isinstance(dataset, IterableDataset):
+            raise RuntimeError(
+                "get_texts() is not supported for streaming datasets. "
+                "Iterate over the dataset directly instead."
+            )
         return dataset[self.text_column]
 
 
@@ -193,4 +250,5 @@ def load_from_config(config: dict) -> DatasetWrapper:
         text_column=dataset_config.get("text_column", "text"),
         max_samples=dataset_config.get("max_samples"),
         seed=config.get("seed", 42),
+        streaming=dataset_config.get("streaming", False),
     ).load()
