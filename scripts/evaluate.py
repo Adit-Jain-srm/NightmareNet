@@ -55,6 +55,13 @@ def main():
         default="INFO",
         help="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL).",
     )
+    parser.add_argument(
+        "--tracker",
+        type=str,
+        default=None,
+        choices=["none", "wandb", "tensorboard"],
+        help="Override tracking backend (none, wandb, tensorboard).",
+    )
     args = parser.parse_args()
 
     setup_logging(log_level=args.log_level)
@@ -68,6 +75,10 @@ def main():
         # Load config
         config = load_config(args.config)
         logger.info("Loaded config from %s", args.config)
+
+        # Override tracker backend from CLI
+        if args.tracker is not None:
+            config.setdefault("tracking", {})["backend"] = args.tracker
 
         # Determine device
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

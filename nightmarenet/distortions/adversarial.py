@@ -304,6 +304,21 @@ def apply_adversarial_distortions(text, strength=0.3, config=None) -> str:
             if name in distortion_funcs and random.random() < prob:
                 result = distortion_funcs[name](result, strength=strength)
 
+        # Apply learned adversarial distortion if configured
+        learned_weight = config.get("learned", 0.0)
+        if learned_weight > 0 and random.random() < learned_weight:
+            try:
+                from nightmarenet.distortions.learned import LearnedAdversarialGenerator
+
+                learned_model = config.get("learned_model", "distilbert-base-uncased")
+                gen = LearnedAdversarialGenerator(model_name=learned_model, strength=strength)
+                result = gen.generate(result, strength=strength)
+            except Exception:
+                logger.warning(
+                    "Learned adversarial distortion failed; continuing with other distortions",
+                    exc_info=True,
+                )
+
         return result
     except Exception:
         logger.warning("Adversarial distortion failed; returning original text", exc_info=True)

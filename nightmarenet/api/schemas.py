@@ -70,3 +70,10 @@ class ErrorResponse(BaseModel):
 
     error: str
     detail: Optional[str] = None
+
+
+class AuthErrorResponse(BaseModel):
+    """Authentication error response."""
+
+    error: str = "Unauthorized"
+    detail: str = "Invalid or missing API key."

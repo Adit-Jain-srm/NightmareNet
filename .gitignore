@@ -12,6 +12,7 @@ eggs/
 # Virtual environments
 venv/
 .env/
+.venv/
 
 # IDE
 .vscode/

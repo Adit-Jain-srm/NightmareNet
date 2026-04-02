@@ -16,7 +16,14 @@ from typing import Optional
 
 import torch
 from torch.utils.data import DataLoader
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoModelForMaskedLM,
+    AutoModelForSequenceClassification,
+    AutoTokenizer,
+)
+
+from datasets import IterableDataset
 
 from nightmarenet.training.phases import (
     CompressionPhase,
@@ -25,8 +32,15 @@ from nightmarenet.training.phases import (
     WakePhase,
 )
 from nightmarenet.training.scheduler import CyclicScheduler, create_scheduler_from_config
+from nightmarenet.utils.tracking import create_tracker_from_config
 
 logger = logging.getLogger(__name__)
+
+_MODEL_TYPE_MAP = {
+    "causal_lm": AutoModelForCausalLM,
+    "masked_lm": AutoModelForMaskedLM,
+    "seq_classification": AutoModelForSequenceClassification,
+}
 
 
 def _get_device(config):
@@ -35,6 +49,13 @@ def _get_device(config):
     if device_str == "auto":
         return torch.device("cuda" if torch.cuda.is_available() else "cpu")
     return torch.device(device_str)
+
+
+def _create_amp_scaler(use_amp: bool, device: torch.device):
+    """Create a GradScaler for mixed-precision training, or None if disabled."""
+    if use_amp and device.type == "cuda":
+        return torch.amp.GradScaler("cuda")
+    return None
 
 
 def _tokenize_dataset(dataset, tokenizer, text_column, max_length, batch_size):
@@ -48,6 +69,15 @@ def _tokenize_dataset(dataset, tokenizer, text_column, max_length, batch_size):
             max_length=max_length,
             return_tensors="pt",
         )
+
+    if isinstance(dataset, IterableDataset):
+        tokenized = dataset.map(
+            tokenize_fn,
+            batched=True,
+            remove_columns=dataset.column_names if dataset.column_names else [text_column],
+        )
+        tokenized = tokenized.with_format("torch")
+        return DataLoader(tokenized, batch_size=batch_size)
 
     tokenized = dataset.map(
         tokenize_fn,
@@ -82,10 +112,20 @@ class Trainer:
 
         # Load model and tokenizer
         model_name = self.model_config.get("name", "gpt2")
+        self.model_type = self.model_config.get("type", "causal_lm")
         if model is None:
-            logger.info("Loading model: %s", model_name)
+            logger.info("Loading model: %s (type=%s)", model_name, self.model_type)
+            model_cls = _MODEL_TYPE_MAP.get(self.model_type)
+            if model_cls is None:
+                raise ValueError(
+                    f"Unknown model type '{self.model_type}'. "
+                    f"Supported: {list(_MODEL_TYPE_MAP)}"
+                )
             try:
-                self.model = AutoModelForCausalLM.from_pretrained(model_name)
+                kwargs = {}
+                if self.model_type == "seq_classification":
+                    kwargs["num_labels"] = self.model_config.get("num_labels", 2)
+                self.model = model_cls.from_pretrained(model_name, **kwargs)
             except Exception as exc:
                 raise RuntimeError(f"Failed to load model '{model_name}': {exc}") from exc
         else:
@@ -106,6 +146,25 @@ class Trainer:
             weight_decay=self.training_config.get("weight_decay", 0.01),
         )
 
+        # Mixed-precision training
+        self.use_amp = self.training_config.get("use_amp", False)
+        self.scaler = _create_amp_scaler(self.use_amp, self.device)
+        if self.use_amp:
+            if self.device.type == "cuda":
+                logger.info("Mixed-precision training (AMP) enabled.")
+            else:
+                logger.warning("use_amp=True but device is %s; AMP disabled.", self.device)
+                self.use_amp = False
+                self.scaler = None
+
+        # Gradient checkpointing
+        if self.training_config.get("gradient_checkpointing", False):
+            if hasattr(self.model, "gradient_checkpointing_enable"):
+                self.model.gradient_checkpointing_enable()
+                logger.info("Gradient checkpointing enabled.")
+            else:
+                logger.warning("Model does not support gradient checkpointing.")
+
         # Create scheduler
         self.scheduler = create_scheduler_from_config(config)
 
@@ -125,6 +184,9 @@ class Trainer:
         # Log directory
         self.log_dir = self.training_config.get("log_dir", "logs")
         os.makedirs(self.log_dir, exist_ok=True)
+
+        # Experiment tracker
+        self.tracker = create_tracker_from_config(config)
 
     def _create_reference_model(self):
         """Create a frozen copy of the current model for KL regularization."""
@@ -177,6 +239,7 @@ class Trainer:
         """
         logger.info("Starting training with schedule:\n%s", self.scheduler.summary())
         logger.info("Device: %s", self.device)
+        self.tracker.log_config(self.config)
 
         prev_handler = signal.getsignal(signal.SIGINT)
         signal.signal(signal.SIGINT, self._handle_interrupt)
@@ -202,6 +265,7 @@ class Trainer:
                         optimizer=self.optimizer,
                         config=self.training_config,
                         device=self.device,
+                        scaler=self.scaler,
                     )
                     result = phase_runner.run(train_dataloader, num_epochs=num_epochs)
 
@@ -217,6 +281,7 @@ class Trainer:
                         device=self.device,
                         reference_model=self.reference_model,
                         kl_weight=0.1,
+                        scaler=self.scaler,
                     )
                     result = phase_runner.run(dream_dataloader, num_epochs=num_epochs)
 
@@ -228,6 +293,7 @@ class Trainer:
                         config=self.training_config,
                         device=self.device,
                         lr_multiplier=lr_multiplier,
+                        scaler=self.scaler,
                     )
                     result = phase_runner.run(nightmare_dataloader, num_epochs=num_epochs)
 
@@ -236,6 +302,7 @@ class Trainer:
                         model=self.model,
                         config=self.compression_config,
                         device=self.device,
+                        scaler=self.scaler,
                     )
                     result = phase_runner.run(
                         dataloader=train_dataloader,
@@ -258,6 +325,9 @@ class Trainer:
                 result["cycle"] = cycle
                 self.history.append(result)
 
+                # Log to tracker
+                self.tracker.log_phase(cycle, phase, result)
+
                 # Save checkpoint
                 self._save_checkpoint(cycle, phase)
 
@@ -278,6 +348,7 @@ class Trainer:
         self.tokenizer.save_pretrained(final_path)
         self._save_history()
 
+        self.tracker.finish()
         logger.info("Training complete. Final model saved to %s", final_path)
         return self.history
 

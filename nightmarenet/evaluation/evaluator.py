@@ -15,6 +15,7 @@ from typing import Optional
 from torch.utils.data import DataLoader
 
 from nightmarenet.evaluation.metrics import (
+    classification_metrics,
     generalization_score,
     hallucination_rate,
     recall_score,
@@ -34,11 +35,12 @@ class Evaluator:
         device: Device to run evaluations on.
     """
 
-    def __init__(self, model, tokenizer, config, device="cpu") -> None:
+    def __init__(self, model, tokenizer, config, device="cpu", tracker=None) -> None:
         self.model = model
         self.tokenizer = tokenizer
         self.config = config
         self.device = device
+        self.tracker = tracker
         self.eval_config = config.get("evaluation", {})
         self.enabled_metrics = self.eval_config.get(
             "metrics", ["recall", "generalization", "robustness", "hallucination"]
@@ -74,6 +76,8 @@ class Evaluator:
                 results["recall"] = recall_score(
                     self.model, clean_dataloader, self.tokenizer, self.device
                 )
+                if self.tracker:
+                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["recall"].items() if isinstance(v, (int, float))})
             except Exception as e:
                 logger.error("Failed to compute recall: %s", e)
                 results["recall"] = {"error": str(e)}
@@ -84,6 +88,8 @@ class Evaluator:
                 results["generalization"] = generalization_score(
                     self.model, ood_dataloader, clean_dataloader, self.device
                 )
+                if self.tracker:
+                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["generalization"].items() if isinstance(v, (int, float))})
             except Exception as e:
                 logger.error("Failed to compute generalization: %s", e)
                 results["generalization"] = {"error": str(e)}
@@ -112,6 +118,8 @@ class Evaluator:
                     batch_size=self.config.get("training", {}).get("batch_size", 8),
                     device=self.device,
                 )
+                if self.tracker:
+                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["robustness"].items() if isinstance(v, (int, float))})
             except Exception as e:
                 logger.error("Failed to compute robustness: %s", e)
                 results["robustness"] = {"error": str(e)}
@@ -122,9 +130,23 @@ class Evaluator:
                 results["hallucination"] = hallucination_rate(
                     self.model, clean_dataloader, self.tokenizer, self.device
                 )
+                if self.tracker:
+                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["hallucination"].items() if isinstance(v, (int, float))})
             except Exception as e:
                 logger.error("Failed to compute hallucination: %s", e)
                 results["hallucination"] = {"error": str(e)}
+
+        if "classification" in self.enabled_metrics:
+            logger.info("Evaluating: classification")
+            try:
+                results["classification"] = classification_metrics(
+                    self.model, clean_dataloader, self.device
+                )
+                if self.tracker:
+                    self.tracker.log_metrics({f"eval/{k}": v for k, v in results["classification"].items() if isinstance(v, (int, float))})
+            except Exception as e:
+                logger.error("Failed to compute classification: %s", e)
+                results["classification"] = {"error": str(e)}
 
         return results
 

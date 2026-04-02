@@ -19,6 +19,8 @@ logger = logging.getLogger(__name__)
 DEFAULT_CONFIG: dict[str, Any] = {
     "model": {
         "name": "gpt2",
+        "type": "causal_lm",
+        "num_labels": 2,
         "max_length": 128,
         "device": "auto",
     },
@@ -27,6 +29,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "subset": "wikitext-2-raw-v1",
         "text_column": "text",
         "max_samples": None,
+        "streaming": False,
     },
     "training": {
         "wake_epochs": 3,
@@ -41,6 +44,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "warmup_steps": 100,
         "gradient_accumulation_steps": 4,
         "max_grad_norm": 1.0,
+        "use_amp": False,
+        "gradient_checkpointing": False,
         "save_every_phase": True,
         "checkpoint_dir": "checkpoints",
         "log_dir": "logs",
@@ -66,6 +71,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "ambiguity": 0.3,
             "cross_domain": 0.2,
             "misleading_context": 0.2,
+            "learned": 0.0,
+            "learned_model": "distilbert-base-uncased",
         },
     },
     "compression": {
@@ -82,6 +89,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "output_format": "json",
     },
     "seed": 42,
+    "tracking": {
+        "backend": "none",
+        "project": "nightmarenet",
+        "log_dir": "logs/runs",
+    },
 }
 
 # Schema for type validation: maps dotted key paths to (expected_type, min, max, required).
@@ -90,10 +102,13 @@ _MAX_PRUNING_RATIO = 1.0 - 1e-4
 
 _SCHEMA: dict[str, tuple] = {
     "model.name": (str, None, None, True),
+    "model.type": (str, None, None, True),
+    "model.num_labels": (int, 1, 10000, False),
     "model.max_length": (int, 1, 8192, True),
     "model.device": (str, None, None, True),
     "dataset.name": (str, None, None, True),
     "dataset.text_column": (str, None, None, True),
+    "dataset.streaming": (bool, None, None, False),
     "training.wake_epochs": (int, 0, 1000, True),
     "training.dream_epochs": (int, 0, 1000, True),
     "training.nightmare_epochs": (int, 0, 1000, True),
@@ -104,6 +119,10 @@ _SCHEMA: dict[str, tuple] = {
     "training.nightmare_lr_multiplier": (float, 0.1, 100.0, True),
     "training.max_grad_norm": (float, 0.0, 1000.0, True),
     "training.gradient_accumulation_steps": (int, 1, 1024, True),
+    "training.use_amp": (bool, None, None, False),
+    "training.gradient_checkpointing": (bool, None, None, False),
+    "tracking.backend": (str, None, None, False),
+    "tracking.project": (str, None, None, False),
     "distortion.dream_strength": (float, 0.0, 1.0, True),
     "distortion.nightmare_strength": (float, 0.0, 1.0, True),
     "compression.pruning_ratio": (float, 0.0, _MAX_PRUNING_RATIO, True),

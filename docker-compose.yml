@@ -1,0 +1,25 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - NIGHTMARENET_API_KEY=${NIGHTMARENET_API_KEY:-}
+      - NIGHTMARENET_CORS_ORIGINS=${NIGHTMARENET_CORS_ORIGINS:-*}
+    volumes:
+      - ./configs:/app/configs
+      - ./data:/app/data
+    restart: unless-stopped
+
+  train:
+    build: .
+    entrypoint: ["python", "-m", "scripts.train"]
+    profiles:
+      - training
+    environment:
+      - NIGHTMARENET_API_KEY=${NIGHTMARENET_API_KEY:-}
+    volumes:
+      - ./configs:/app/configs
+      - ./data:/app/data
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs

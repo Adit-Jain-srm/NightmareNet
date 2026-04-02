@@ -319,3 +319,60 @@ def hallucination_rate(
         "hallucinated_predictions": hallucinated,
         "avg_hallucination_confidence": _safe_float(avg_confidence),
     }
+
+
+def classification_metrics(
+    model,
+    dataloader: DataLoader,
+    device="cpu",
+) -> dict:
+    """Compute classification metrics (accuracy, F1, per-class stats).
+
+    Args:
+        model: Sequence classification model.
+        dataloader: DataLoader providing tokenized batches with 'labels' column.
+        device: Device to run inference on.
+
+    Returns:
+        Dict with accuracy, weighted F1, and per-class precision/recall/F1.
+    """
+    from sklearn.metrics import accuracy_score, f1_score, precision_recall_fscore_support
+
+    model.eval()
+    all_preds = []
+    all_labels = []
+
+    try:
+        with torch.no_grad():
+            for batch in tqdm(dataloader, desc="Computing classification metrics"):
+                batch = {k: v.to(device) for k, v in batch.items()}
+                outputs = model(**batch)
+                logits = outputs.logits
+                preds = logits.argmax(dim=-1).cpu().numpy()
+                labels = batch["labels"].cpu().numpy()
+                all_preds.extend(preds.tolist())
+                all_labels.extend(labels.tolist())
+    except Exception as e:
+        logger.warning("Error during classification metrics computation: %s", e)
+        return {
+            "metric": "classification",
+            "accuracy": 0.0,
+            "f1_weighted": 0.0,
+            "error": str(e),
+        }
+
+    accuracy = accuracy_score(all_labels, all_preds)
+    f1_weighted = f1_score(all_labels, all_preds, average="weighted", zero_division=0)
+    precision, recall, f1_per_class, support = precision_recall_fscore_support(
+        all_labels, all_preds, zero_division=0
+    )
+
+    return {
+        "metric": "classification",
+        "accuracy": _safe_float(accuracy),
+        "f1_weighted": _safe_float(f1_weighted),
+        "precision_per_class": [_safe_float(p) for p in precision],
+        "recall_per_class": [_safe_float(r) for r in recall],
+        "f1_per_class": [_safe_float(f) for f in f1_per_class],
+        "support_per_class": support.tolist(),
+    }

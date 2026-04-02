@@ -10,7 +10,7 @@ import logging
 import os
 from typing import Optional
 
-from datasets import Dataset
+from datasets import Dataset, IterableDataset
 
 from nightmarenet.distortions.adversarial import apply_adversarial_distortions
 from nightmarenet.distortions.semantic import apply_semantic_distortions
@@ -67,18 +67,26 @@ class DreamDatasetGenerator:
 
         return {**example, self.text_column: result}
 
-    def generate(self, dataset: Dataset) -> Dataset:
+    def generate(self, dataset):
         """Generate a dream dataset by applying mild distortions.
 
         Args:
-            dataset: Base HuggingFace Dataset to distort.
+            dataset: Base HuggingFace Dataset or IterableDataset to distort.
 
         Returns:
-            A new Dataset with mildly distorted text.
+            A new Dataset/IterableDataset with mildly distorted text.
         """
         import random
 
         random.seed(self.seed)
+
+        # Streaming: lazily map distortions
+        if isinstance(dataset, IterableDataset):
+            logger.info(
+                "Generating dream data (strength=%.2f) in streaming mode...",
+                self.strength,
+            )
+            return dataset.map(self._distort)
 
         validate_dataset_columns(dataset, [self.text_column])
         validate_non_empty_dataset(dataset, "dataset")
@@ -178,18 +186,26 @@ class NightmareDatasetGenerator:
 
         return {**example, self.text_column: result}
 
-    def generate(self, dataset: Dataset) -> Dataset:
+    def generate(self, dataset):
         """Generate a nightmare dataset by applying extreme distortions.
 
         Args:
-            dataset: Base HuggingFace Dataset to distort.
+            dataset: Base HuggingFace Dataset or IterableDataset to distort.
 
         Returns:
-            A new Dataset with extremely perturbed text.
+            A new Dataset/IterableDataset with extremely perturbed text.
         """
         import random
 
         random.seed(self.seed)
+
+        # Streaming: lazily map distortions
+        if isinstance(dataset, IterableDataset):
+            logger.info(
+                "Generating nightmare data (strength=%.2f) in streaming mode...",
+                self.strength,
+            )
+            return dataset.map(self._distort)
 
         validate_dataset_columns(dataset, [self.text_column])
         validate_non_empty_dataset(dataset, "dataset")

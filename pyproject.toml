@@ -47,6 +47,11 @@ api = [
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.0",
     "httpx>=0.25.0",
+    "slowapi>=0.1.9",
+]
+tracking = [
+    "wandb>=0.16.0",
+    "tensorboard>=2.14.0",
 ]
 
 [project.urls]
