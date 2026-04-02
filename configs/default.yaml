@@ -1,0 +1,73 @@
+# Model configuration
+model:
+  name: "gpt2"
+  max_length: 128
+  device: "auto"  # "auto", "cuda", "cpu"
+
+# Dataset configuration
+dataset:
+  name: "wikitext"
+  subset: "wikitext-2-raw-v1"
+  text_column: "text"
+  max_samples: 5000  # Limit samples for faster iteration; null for full dataset
+
+# Training configuration
+training:
+  wake_epochs: 3
+  dream_epochs: 2
+  nightmare_epochs: 1
+  num_cycles: 3
+  batch_size: 8
+  learning_rate: 5.0e-5
+  nightmare_lr_multiplier: 2.0  # Higher LR for nightmare phase
+  weight_decay: 0.01
+  warmup_steps: 100
+  gradient_accumulation_steps: 4
+  max_grad_norm: 1.0
+  save_every_phase: true
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+
+# Distortion configuration
+distortion:
+  dream_strength: 0.25   # Mild distortions for dream phase
+  nightmare_strength: 0.8 # Extreme perturbations for nightmare phase
+  # Per-distortion type weights (probability of applying each)
+  text:
+    char_swap: 0.3
+    char_insert: 0.2
+    char_delete: 0.2
+    keyboard_typo: 0.3
+    word_shuffle: 0.2
+    token_mask: 0.3
+  semantic:
+    synonym_replace: 0.4
+    negation_inject: 0.3
+    topic_splice: 0.3
+  adversarial:
+    contradiction: 0.3
+    ambiguity: 0.3
+    cross_domain: 0.2
+    misleading_context: 0.2
+
+# Compression configuration
+compression:
+  pruning_ratio: 0.2         # Fraction of weights to prune
+  pruning_method: "magnitude" # "magnitude" or "bottleneck"
+  bottleneck_rank_ratio: 0.5  # For bottleneck: ratio of reduced hidden dim
+  finetune_after_prune: true
+  finetune_epochs: 1
+
+# Evaluation configuration
+evaluation:
+  metrics:
+    - "recall"
+    - "generalization"
+    - "robustness"
+    - "hallucination"
+  robustness_strengths: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  output_dir: "results"
+  output_format: "json"  # "json" or "markdown"
+
+# Reproducibility
+seed: 42
