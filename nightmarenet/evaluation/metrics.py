@@ -227,7 +227,10 @@ def robustness_score(
     # Compute AUC using trapezoidal rule (normalized)
     # Lower perplexity = better, so we use 1/ppl for AUC
     inv_ppls = [1.0 / max(p, 1e-8) for p in perplexities]
-    auc = float(np.trapz(inv_ppls, strengths))
+    _trapz_fn = getattr(np, "trapezoid", None)
+    if _trapz_fn is None:
+        _trapz_fn = np.trapz  # type: ignore[attr-defined]
+    auc = float(_trapz_fn(inv_ppls, strengths))
 
     return {
         "metric": "robustness",

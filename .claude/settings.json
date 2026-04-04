@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "write_file|edit_file|create_file|replace_string_in_file|multi_replace_string_in_file",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -m py_compile \"$TOOL_INPUT_FILE_PATH\" 2>&1 || true",
+            "description": "Syntax-check Python files after edits",
+            "matchFileGlob": "**/*.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd \"c:\\Users\\aditj\\New Projects\\NightmareNet\" && ruff check --quiet . 2>&1 | head -20",
+            "description": "Run ruff lint check before session completes"
+          }
+        ]
+      }
+    ]
+  }
+}

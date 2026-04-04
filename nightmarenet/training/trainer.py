@@ -12,7 +12,7 @@ import logging
 import math
 import os
 import signal
-from typing import Optional
+from typing import Any, Optional
 
 import torch
 from datasets import IterableDataset
@@ -59,8 +59,8 @@ def _create_amp_scaler(use_amp: bool, device: torch.device) -> Optional[torch.am
 
 
 def _tokenize_dataset(
-    dataset: object,
-    tokenizer: object,
+    dataset: Any,
+    tokenizer: Any,
     text_column: str,
     max_length: int,
     batch_size: int,
@@ -178,7 +178,7 @@ class Trainer:
         self.reference_model = None
 
         # Training history
-        self.history = []
+        self.history: list[dict] = []
 
         # Interrupt flag
         self._interrupted = False
@@ -211,8 +211,8 @@ class Trainer:
     def _create_reference_model(self) -> None:
         """Create a frozen copy of the current model for KL regularization."""
         self.reference_model = copy.deepcopy(self.model)
-        self.reference_model.eval()
-        for param in self.reference_model.parameters():
+        self.reference_model.eval()  # type: ignore[attr-defined]
+        for param in self.reference_model.parameters():  # type: ignore[attr-defined]
             param.requires_grad = False
         logger.info("Created reference model for KL regularization.")
 
@@ -262,7 +262,7 @@ class Trainer:
         Returns:
             List of phase result dicts (training history).
         """
-        logger.info("Starting training with schedule:\n%s", self.scheduler.summary())
+        logger.info("Starting training with schedule:\n%s", self.scheduler.summary())  # type: ignore[union-attr]
         logger.info("Device: %s", self.device)
         self.tracker.log_config(self.config)
 
@@ -303,22 +303,24 @@ class Trainer:
                     num_epochs,
                 )
 
+                result: dict
+
                 if phase == "wake":
-                    phase_runner = WakePhase(
+                    wake_runner = WakePhase(
                         model=self.model,
                         optimizer=self.optimizer,
                         config=self.training_config,
                         device=self.device,
                         scaler=self.scaler,
                     )
-                    result = phase_runner.run(train_dataloader, num_epochs=num_epochs)
+                    result = wake_runner.run(train_dataloader, num_epochs=num_epochs)
 
                     # Create reference model after first wake phase
                     if cycle == 0:
                         self._create_reference_model()
 
                 elif phase == "dream":
-                    phase_runner = DreamPhase(
+                    dream_runner = DreamPhase(
                         model=self.model,
                         optimizer=self.optimizer,
                         config=self.training_config,
@@ -327,11 +329,11 @@ class Trainer:
                         kl_weight=0.1,
                         scaler=self.scaler,
                     )
-                    result = phase_runner.run(dream_dataloader, num_epochs=num_epochs)
+                    result = dream_runner.run(dream_dataloader, num_epochs=num_epochs)
 
                 elif phase == "nightmare":
                     lr_multiplier = self.training_config.get("nightmare_lr_multiplier", 2.0)
-                    phase_runner = NightmarePhase(
+                    nightmare_runner = NightmarePhase(
                         model=self.model,
                         optimizer=self.optimizer,
                         config=self.training_config,
@@ -339,16 +341,16 @@ class Trainer:
                         lr_multiplier=lr_multiplier,
                         scaler=self.scaler,
                     )
-                    result = phase_runner.run(nightmare_dataloader, num_epochs=num_epochs)
+                    result = nightmare_runner.run(nightmare_dataloader, num_epochs=num_epochs)
 
                 elif phase == "compress":
-                    phase_runner = CompressionPhase(
+                    compress_runner = CompressionPhase(
                         model=self.model,
                         config=self.compression_config,
                         device=self.device,
                         scaler=self.scaler,
                     )
-                    result = phase_runner.run(
+                    result = compress_runner.run(
                         dataloader=train_dataloader,
                         optimizer=self.optimizer,
                     )

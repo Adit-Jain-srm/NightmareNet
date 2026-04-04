@@ -2,6 +2,59 @@
 
 _(Updated after each correction or mistake)_
 
+## Workflow Orchestration Rules
+
+### 1. Plan Node Default
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
+- If something goes sideways, STOP and re-plan immediately — don't keep pushing
+- Use plan mode for verification steps, not just building
+- Write detailed specs upfront to reduce ambiguity
+
+### 2. Subagent Strategy
+- Use subagents liberally to keep main context window clean
+- Offload research, exploration, and parallel analysis to subagents
+- For complex problems, throw more compute at it via subagents
+- One task per subagent for focused execution
+
+### 3. Self-Improvement Loop
+- After ANY correction from the user: update tasks/lessons.md with the pattern
+- Write rules for yourself that prevent the same mistake
+- Ruthlessly iterate on these lessons until mistake rate drops
+- Review lessons at session start for relevant project
+
+### 4. Verification Before Done
+- Never mark a task complete without proving it works
+- Diff behavior between main and your changes when relevant
+- Ask yourself: "Would a staff engineer approve this?"
+- Run tests, check logs, demonstrate correctness
+
+### 5. Demand Elegance (Balanced)
+- For non-trivial changes: pause and ask "is there a more elegant way?"
+- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
+- Skip this for simple, obvious fixes — don't over-engineer
+- Challenge your own work before presenting it
+
+### 6. Autonomous Bug Fixing
+- When given a bug report: just fix it. Don't ask for hand-holding
+- Point at logs, errors, failing tests — then resolve them
+- Zero context switching required from the user
+- Go fix failing CI tests without being told how
+
+## Task Management
+- Plan First: Write plan to tasks/todo.md with checkable items
+- Verify Plan: Check in before starting implementation
+- Track Progress: Mark items complete as you go
+- Explain Changes: High-level summary at each step
+- Document Results: Add review section to tasks/todo.md
+- Capture Lessons: Update tasks/lessons.md after corrections
+
+## Core Principles
+- Simplicity First: Make every change as simple as possible. Impact minimal code.
+- No Laziness: Find root causes. No temporary fixes. Senior developer standards.
+- Minimal Impact: Changes should only touch what's necessary. Avoid introducing bugs.
+
+---
+
 ## Phase 1
 - `from __future__ import annotations` breaks FastAPI's `Body(...)` parameter resolution with Pydantic v2. Remove it from API modules and use `Optional[]` instead.
 - When adding `Request` as first param for slowapi, rename body params to avoid shadowing (`request` → `body`) and add explicit `Body(...)` annotation.
@@ -42,3 +95,14 @@ _(Updated after each correction or mistake)_
 - B023: Lambda inside a loop that captures a loop variable is a classic Python closure bug. Fix with default argument: `lambda x, _s=strength: ...`.
 - E721: Use `is` instead of `==` for type comparisons (`expected_type is float`, not `expected_type == float`).
 - N812: `import torch.nn.functional as F` is industry convention but violates N812. Use `# noqa: N812` rather than renaming.
+
+## Phase 7 — Production Polish & User-Facing Integrity
+- Broken internal anchor links (`#compare`) after renaming sections are invisible to the build step but break the user experience. Always grep for old section IDs after renaming.
+- Static model data (layers, params) shared across multiple model types gives the ILLUSION of interactive UI. If buttons switch model type, the data MUST change — wire state to data or remove the buttons.
+- Never show `pip install <pkg>` in docs/quickstart unless the package is actually published on PyPI. Use `git clone` + `pip install -e .` for local-only packages.
+- Status health probes that send real distortion payloads ("ping" with strength=0.5) produce misleadingly high latency. Use minimal single-character text ("a") at minimum strength.
+- Upload endpoints in status checks must send actual file data (FormData with a file blob), not empty POST bodies, or they'll fail silently.
+- Every user-reachable button that appears interactive MUST do something meaningful. "Use in Comparison Lab" → dead link, model type buttons → no visual change = broken trust.
+- Lucide React doesn't have brand icons (LinkedIn, Twitter, etc.). Use inline SVGs for social brand icons.
+- Mypy strictly enforces Starlette `add_middleware` type constraints starting in newer FastAPI versions (expecting `_MiddlewareFactory`). Subclasses like `SlowAPIMiddleware` trigger `[arg-type]` mismatch errors. Fix by appending `# type: ignore[arg-type]` to the registration call rather than trying to satisfy the internal factory protocol.
+
