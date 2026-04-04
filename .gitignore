@@ -24,6 +24,9 @@ venv/
 *.swp
 *.swo
 .vscode/
+.agent/
+.claude/
+.codex/
 
 # Node / Frontend
 node_modules/

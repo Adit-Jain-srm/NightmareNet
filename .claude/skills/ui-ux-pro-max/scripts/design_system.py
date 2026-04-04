@@ -49,6 +49,7 @@ class DesignSystemGenerator:
         """Load reasoning rules from CSV."""
         filepath = DATA_DIR / REASONING_FILE
         if not filepath.exists():
+            logger.warning(f"Reasoning file missing at {filepath}, defaulting to empty rules")
             return []
         with open(filepath, 'r', encoding='utf-8') as f:
             return list(csv.DictReader(f))
@@ -110,7 +111,8 @@ class DesignSystemGenerator:
         decision_rules = {}
         try:
             decision_rules = json.loads(rule.get("Decision_Rules", "{}"))
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.warning(f"JSONDecodeError parsing rules for rule {rule.get('UI_Category', 'unknown')}: {e}")
             pass
 
         return {

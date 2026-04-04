@@ -104,8 +104,8 @@ python3 skills/ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [-n
 | More style options | `style` | `--domain style "glassmorphism dark"` |
 | Chart recommendations | `chart` | `--domain chart "real-time dashboard"` |
 | UX best practices | `ux` | `--domain ux "animation accessibility"` |
-| Alternative fonts | `icons` | Icon recommendations, packs, usage | *material, feather, svg, svg-sprite, size, accessibility* |
-| `typography` | `--domain typography "elegant luxury"` |
+| Alternative fonts | `icons` | "material, feather, svg, svg-sprite, size, accessibility" |
+| typography | `typography` | `--domain typography "elegant luxury"` |
 | Landing structure | `landing` | `--domain landing "hero social-proof"` |
 
 ### Step 4: Stack Guidelines (Default: html-tailwind)
