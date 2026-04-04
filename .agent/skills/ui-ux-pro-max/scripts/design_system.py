@@ -17,6 +17,11 @@ import csv
 import json
 import os
 from datetime import datetime
+import re
+import logging
+logger = logging.getLogger(__name__)
+
+
 from pathlib import Path
 from core import search, DATA_DIR
 
@@ -278,7 +283,7 @@ def format_ascii_box(design_system: dict) -> str:
     lines.append("+" + "-" * w + "+")
     lines.append(f"|  TARGET: {project} - RECOMMENDED DESIGN SYSTEM".ljust(BOX_WIDTH) + "|")
     lines.append("+" + "-" * w + "+")
-    lines.append("|" + " " * BOX_WIDTH + "|")
+    lines.append("|" + " " * w + "|")
 
     # Pattern section
     lines.append(f"|  PATTERN: {pattern.get('name', '')}".ljust(BOX_WIDTH) + "|")
@@ -289,7 +294,7 @@ def format_ascii_box(design_system: dict) -> str:
     lines.append("|     Sections:".ljust(BOX_WIDTH) + "|")
     for i, section in enumerate(sections, 1):
         lines.append(f"|       {i}. {section}".ljust(BOX_WIDTH) + "|")
-    lines.append("|" + " " * BOX_WIDTH + "|")
+    lines.append("|" + " " * w + "|")
 
     # Style section
     lines.append(f"|  STYLE: {style.get('name', '')}".ljust(BOX_WIDTH) + "|")
@@ -302,7 +307,7 @@ def format_ascii_box(design_system: dict) -> str:
     if style.get("performance") or style.get("accessibility"):
         perf_a11y = f"Performance: {style.get('performance', '')} | Accessibility: {style.get('accessibility', '')}"
         lines.append(f"|     {perf_a11y}".ljust(BOX_WIDTH) + "|")
-    lines.append("|" + " " * BOX_WIDTH + "|")
+    lines.append("|" + " " * w + "|")
 
     # Colors section
     lines.append("|  COLORS:".ljust(BOX_WIDTH) + "|")
@@ -314,7 +319,7 @@ def format_ascii_box(design_system: dict) -> str:
     if colors.get("notes"):
         for line in wrap_text(f"Notes: {colors.get('notes', '')}", "|     ", BOX_WIDTH):
             lines.append(line.ljust(BOX_WIDTH) + "|")
-    lines.append("|" + " " * BOX_WIDTH + "|")
+    lines.append("|" + " " * w + "|")
 
     # Typography section
     lines.append(f"|  TYPOGRAPHY: {typography.get('heading', '')} / {typography.get('body', '')}".ljust(BOX_WIDTH) + "|")
@@ -327,22 +332,29 @@ def format_ascii_box(design_system: dict) -> str:
     if typography.get("google_fonts_url"):
         lines.append(f"|     Google Fonts: {typography.get('google_fonts_url', '')}".ljust(BOX_WIDTH) + "|")
     if typography.get("css_import"):
-        lines.append(f"|     CSS Import: {typography.get('css_import', '')[:70]}...".ljust(BOX_WIDTH) + "|")
-    lines.append("|" + " " * BOX_WIDTH + "|")
+        css = typography.get("css_import", "")
+        if len(css) > 70:
+            safe_idx = max(css.rfind(';', 0, 70), css.rfind(')', 0, 70), css.rfind(' ', 0, 70))
+            if safe_idx > 0:
+                css = css[:safe_idx + 1] + "..."
+            else:
+                css = css[:70] + "..."
+        lines.append(f"|     CSS Import: {css}".ljust(BOX_WIDTH) + "|")
+    lines.append("|" + " " * w + "|")
 
     # Key Effects section
     if effects:
         lines.append("|  KEY EFFECTS:".ljust(BOX_WIDTH) + "|")
         for line in wrap_text(effects, "|     ", BOX_WIDTH):
             lines.append(line.ljust(BOX_WIDTH) + "|")
-        lines.append("|" + " " * BOX_WIDTH + "|")
+        lines.append("|" + " " * w + "|")
 
     # Anti-patterns section
     if anti_patterns:
         lines.append("|  AVOID (Anti-patterns):".ljust(BOX_WIDTH) + "|")
         for line in wrap_text(anti_patterns, "|     ", BOX_WIDTH):
             lines.append(line.ljust(BOX_WIDTH) + "|")
-        lines.append("|" + " " * BOX_WIDTH + "|")
+        lines.append("|" + " " * w + "|")
 
     # Pre-Delivery Checklist section
     lines.append("|  PRE-DELIVERY CHECKLIST:".ljust(BOX_WIDTH) + "|")
@@ -357,7 +369,7 @@ def format_ascii_box(design_system: dict) -> str:
     ]
     for item in checklist_items:
         lines.append(f"|     {item}".ljust(BOX_WIDTH) + "|")
-    lines.append("|" + " " * BOX_WIDTH + "|")
+    lines.append("|" + " " * w + "|")
 
     lines.append("+" + "-" * w + "+")
 
@@ -503,11 +515,15 @@ def persist_design_system(design_system: dict, page: str = None, output_dir: str
     """
     base_dir = Path(output_dir) if output_dir else Path.cwd()
     
-    # Use project name for project-specific folder
+    # Sanitize and strictly scope user-supplied paths
     project_name = design_system.get("project_name", "default")
-    project_slug = project_name.lower().replace(' ', '-')
+    project_slug = re.sub(r'[^a-z0-9_-]', '-', project_name.lower())
+    project_slug = re.sub(r'-+', '-', project_slug).strip('-') or "default"
     
-    design_system_dir = base_dir / "design-system" / project_slug
+    design_system_dir = (base_dir / "design-system" / project_slug).resolve()
+    if not str(design_system_dir).startswith(str(base_dir.resolve())):
+        raise ValueError("Path traversal detected in project_name")
+        
     pages_dir = design_system_dir / "pages"
     
     created_files = []
@@ -526,7 +542,12 @@ def persist_design_system(design_system: dict, page: str = None, output_dir: str
     
     # If page is specified, create page override file with intelligent content
     if page:
-        page_file = pages_dir / f"{page.lower().replace(' ', '-')}.md"
+        page_slug = re.sub(r'[^a-z0-9_-]', '-', page.lower())
+        page_slug = re.sub(r'-+', '-', page_slug).strip('-') or "page"
+        page_file = (pages_dir / f"{page_slug}.md").resolve()
+        
+        if not str(page_file).startswith(str(pages_dir.resolve())):
+            raise ValueError("Path traversal detected in page")
         page_content = format_page_override_md(design_system, page, page_query)
         with open(page_file, 'w', encoding='utf-8') as f:
             f.write(page_content)
@@ -556,7 +577,8 @@ def format_master_md(design_system: dict) -> str:
     # Logic header
     lines.append("# Design System Master File")
     lines.append("")
-    lines.append("> **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.")
+    project_slug = project.lower().replace(' ', '-')
+    lines.append(f"> **LOGIC:** When building a specific page, first check `design-system/{project_slug}/pages/[page-name].md`.")
     lines.append("> If that file exists, its rules **override** this Master file.")
     lines.append("> If not, strictly follow the rules below.")
     lines.append("")
@@ -918,8 +940,6 @@ def _generate_intelligent_overrides(page_name: str, page_query: str, design_syst
     Uses the existing search infrastructure to find relevant style, UX, and layout
     data instead of hardcoded page types.
     """
-    from core import search
-    
     page_lower = page_name.lower()
     query_lower = (page_query or "").lower()
     combined_context = f"{page_lower} {query_lower}"

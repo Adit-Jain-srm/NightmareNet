@@ -13,6 +13,7 @@ Create a conventional commit for the current staged changes in NightmareNet.
 3. Before committing, verify:
    - `ruff check .` passes clean
    - `pytest tests/ -q` passes (run only if Python files changed)
+   - `cd frontend && npm run build` passes (run only if frontend/ files changed)
 
 4. Generate the commit command:
    ```

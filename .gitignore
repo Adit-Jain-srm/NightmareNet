@@ -14,21 +14,27 @@ venv/
 .env/
 .venv/
 
-# IDE
+# Environment / IDEs
 .idea/
+.cursor/
+.windsurf/
+.trae/
+.gemini/
+.kiro/
 *.swp
 *.swo
+.vscode/
 
-# OS
-.DS_Store
-Thumbs.db
+# Node / Frontend
+node_modules/
+.next/
+out/
+build/
+coverage/
 
-# Project
-checkpoints/
-logs/
-results/
-data/generated/*
-!data/generated/.gitkeep
-data/raw/*
-!data/raw/.gitkeep
+# Python caching & tools
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
