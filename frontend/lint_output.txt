@@ -1,0 +1,47 @@
+
+> frontend@0.1.0 lint
+> eslint
+
+
+C:\Users\aditj\New Projects\NightmareNet\frontend\src\components\FileUpload.tsx
+  5:18  warning  'FileText' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aditj\New Projects\NightmareNet\frontend\src\components\ResilienceLab.tsx
+  155:6  warning  React Hook useCallback has a missing dependency: 'DEFAULT_STRENGTHS'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\aditj\New Projects\NightmareNet\frontend\src\components\Status.tsx
+  86:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\aditj\New Projects\NightmareNet\frontend\src\components\Status.tsx:86:5
+  84 |
+  85 |   useEffect(() => {
+> 86 |     check();
+     |     ^^^^^ Avoid calling setState() directly within an effect
+  87 |     checkEndpoints();
+  88 |     const interval = setInterval(() => { check(); checkEndpoints(); }, 30_000);
+  89 |     return () => clearInterval(interval);                                                                                        react-hooks/set-state-in-effect
+  96:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\aditj\New Projects\NightmareNet\frontend\src\components\Status.tsx:96:7
+  94 |       uptimeRef.current = setInterval(() => setUptime((u) => u + 1), 1000);
+  95 |     } else {
+> 96 |       setUptime(0);
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  97 |       if (uptimeRef.current) clearInterval(uptimeRef.current);
+  98 |     }
+  99 |     return () => { if (uptimeRef.current) clearInterval(uptimeRef.current); };  react-hooks/set-state-in-effect
+
+Γ£û 4 problems (2 errors, 2 warnings)
+

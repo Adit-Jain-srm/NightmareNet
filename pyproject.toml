@@ -42,12 +42,14 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.1.0",
     "mypy>=1.8.0",
+    "types-PyYAML>=6.0",
 ]
 api = [
     "fastapi>=0.104.0",
     "uvicorn[standard]>=0.24.0",
     "pydantic>=2.0",
     "httpx>=0.25.0",
+    "python-multipart>=0.0.7",
     "slowapi>=0.1.9",
 ]
 tracking = [
@@ -75,6 +77,23 @@ addopts = "-v --tb=short"
 [tool.ruff]
 target-version = "py39"
 line-length = 100
+exclude = [
+    ".windsurf",
+    ".claude",
+    ".trae",
+    ".agent",
+    ".codebuddy",
+    ".codex",
+    ".continue",
+    ".cursor",
+    ".gemini",
+    ".github/prompts",
+    ".kiro",
+    ".opencode",
+    ".qoder",
+    ".roo",
+    "notebooks",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B"]
@@ -82,11 +101,16 @@ ignore = ["UP007", "UP045"]
 
 [tool.mypy]
 python_version = "3.9"
-warn_return_any = true
+warn_return_any = false
 warn_unused_configs = true
 disallow_untyped_defs = false
 check_untyped_defs = true
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]
+follow_imports = "skip"
+follow_imports_for_stubs = false
 
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "scripts"]

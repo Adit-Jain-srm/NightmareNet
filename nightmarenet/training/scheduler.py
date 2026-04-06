@@ -225,6 +225,10 @@ class AdaptiveScheduler:
         """Delegate length to the base scheduler."""
         return len(self.base_scheduler)
 
+    def summary(self) -> str:
+        """Delegate summary to the base scheduler."""
+        return self.base_scheduler.summary()
+
 
 def create_scheduler_from_config(config: dict) -> Union[CyclicScheduler, AdaptiveScheduler]:
     """Create a scheduler from a configuration dictionary.

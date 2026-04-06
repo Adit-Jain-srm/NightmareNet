@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 _ACCELERATE_AVAILABLE: bool = False
 Accelerator: Any = None
 try:
-    from accelerate import Accelerator  # type: ignore[import-untyped]
+    from accelerate import Accelerator  # type: ignore[no-redef]
 
     _ACCELERATE_AVAILABLE = True
 except ImportError:

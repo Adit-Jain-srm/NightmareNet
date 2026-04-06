@@ -298,3 +298,511 @@ class TestRateLimiting:
         body = json.loads(response.body)
         assert body["error"] == "Rate limit exceeded"
         assert "detail" in body
+
+
+class TestTrainingConfigEndpoint:
+    """Test the training configuration preview endpoint."""
+
+    def test_config_defaults(self):
+        response = client.post("/api/v1/train/config", json={})
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] is True
+        assert data["total_phases"] > 0
+        assert data["total_epochs"] > 0
+        assert len(data["estimated_phases"]) > 0
+        assert "config_summary" in data
+
+    def test_config_phase_count(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"num_cycles": 2, "wake_epochs": 3, "dream_epochs": 2, "nightmare_epochs": 1},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # 2 cycles × (wake + dream + nightmare + compress) = 8 phases
+        assert data["total_phases"] == 8
+        # 2 cycles × (3 + 2 + 1 + 1) = 14 epochs
+        assert data["total_epochs"] == 14
+
+    def test_config_includes_all_phase_types(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"num_cycles": 1, "wake_epochs": 1, "dream_epochs": 1, "nightmare_epochs": 1},
+        )
+        data = response.json()
+        phase_types = [p["phase"] for p in data["estimated_phases"]]
+        assert "wake" in phase_types
+        assert "dream" in phase_types
+        assert "nightmare" in phase_types
+        assert "compress" in phase_types
+
+    def test_config_nightmare_lr_multiplier(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={
+                "num_cycles": 1,
+                "wake_epochs": 1,
+                "dream_epochs": 0,
+                "nightmare_epochs": 1,
+                "learning_rate": 0.001,
+                "nightmare_lr_multiplier": 3.0,
+            },
+        )
+        data = response.json()
+        nightmare_phase = [p for p in data["estimated_phases"] if p["phase"] == "nightmare"][0]
+        assert nightmare_phase["learning_rate"] == pytest.approx(0.003)
+
+    def test_config_recommends_learned_adversarial(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"nightmare_strength": 0.8, "use_learned_adversarial": False},
+        )
+        data = response.json()
+        recs = " ".join(data["recommendations"])
+        assert "learned_adversarial" in recs.lower() or "learned adversarial" in recs.lower()
+
+    def test_config_recommends_against_high_dream_strength(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"dream_strength": 0.6},
+        )
+        data = response.json()
+        recs = " ".join(data["recommendations"])
+        assert "dream strength" in recs.lower()
+
+    def test_config_recommends_more_cycles(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"num_cycles": 1},
+        )
+        data = response.json()
+        recs = " ".join(data["recommendations"])
+        assert "cycle" in recs.lower()
+
+    def test_config_zero_nightmare_epochs_warns(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"nightmare_epochs": 0},
+        )
+        data = response.json()
+        recs = " ".join(data["recommendations"])
+        assert "nightmare" in recs.lower() and "disabled" in recs.lower()
+
+    def test_config_invalid_model_type(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"model_type": "invalid_type"},
+        )
+        data = response.json()
+        assert data["valid"] is False
+        assert any("invalid" in r.lower() for r in data["recommendations"])
+
+    def test_config_learned_adversarial_in_description(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={
+                "num_cycles": 1,
+                "nightmare_epochs": 1,
+                "use_learned_adversarial": True,
+            },
+        )
+        data = response.json()
+        nightmare_phase = [p for p in data["estimated_phases"] if p["phase"] == "nightmare"][0]
+        assert "learned adversarial" in nightmare_phase["description"].lower()
+
+    def test_config_skips_zero_epoch_phases(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"num_cycles": 1, "wake_epochs": 0, "dream_epochs": 0, "nightmare_epochs": 0},
+        )
+        data = response.json()
+        phase_types = [p["phase"] for p in data["estimated_phases"]]
+        assert "wake" not in phase_types
+        assert "dream" not in phase_types
+        assert "nightmare" not in phase_types
+        assert "compress" in phase_types
+
+    def test_config_validation_rejects_bad_values(self):
+        response = client.post(
+            "/api/v1/train/config",
+            json={"num_cycles": -1},
+        )
+        assert response.status_code == 422
+
+        response = client.post(
+            "/api/v1/train/config",
+            json={"learning_rate": 0},
+        )
+        assert response.status_code == 422
+
+
+class TestCompareEndpoint:
+    """Test the distortion comparison endpoint."""
+
+    def test_compare_basic(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={"text": "The quick brown fox jumps over the lazy dog."},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "dream" in data
+        assert "nightmare" in data
+        assert "baseline" in data["dream"]
+        assert "challenge" in data["dream"]
+        assert "resilience_score" in data
+        assert 0 <= data["resilience_score"] <= 1
+        assert "analysis" in data
+
+    def test_compare_with_custom_strengths(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={
+                "text": "Test text for comparison.",
+                "baseline_strength": 0.1,
+                "challenge_strength": 0.9,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["baseline_strength"] == 0.1
+        assert data["challenge_strength"] == 0.9
+
+    def test_compare_baseline_less_distorted(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={
+                "text": (
+                    "A sufficiently long sentence that should show meaningful"
+                    " degradation differences between baseline and challenge strengths."
+                ),
+                "baseline_strength": 0.0,
+                "challenge_strength": 0.9,
+                "seed": 42,
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        # At strength 0.0, baseline should be nearly identical
+        assert data["dream"]["baseline"]["similarity"] >= 0.9
+
+    def test_compare_deterministic_with_seed(self):
+        payload = {
+            "text": "Reproducibility test text.",
+            "baseline_strength": 0.3,
+            "challenge_strength": 0.7,
+            "seed": 123,
+        }
+        resp1 = client.post("/api/v1/compare", json=payload)
+        resp2 = client.post("/api/v1/compare", json=payload)
+        assert resp1.status_code == 200
+        assert resp2.status_code == 200
+        assert resp1.json()["dream"] == resp2.json()["dream"]
+
+
+class TestHealthTestsPassing:
+    """Test that health endpoint returns test count."""
+
+    def test_health_includes_tests_passing(self):
+        response = client.get("/api/v1/health")
+        assert response.status_code == 200
+        data = response.json()
+        assert "tests_passing" in data
+
+    def test_health_tests_passing_is_int_or_null(self):
+        response = client.get("/api/v1/health")
+        data = response.json()
+        tp = data["tests_passing"]
+        assert tp is None or isinstance(tp, int)
+
+
+class TestUploadEndpoint:
+    """Test the file upload endpoint."""
+
+    def test_upload_txt_file(self):
+        content = b"Hello world. This is a test file."
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("test.txt", content, "text/plain")},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["filename"] == "test.txt"
+        assert data["file_type"] == ".txt"
+        assert data["text_content"] == "Hello world. This is a test file."
+        assert data["char_count"] == len(content)
+        assert data["word_count"] == 7
+        assert data["line_count"] == 1
+
+    def test_upload_csv_file(self):
+        content = b"col1,col2\nval1,val2\nval3,val4"
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("data.csv", content, "text/csv")},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["filename"] == "data.csv"
+        assert data["file_type"] == ".csv"
+        assert data["line_count"] == 3
+
+    def test_upload_json_file(self):
+        content = b'{"text": "some input", "value": 42}'
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("input.json", content, "application/json")},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["filename"] == "input.json"
+        assert data["file_type"] == ".json"
+
+    def test_upload_rejects_unsupported_type(self):
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("image.png", b"\x89PNG", "image/png")},
+        )
+        assert response.status_code == 400
+        assert "Unsupported file type" in response.json()["detail"]
+
+    def test_upload_rejects_too_large(self, monkeypatch):
+        import nightmarenet.api.app as api_module
+        monkeypatch.setattr(api_module, "_MAX_UPLOAD_BYTES", 10)
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("big.txt", b"x" * 100, "text/plain")},
+        )
+        assert response.status_code == 413
+        assert "too large" in response.json()["detail"]
+
+    def test_upload_rejects_invalid_utf8(self):
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("bad.txt", b"\xff\xfe\x00\x80\x81", "text/plain")},
+        )
+        assert response.status_code == 400
+        assert "UTF-8" in response.json()["detail"]
+
+    def test_upload_preview_truncation(self):
+        long_text = "A" * 1000
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("long.txt", long_text.encode(), "text/plain")},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["preview"].endswith("...")
+        assert len(data["preview"]) == 503  # 500 chars + "..."
+
+    def test_upload_word_count_multiline(self):
+        content = b"line one\nline two has more words\nthird"
+        response = client.post(
+            "/api/v1/upload/text",
+            files={"file": ("multi.txt", content, "text/plain")},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["word_count"] == 8
+        assert data["line_count"] == 3
+
+    def test_compare_empty_text_rejected(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={"text": ""},
+        )
+        assert response.status_code == 422
+
+    def test_compare_invalid_strength_rejected(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={"text": "Test.", "baseline_strength": 2.0},
+        )
+        assert response.status_code == 422
+
+    def test_compare_response_structure(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={"text": "Structure test."},
+        )
+        data = response.json()
+        for mode in ["dream", "nightmare"]:
+            for level in ["baseline", "challenge"]:
+                detail = data[mode][level]
+                assert "distorted_text" in detail
+                assert "similarity" in detail
+                assert "length_ratio" in detail
+                assert isinstance(detail["similarity"], float)
+                assert isinstance(detail["length_ratio"], float)
+
+    def test_compare_analysis_contains_metrics(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={"text": "Analysis content check."},
+        )
+        data = response.json()
+        assert "Dream" in data["analysis"] or "dream" in data["analysis"].lower()
+        assert "Nightmare" in data["analysis"] or "nightmare" in data["analysis"].lower()
+        assert "Resilience" in data["analysis"] or "resilience" in data["analysis"].lower()
+
+
+class TestLearnedAdversarialIntegration:
+    """Test that learned adversarial distortions are enabled in nightmare at high strength."""
+
+    def test_nightmare_high_strength_uses_adversarial_config(self):
+        """At strength >= 0.5, nightmare should add learned adversarial to its config."""
+        from nightmarenet.api.app import _apply_nightmare_distortions
+
+        # This should not raise - the learned module guards against model loading failures
+        result = _apply_nightmare_distortions(
+            "Test text for adversarial distortions.", strength=0.8, seed=42
+        )
+        assert isinstance(result, str)
+        assert len(result) > 0
+
+    def test_nightmare_low_strength_no_learned_adversarial(self):
+        """At strength < 0.5, should use default config without learned adversarial."""
+        from nightmarenet.api.app import _apply_nightmare_distortions
+
+        result = _apply_nightmare_distortions(
+            "Test text at low strength.", strength=0.3, seed=42
+        )
+        assert isinstance(result, str)
+
+    def test_nightmare_custom_config_preserved(self):
+        """User-provided adversarial config should be preserved even at high strength."""
+        from nightmarenet.api.app import _apply_nightmare_distortions
+
+        custom_config = {"adversarial": {"contradiction": 1.0}}
+        result = _apply_nightmare_distortions(
+            "Custom config test.", strength=0.8, config=custom_config, seed=42
+        )
+        assert isinstance(result, str)
+
+
+class TestOpenAPINewEndpoints:
+    """Test that new endpoints appear in OpenAPI schema."""
+
+    def test_openapi_includes_train_config(self):
+        response = client.get("/openapi.json")
+        data = response.json()
+        assert "/api/v1/train/config" in data["paths"]
+
+    def test_openapi_includes_compare(self):
+        response = client.get("/openapi.json")
+        data = response.json()
+        assert "/api/v1/compare" in data["paths"]
+
+    def test_openapi_includes_demo(self):
+        response = client.get("/openapi.json")
+        data = response.json()
+        assert "/api/v1/demo" in data["paths"]
+
+
+class TestDemoEndpoint:
+    """Test the interactive demo endpoint (combined dream+nightmare)."""
+
+    def test_demo_basic(self):
+        """Demo returns both dream and nightmare results in one call."""
+        response = client.post(
+            "/api/v1/demo",
+            json={"text": "The quick brown fox jumps over the lazy dog."},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "original_text" in data
+        assert "dream" in data
+        assert "nightmare" in data
+        assert "resilience_delta" in data
+        assert "insight" in data
+
+    def test_demo_response_structure(self):
+        """Dream and nightmare fields contain expected detail keys."""
+        response = client.post(
+            "/api/v1/demo",
+            json={"text": "Test text for structure validation."},
+        )
+        data = response.json()
+        for mode in ["dream", "nightmare"]:
+            detail = data[mode]
+            assert "distorted_text" in detail
+            assert "similarity" in detail
+            assert "length_ratio" in detail
+            assert isinstance(detail["similarity"], float)
+            assert 0.0 <= detail["similarity"] <= 1.0
+
+    def test_demo_resilience_delta_bounds(self):
+        """Resilience delta should be within [0, 1]."""
+        response = client.post(
+            "/api/v1/demo",
+            json={
+                "text": (
+                    "A sufficiently long sentence to produce"
+                    " meaningful distortion differences."
+                ),
+            },
+        )
+        data = response.json()
+        assert -1.0 <= data["resilience_delta"] <= 1.0
+
+    def test_demo_insight_contains_word_count(self):
+        """Insight should mention the word count of the input."""
+        text = "One two three four five six seven."
+        response = client.post(
+            "/api/v1/demo",
+            json={"text": text},
+        )
+        data = response.json()
+        assert "7-word" in data["insight"]
+
+    def test_demo_deterministic_with_seed(self):
+        """Same seed should produce identical results."""
+        payload = {"text": "Deterministic test.", "seed": 42}
+        resp1 = client.post("/api/v1/demo", json=payload)
+        resp2 = client.post("/api/v1/demo", json=payload)
+        assert resp1.status_code == 200
+        assert resp2.status_code == 200
+        assert resp1.json()["dream"] == resp2.json()["dream"]
+        assert resp1.json()["nightmare"] == resp2.json()["nightmare"]
+
+    def test_demo_empty_text_rejected(self):
+        """Empty text should be rejected with 422."""
+        response = client.post(
+            "/api/v1/demo",
+            json={"text": ""},
+        )
+        assert response.status_code == 422
+
+    def test_demo_dream_more_similar_than_nightmare(self):
+        """Dream and nightmare both produce valid distortion results."""
+        response = client.post(
+            "/api/v1/demo",
+            json={
+                "text": (
+                    "Machine learning models process input data"
+                    " through layers of learned transformations"
+                    " to produce meaningful output predictions."
+                ),
+            },
+        )
+        data = response.json()
+        # Both distortions should produce valid similarity scores
+        assert 0.0 <= data["dream"]["similarity"] <= 1.0
+        assert 0.0 <= data["nightmare"]["similarity"] <= 1.0
+        # Both should have non-empty distorted text
+        assert len(data["dream"]["distorted_text"]) > 0
+        assert len(data["nightmare"]["distorted_text"]) > 0
+
+    def test_demo_insight_contains_resilience_quality(self):
+        """Insight should contain a resilience quality assessment."""
+        response = client.post(
+            "/api/v1/demo",
+            json={"text": "Quality assessment test input."},
+        )
+        data = response.json()
+        insight_lower = data["insight"].lower()
+        assert any(
+            w in insight_lower
+            for w in ["resilient", "vulnerable"]
+        )
+

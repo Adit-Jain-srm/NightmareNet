@@ -7,7 +7,7 @@ datasets and returning raw, dream, and nightmare splits.
 from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 from datasets import IterableDataset, load_dataset
 
@@ -49,8 +49,8 @@ class DatasetWrapper:
         self.seed = seed
         self.streaming = streaming
 
-        self._train_dataset = None
-        self._test_dataset = None
+        self._train_dataset: Any = None
+        self._test_dataset: Any = None
 
     def load(self) -> DatasetWrapper:
         """Load the dataset from HuggingFace Hub.
@@ -65,7 +65,7 @@ class DatasetWrapper:
             "Loading dataset '%s' (subset=%s)", self.dataset_name, self.subset
         )
 
-        kwargs = {"path": self.dataset_name}
+        kwargs: dict[str, Any] = {"path": self.dataset_name}
         if self.subset:
             kwargs["name"] = self.subset
         if self.streaming:
