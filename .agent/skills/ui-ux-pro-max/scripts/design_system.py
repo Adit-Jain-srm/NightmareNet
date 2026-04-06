@@ -454,8 +454,9 @@ def format_markdown(design_system: dict) -> str:
     # Anti-patterns section
     if anti_patterns:
         lines.append("### Avoid (Anti-patterns)")
-        newline_bullet = '\n- '
-        lines.append(f"- {anti_patterns.replace(' + ', newline_bullet)}")
+        parts = [p.strip() for p in re.split(r'\s*\+\s*', anti_patterns) if p.strip()]
+        if parts:
+            lines.append(f"- {'\\n- '.join(parts)}")
         lines.append("")
 
     # Pre-Delivery Checklist section
@@ -521,6 +522,7 @@ def persist_design_system(design_system: dict, page: str = None, output_dir: str
     project_name = design_system.get("project_name", "default")
     project_slug = re.sub(r'[^a-z0-9_-]', '-', project_name.lower())
     project_slug = re.sub(r'-+', '-', project_slug).strip('-') or "default"
+    design_system["project_slug"] = project_slug
     
     design_system_dir = (base_dir / "design-system" / project_slug).resolve()
     if not str(design_system_dir).startswith(str(base_dir.resolve())):
@@ -579,7 +581,7 @@ def format_master_md(design_system: dict) -> str:
     # Logic header
     lines.append("# Design System Master File")
     lines.append("")
-    project_slug = project.lower().replace(' ', '-')
+    project_slug = design_system.get("project_slug", "default")
     lines.append(f"> **LOGIC:** When building a specific page, first check `design-system/{project_slug}/pages/[page-name].md`.")
     lines.append("> If that file exists, its rules **override** this Master file.")
     lines.append("> If not, strictly follow the rules below.")

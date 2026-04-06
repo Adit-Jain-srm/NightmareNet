@@ -73,8 +73,8 @@ python3 skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persi
 ```
 
 This creates:
-- `design-system/MASTER.md` — Global Source of Truth with all design rules
-- `design-system/pages/` — Folder for page-specific overrides
+- `design-system/<project_slug>/MASTER.md` — Global Source of Truth with all design rules
+- `design-system/<project_slug>/pages/` — Folder for page-specific overrides
 
 **With page-specific override:**
 ```bash
@@ -82,12 +82,12 @@ python3 skills/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persi
 ```
 
 This also creates:
-- `design-system/pages/dashboard.md` — Page-specific deviations from Master
+- `design-system/<project_slug>/pages/dashboard.md` — Page-specific deviations from Master
 
 **How hierarchical retrieval works:**
-1. When building a specific page (e.g., "Checkout"), first check `design-system/pages/checkout.md`
+1. When building a specific page (e.g., "Checkout"), first check `design-system/<project_slug>/pages/checkout.md`
 2. If the page file exists, its rules **override** the Master file
-3. If not, use `design-system/MASTER.md` exclusively
+3. If not, use `design-system/<project_slug>/MASTER.md` exclusively
 
 ### Step 3: Supplement with Detailed Searches (as needed)
 
@@ -152,6 +152,9 @@ Available stacks: `html-tailwind`, `react`, `nextjs`, `vue`, `svelte`, `swiftui`
 | `flutter` | Widgets, State, Layout, Theming |
 | `shadcn` | shadcn/ui components, theming, forms, patterns |
 | `jetpack-compose` | Composables, Modifiers, State Hoisting, Recomposition |
+| `astro` | Static site generation, islands architecture |
+| `nuxtjs` | Vue SSR, routing, auto-imports |
+| `nuxt-ui` | Nuxt component library, tailwind preset |
 
 ---
 
