@@ -123,7 +123,9 @@ def _apply_dream_distortions(
     text_config = config.get("text") if config else None
     semantic_config = config.get("semantic") if config else None
     result = apply_text_distortions(text, strength=strength, config=text_config)
-    result = apply_semantic_distortions(result, strength=strength, config=semantic_config)
+    # Scale semantic strength to half — dream distortions are meant to be mild.
+    # This matches DreamDatasetGenerator._distort() in data/generator.py.
+    result = apply_semantic_distortions(result, strength=strength * 0.5, config=semantic_config)
     return result
 
 
