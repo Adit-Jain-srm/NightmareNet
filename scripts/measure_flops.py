@@ -8,8 +8,9 @@ reference model evaluation, epochs, batch sizes, etc.).
 
 import argparse
 import sys
-import torch
+
 import numpy as np
+import torch
 
 # Try to import fvcore or torchprofile
 try:
@@ -24,7 +25,7 @@ try:
 except ImportError:
     HAS_TORCHPROFILE = False
 
-from transformers import AutoModelForSequenceClassification, AutoConfig
+from transformers import AutoConfig, AutoModelForSequenceClassification
 
 
 class HFModelWrapper(torch.nn.Module):
@@ -110,7 +111,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    device = torch.device(args.device if torch.cuda.is_available() or args.device == "cpu" else "cpu")
+    has_cuda = torch.cuda.is_available()
+    device = torch.device(
+        args.device if has_cuda or args.device == "cpu" else "cpu"
+    )
     print(f"Profiling on device: {device}")
 
     if not HAS_FVCORE and not HAS_TORCHPROFILE:
@@ -119,9 +123,14 @@ def main():
 
     print(f"Loading model '{args.model}'...")
     try:
-        model = AutoModelForSequenceClassification.from_pretrained(args.model, num_labels=2)
+        model = AutoModelForSequenceClassification.from_pretrained(
+            args.model, num_labels=2
+        )
     except Exception as e:
-        print(f"Warning: Failed to load pretrained weights for '{args.model}' ({e}). Creating model from config instead...")
+        print(
+            f"Warning: Failed to load pretrained weights for '{args.model}' ({e}). "
+            "Creating model from config instead..."
+        )
         config = AutoConfig.from_pretrained(args.model, num_labels=2)
         model = AutoModelForSequenceClassification.from_config(config)
 
@@ -130,8 +139,12 @@ def main():
     wrapper = HFModelWrapper(model)
 
     # Generate dummy input
-    dummy_input_ids = torch.randint(0, 1000, (args.batch_size, args.seq_len), dtype=torch.long, device=device)
-    dummy_attention_mask = torch.ones((args.batch_size, args.seq_len), dtype=torch.long, device=device)
+    dummy_input_ids = torch.randint(
+        0, 1000, (args.batch_size, args.seq_len), dtype=torch.long, device=device
+    )
+    dummy_attention_mask = torch.ones(
+        (args.batch_size, args.seq_len), dtype=torch.long, device=device
+    )
     inputs = (dummy_input_ids, dummy_attention_mask)
 
     print("Measuring forward pass FLOPs...")
@@ -168,7 +181,7 @@ def main():
 
     # Steps per epoch
     steps_per_epoch = int(np.ceil(args.train_samples / args.batch_size))
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     print(f"  Train Samples/Epoch: {args.train_samples}")
     print(f"  Batch Size: {args.batch_size}")
     print(f"  Steps/Epoch: {steps_per_epoch}")
@@ -181,9 +194,10 @@ def main():
 
     # FLOPs per step for each phase
     step_flops_wake = 3 * forward_flops
-    step_flops_dream = 3 * forward_flops + 1 * forward_flops  # model (forward+backward) + reference (forward only)
+    # model (forward+backward) + reference (forward only)
+    step_flops_dream = 3 * forward_flops + 1 * forward_flops
     step_flops_nightmare = 3 * forward_flops
-    
+
     # Compress phase: unstructured pruning fine-tuning (dense calculation)
     # Under unstructured pruning, the tensor sizes do not change, so raw FLOPs are identical.
     # We also report effective sparse FLOPs: scaled by (1 - pruning_ratio)
@@ -194,14 +208,20 @@ def main():
     cycle_flops_wake = args.wake_epochs * steps_per_epoch * step_flops_wake
     cycle_flops_dream = args.dream_epochs * steps_per_epoch * step_flops_dream
     cycle_flops_nightmare = args.nightmare_epochs * steps_per_epoch * step_flops_nightmare
-    cycle_flops_compress_dense = args.compress_epochs * steps_per_epoch * step_flops_compress_dense
-    cycle_flops_compress_sparse = args.compress_epochs * steps_per_epoch * step_flops_compress_sparse
+    cycle_flops_compress_dense = (
+        args.compress_epochs * steps_per_epoch * step_flops_compress_dense
+    )
+    cycle_flops_compress_sparse = (
+        args.compress_epochs * steps_per_epoch * step_flops_compress_sparse
+    )
 
     cycle_total_dense = (
-        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare + cycle_flops_compress_dense
+        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare
+        + cycle_flops_compress_dense
     )
     cycle_total_sparse = (
-        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare + cycle_flops_compress_sparse
+        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare
+        + cycle_flops_compress_sparse
     )
 
     total_dense = args.num_cycles * cycle_total_dense
@@ -210,14 +230,21 @@ def main():
     # Print results in TeraFLOPs (1 TFLOP = 1e12 FLOPs)
     to_tflops = 1e12
 
-    print(f"\n--- Compute Cost per Phase & Cycle ---")
+    print("\n--- Compute Cost per Phase & Cycle ---")
     print(f"Single Forward Pass: {forward_flops / 1e9:.3f} GFLOPs")
-    print(f"Wake Epoch FLOPs: {steps_per_epoch * step_flops_wake / to_tflops:.4f} TFLOPs")
-    print(f"Dream Epoch FLOPs: {steps_per_epoch * step_flops_dream / to_tflops:.4f} TFLOPs (incl. Reference Model)")
-    print(f"Nightmare Epoch FLOPs: {steps_per_epoch * step_flops_nightmare / to_tflops:.4f} TFLOPs")
-    print(f"Compress Epoch FLOPs (dense): {steps_per_epoch * step_flops_compress_dense / to_tflops:.4f} TFLOPs")
-    print(f"Compress Epoch FLOPs (sparse effective): {steps_per_epoch * step_flops_compress_sparse / to_tflops:.4f} TFLOPs")
-    
+    wake_tflops = steps_per_epoch * step_flops_wake / to_tflops
+    print(f"Wake Epoch FLOPs: {wake_tflops:.4f} TFLOPs")
+    dream_tflops = steps_per_epoch * step_flops_dream / to_tflops
+    print(f"Dream Epoch FLOPs: {dream_tflops:.4f} TFLOPs (incl. Reference Model)")
+    nightmare_tflops = steps_per_epoch * step_flops_nightmare / to_tflops
+    print(f"Nightmare Epoch FLOPs: {nightmare_tflops:.4f} TFLOPs")
+    compress_dense_tflops = steps_per_epoch * step_flops_compress_dense / to_tflops
+    print(f"Compress Epoch FLOPs (dense): {compress_dense_tflops:.4f} TFLOPs")
+    compress_sparse_tflops = (
+        steps_per_epoch * step_flops_compress_sparse / to_tflops
+    )
+    print(f"Compress Epoch FLOPs (sparse effective): {compress_sparse_tflops:.4f} TFLOPs")
+
     print(f"\nTotal per Cycle (Dense): {cycle_total_dense / to_tflops:.4f} TFLOPs")
     print(f"Total per Cycle (Sparse): {cycle_total_sparse / to_tflops:.4f} TFLOPs")
     print(f"Total across {args.num_cycles} Cycles (Dense): {total_dense / to_tflops:.4f} TFLOPs")
@@ -242,32 +269,70 @@ def main():
     # TRADES training is mathematically equivalent in step complexity to standard AT
     baseline_trades_flops = baseline_at_flops
 
-    print(f"\n--- Compute Cost Comparison ---")
+    print("\n--- Compute Cost Comparison ---")
     print(f"Standard FT (2 epochs): {baseline_ft_flops / to_tflops:.4f} TFLOPs")
     print(f"Standard AT / PGD-10 (2 epochs): {baseline_at_flops / to_tflops:.4f} TFLOPs")
     print(f"TRADES (2 epochs): {baseline_trades_flops / to_tflops:.4f} TFLOPs")
-    print(f"NightmareNet Full Cycle (1 cycle, 5 total epochs): {cycle_total_dense / to_tflops:.4f} TFLOPs")
-    print(f"NightmareNet Full Cycle (3 cycles, 15 total epochs): {total_dense / to_tflops:.4f} TFLOPs")
+    cycle_dense_tflops = cycle_total_dense / to_tflops
+    print(f"NightmareNet Full Cycle (1 cycle, 5 total epochs): {cycle_dense_tflops:.4f} TFLOPs")
+    print(
+        f"NightmareNet Full Cycle ({args.num_cycles} cycles, "
+        f"{args.num_cycles * 5} total epochs): {total_dense / to_tflops:.4f} TFLOPs"
+    )
 
     # Compute Overhead Ratios
     overhead_nn_vs_ft = cycle_total_dense / baseline_ft_flops
     overhead_at_vs_ft = baseline_at_flops / baseline_ft_flops
     savings_nn_vs_at = baseline_at_flops / cycle_total_dense
 
-    print(f"\n--- Overhead & Efficiency Analysis ---")
+    print("\n--- Overhead & Efficiency Analysis ---")
     print(f"NightmareNet Cycle vs. Standard FT Overhead: {overhead_nn_vs_ft:.2f}x")
-    print(f"Standard AT / TRADES vs. Standard FT Overhead: {overhead_at_vs_ft:.2f}x (Gradient-based PGD)")
-    print(f"NightmareNet Cycle vs. Standard AT Compute Ratio: {1/savings_nn_vs_at:.2f}x (saves {savings_nn_vs_at:.2f}x compute)")
+    print(
+        f"Standard AT / TRADES vs. Standard FT Overhead: {overhead_at_vs_ft:.2f}x "
+        "(Gradient-based PGD)"
+    )
+    print(
+        f"NightmareNet Cycle vs. Standard AT Compute Ratio: {1/savings_nn_vs_at:.2f}x "
+        f"(saves {savings_nn_vs_at:.2f}x compute)"
+    )
 
     # Print markdown format
     print("\nMarkdown Table for Appendix F:")
     print("| Method | Epochs | Steps / Epoch | TFLOPs / Epoch | Total TFLOPs | Overhead vs. FT |")
     print("|---|---|---|---|---|---|")
-    print(f"| Standard Fine-Tuning | {baseline_ft_epochs} | {steps_per_epoch} | {steps_per_epoch * step_flops_wake / to_tflops:.4f} | {baseline_ft_flops / to_tflops:.4f} | 1.0x (Baseline) |")
-    print(f"| Standard AT (PGD-10) | {baseline_at_epochs} | {steps_per_epoch} | {steps_per_epoch * step_flops_at / to_tflops:.4f} | {baseline_at_flops / to_tflops:.4f} | {overhead_at_vs_ft:.2f}x |")
-    print(f"| TRADES | {baseline_at_epochs} | {steps_per_epoch} | {steps_per_epoch * step_flops_at / to_tflops:.4f} | {baseline_trades_flops / to_tflops:.4f} | {overhead_at_vs_ft:.2f}x |")
-    print(f"| **NightmareNet (1 cycle)** | 5 | {steps_per_epoch} | Multi-phase | {cycle_total_dense / to_tflops:.4f} | {overhead_nn_vs_ft:.2f}x |")
-    print(f"| **NightmareNet (3 cycles)** | 15 | {steps_per_epoch} | Multi-phase | {total_dense / to_tflops:.4f} | {total_dense / baseline_ft_flops:.2f}x |")
+
+    # Format table values
+    wake_ep_tflops = steps_per_epoch * step_flops_wake / to_tflops
+    at_ep_tflops = steps_per_epoch * step_flops_at / to_tflops
+
+    row_ft = (
+        f"| Standard Fine-Tuning | {baseline_ft_epochs} | {steps_per_epoch} | "
+        f"{wake_ep_tflops:.4f} | {baseline_ft_flops / to_tflops:.4f} | 1.0x (Baseline) |"
+    )
+    row_at = (
+        f"| Standard AT (PGD-10) | {baseline_at_epochs} | {steps_per_epoch} | "
+        f"{at_ep_tflops:.4f} | {baseline_at_flops / to_tflops:.4f} | {overhead_at_vs_ft:.2f}x |"
+    )
+    row_trades = (
+        f"| TRADES | {baseline_at_epochs} | {steps_per_epoch} | "
+        f"{at_ep_tflops:.4f} | {baseline_trades_flops / to_tflops:.4f} | {overhead_at_vs_ft:.2f}x |"
+    )
+    row_nn1 = (
+        f"| **NightmareNet (1 cycle)** | 5 | {steps_per_epoch} | Multi-phase | "
+        f"{cycle_total_dense / to_tflops:.4f} | {overhead_nn_vs_ft:.2f}x |"
+    )
+    row_nn3 = (
+        f"| **NightmareNet ({args.num_cycles} cycles)** | {args.num_cycles * 5} | "
+        f"{steps_per_epoch} | Multi-phase | {total_dense / to_tflops:.4f} | "
+        f"{total_dense / baseline_ft_flops:.2f}x |"
+    )
+
+    print(row_ft)
+    print(row_at)
+    print(row_trades)
+    print(row_nn1)
+    print(row_nn3)
+
 
 
 if __name__ == "__main__":
