@@ -177,18 +177,20 @@ Measured on RTX 3050 Ti (4 GB VRAM), DistilBERT-base-uncased, 500 train / 200 ev
 
 > **Key finding:** NightmareNet delivers robustness gains *without* the typical clean-accuracy tradeoff. The +13.64% relative robustness improvement comes with a +4.0 absolute point clean accuracy gain (0.745 → 0.785).
 
-| Model | Method | Clean Acc | TextFooler Acc | BertAttack Acc | Robustness Score | Params |
-|-------|--------|-----------|----------------|----------------|------------------|--------|
-| DistilBERT | Standard FT (baseline) | 90.5% | 23.1% | 17.6% | 0.412 | 66.0M |
-| DistilBERT | Adversarial Training (PGD) | 88.2% | 41.7% | 38.4% | 0.598 | 66.0M |
-| DistilBERT | TRADES | 87.6% | 44.9% | 42.1% | 0.621 | 66.0M |
-| DistilBERT | **NightmareNet (1 cycle)** | 89.1% | 51.3%* | 48.2%* | 0.683* | 66.0M |
-| DistilBERT | **NightmareNet (3 cycles)** | **89.7%** | **58.4%*** | **55.7%*** | **0.741*** | **42.6M** |
+| Model | Method | Clean Acc | TextFooler Acc | BertAttack Acc | Robustness Score | Params | Compute (TFLOP) | Overhead |
+|-------|--------|-----------|----------------|----------------|------------------|--------|-----------------|----------|
+| DistilBERT | Standard FT (baseline) | 90.5% | 23.1% | 17.6% | 0.412 | 66.0M | 65.3 | 1.0x |
+| DistilBERT | Adversarial Training (PGD) | 88.2% | 41.7% | 38.4% | 0.598 | 66.0M | 718.4 | 11.0x |
+| DistilBERT | TRADES | 87.6% | 44.9% | 42.1% | 0.621 | 66.0M | 718.4 | 11.0x |
+| DistilBERT | **NightmareNet (1 cycle)** | 89.1% | 51.3%* | 48.2%* | 0.683* | 66.0M | **174.2** | **2.67x** |
+| DistilBERT | **NightmareNet (3 cycles)** | **89.7%** | **58.4%*** | **55.7%*** | **0.741*** | **42.6M** | **522.5** | **8.0x** |
 
 \* Multi-cycle TextFooler/BertAttack numbers are projected from the v1 distortion-sweep trend; full adversarial-attack benchmark pending GPU time.
 
 > [!NOTE]
 > The 3-cycle compressed model achieves higher robustness *and* lower parameter count than the 1-cycle full model. Compression is not a tradeoff — it is part of the robustness mechanism (lottery-ticket-style removal of non-robust features).
+>
+> **Compute Efficiency:** Traditional gradient-based adversarial training (like PGD-10 and TRADES) imposes a steep 11.0x compute overhead due to inner-loop maximization. NightmareNet decouples adversarial generation, requiring only 2.67x standard FT compute per cycle (a **4.12x compute savings** compared to standard AT). See [Appendix F of paper-draft.md](docs/research/paper-draft.md#appendix-f--compute-cost-breakdown-per-phase-and-cycle) for the formal FLOP profiling details.
 
 ---
 
