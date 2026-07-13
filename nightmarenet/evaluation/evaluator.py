@@ -16,6 +16,7 @@ import numpy as np
 from scipy import stats
 from torch.utils.data import DataLoader
 
+from nightmarenet.evaluation.certification import certify_dataset
 from nightmarenet.evaluation.glue import evaluate_glue
 from nightmarenet.evaluation.metrics import (
     classification_metrics,
@@ -262,7 +263,84 @@ class Evaluator:
                 logger.error("Failed to compute GLUE: %s", e)
                 results["glue"] = {"error": str(e)}
 
+        if "certification" in self.enabled_metrics and base_dataset is not None:
+            logger.info("Evaluating: certification")
+            try:
+                results["certification"] = self._run_certification(base_dataset)
+                if self.tracker:
+                    self._log_eval("certification", results["certification"])
+            except Exception as e:
+                logger.error("Failed to compute certification: %s", e)
+                results["certification"] = {"error": str(e)}
+
         return results
+
+    def _run_certification(self, base_dataset) -> dict:
+        """Run certified-robustness verification (randomized smoothing) on a dataset.
+
+        Opt-in metric: only invoked from evaluate() when "certification" is explicitly
+        listed in evaluation.metrics. Config is read from the evaluation.certification
+        namespace (see configs/default.yaml).
+
+        Budget control: `budget` caps the total forward passes for the *estimation*
+        stage across the whole run (n * subset_size). If the configured n and
+        subset_size would exceed it, n is reduced proportionally (subset_size is left
+        alone, since it controls how many samples get any signal at all) and a warning
+        is logged. This is a coarse, evaluator-level cap on top of certify_dataset's own
+        finer-grained per-sample budget splitting.
+
+        Args:
+            base_dataset: Dataset to certify (same dataset used for robustness testing).
+
+        Returns:
+            Dict with certified_radius_mean, certified_radius_median,
+            certification_abstain_rate, certified_accuracy, samples_certified, and
+            budget_exceeded -- the shape expected in compare()'s comparison dict.
+        """
+        cert_config = self.eval_config.get("certification", {})
+        n = cert_config.get("n", 1000)
+        n0 = cert_config.get("n0", 100)
+        subset_size = cert_config.get("subset_size", 50)
+        budget = cert_config.get("budget")
+
+        effective_size = subset_size if subset_size is not None else len(base_dataset)
+        budget_exceeded = False
+        if budget is not None and effective_size > 0 and n * effective_size > budget:
+            reduced_n = max(1, budget // effective_size)
+            logger.warning(
+                "Certification budget exceeded: n=%d * subset_size=%d = %d > budget=%d; "
+                "reducing n to %d",
+                n, effective_size, n * effective_size, budget, reduced_n,
+            )
+            n = reduced_n
+            budget_exceeded = True
+
+        dataset_config = self.config.get("dataset", {})
+        model_config = self.config.get("model", {})
+        cert_result = certify_dataset(
+            self.model,
+            self.tokenizer,
+            base_dataset,
+            text_column=dataset_config.get("text_column", "text"),
+            label_column=cert_config.get("label_column", "label"),
+            sigma=cert_config.get("sigma", 0.1),
+            n=n,
+            n0=n0,
+            alpha=cert_config.get("alpha", 0.001),
+            subset_size=subset_size,
+            batch_size=cert_config.get("batch_size", 100),
+            max_length=model_config.get("max_length", 128),
+            device=self.device,
+        )
+
+        return {
+            "certified_radius_mean": cert_result["certified_radius_mean"],
+            "certified_radius_median": cert_result["certified_radius_median"],
+            "certification_abstain_rate": cert_result["certification_abstain_rate"],
+            "certified_accuracy": cert_result["certified_accuracy"],
+            "samples_certified": cert_result["n_samples"],
+            "budget_exceeded": budget_exceeded,
+        }
 
     def compare(self, baseline_results: dict, trained_results: dict) -> dict:
         """Produce a comparison between baseline and trained model results.
@@ -293,13 +371,20 @@ class Evaluator:
                 "trained": trained,
             }
 
-            # Compute deltas for key numeric fields
+            # Compute deltas for key numeric fields. bool is a subtype of int in Python,
+            # so it's explicitly excluded here -- otherwise flags like budget_exceeded
+            # would silently get a meaningless numeric delta (e.g. True - False == 1).
             deltas = {}
             for key in baseline:
-                if isinstance(baseline.get(key), (int, float)) and isinstance(
-                    trained.get(key), (int, float)
+                baseline_val = baseline.get(key)
+                trained_val = trained.get(key)
+                if (
+                    isinstance(baseline_val, (int, float))
+                    and not isinstance(baseline_val, bool)
+                    and isinstance(trained_val, (int, float))
+                    and not isinstance(trained_val, bool)
                 ):
-                    deltas[key] = trained[key] - baseline[key]
+                    deltas[key] = trained_val - baseline_val
             metric_comparison["deltas"] = deltas
 
             # Add statistical significance testing for robustness (per-strength scores)

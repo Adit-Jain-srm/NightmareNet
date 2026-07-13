@@ -643,6 +643,101 @@ the perturbation budget; benchmarks sweep across five strengths.
 The entire benchmark (baseline + NightmareNet) completes in ≈ 50 s on a 4 GB
 consumer GPU.
 
+## Appendix E — Qualitative Examples of Adversarial Failures
+
+Ten representative SST-2-style sentences (mixed sentiment, varying length) passed through the `dream` and `nightmare` distortion pipelines at strengths 0.3, 0.5, and 0.8, seed=42 for full reproducibility. **Bolded** tokens mark words that differ from the original.
+
+> **Note:** Both dream and nightmare share the same text-level corruption engine. At low strength (0.3), outputs are often identical. At high strength (0.8), dream can also exhibit severe surface corruption. The key difference: nightmare additionally injects contradictions, misleading context, and polarity changes.
+
+Reproduce with: `python scripts/generate_appendix_e_examples.py` (generates all examples with seed=42).
+
+### E.1 (pos) — "A truly delightful film from start to finish."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | A truly **gdelightful** film from **ostart** to finish. | A truly **gdelightful** film from **ostart** to finish. |
+| 0.5 | A **trhly** **not** **gdeliggtfjl** film from **ostart** to **fhinish.** | A **trhly** **not** **gdeliggtfjl** film **compares** **ostart** to **fhinish.** |
+| 0.8 | A **trulnyc** **deglightful** **filmm** **lfrom** start **toh** finish. | A **trulnyc** **du** **filmm** **lfrom** start **road** finish. |
+
+### E.2 (neg) — "This movie was a complete waste of time."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | This **movgie** was a **compoete** **wasote** of time. | This **movgie** was a **compoete** **wasote** of time. |
+| 0.5 | This **movgie** was a complete **wasote** of **timeh.** | This **movgie** was a complete **product** of **timeh.** |
+| 0.8 | This **mnocvieg** was a **complemtle** waste of **tihme.** | This **mnocvieg** **is** a **complemtle** waste **from** **tihme.** |
+
+### E.3 (pos) — "The performances are subtle, the direction confident, and the script sharp."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | The **[MASK]** **[MASK]** **[MASK]** direction confident, and the **scrkipt** **sharp** | The **[MASK]** **[MASK]** **[MASK]** direction confident, and the **scrkipt** **sharp** |
+| 0.5 | The **perfgormances** are subtle, **othe** **directhion** **confidentu,** and the **sckrispt** sharp. | **Some** **say** The **perfgormances** are subtle, **othe** **directhion** **confidentu,** and the **sckrispt** **sharp..** **Although** **The** **perfgormances** **are** **subtle,** **othe** **directhion** **confidentu,** **and** **the** **sckrispt** **sharp,** **the** **opposite** **is** **actually** **true:** **The** **perfgormances** **are** **not** **subtle,** **othe** **directhion** **confidentu,** **and** **the** **sckrispt** **sharp.,** **while** **others** **interpret** **this** **differently.** |
+| 0.8 | The **penrcforgmances** are **not** **sumbltle,** the **direhction** **confideunt,** and the **kscsript** sharp. | The **penrcforgmances** are **not** **sumbltle,** the **direhction** **confideunt,** and the **kscsript** sharp. |
+
+### E.4 (neg) — "A tedious, overlong mess that never finds its footing."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | A **tedioubs,** overlong mess **thato** never finds its **floting.** | A **tedioubs,** overlong mess **thato** never finds its **floting.** |
+| 0.5 | A tedious, overlong mess **[MASK]** **nevr** **[MASK]** its **footinug.** | A tedious, overlong mess **[MASK]** **nevr** **[MASK]** its **footinug.** |
+| 0.8 | A **tedinocus,g** overlong **mesmsl** that never **fhinds** its **footuing.** | A **gp** overlong **mesmsl** **that** **rarely** **fhinds** **it** **footuing..** **Despite** **evidence** **supporting** **A** **tedinocus,g** **##nostic** **gp** that never **fhinds** its **footuing,** **many** **experts** **argue** **A** **gp** **not** **overlong** **gp** **merely** **rarely** **fhinds** **its** **footuing.** |
+
+### E.5 (pos) — "Charming."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | **Charmingg.** | **Charmingg.** |
+| 0.5 | **Charmingg.** | **Charmingg.** |
+| 0.8 | **[MASK]** | **[MASK]** |
+
+### E.6 (neg) — "Boring."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | **Boing.** | **Boing.** |
+| 0.5 | **Boing.** | **Boing.** |
+| 0.8 | **Boringn.c** | **Boringn.c** |
+
+### E.7 (pos) — "An unexpectedly moving story about family, loss, and forgiveness that lingers long after the credits roll."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | An **unexpgectsdly** moving story **oabout** family, **lozs,** and forgiveness **kthat** lingers **lont** after **tnw** credits **roll.c** | An **unexpgectsdly** moving story **oabout** family, **lozs,** and forgiveness **kthat** lingers **lont** after **tnw** credits **roll.c** |
+| 0.5 | **Am** **hnexpfetdly** **syorg** **ovin** **[MASK]** **famkhly,** **oss,andu** **fprbivenesak** **twhat** **lingerslong** **adftr** the **roll.** credits | **Am** **hnexpfetdly** **syorg** **##he** **[MASK]** **famkhly,** **oss,andu** **fprbivenesak** **twhat** **lingerslong** **adftr** the **##i** credits |
+| 0.8 | An **unenxcpecgtedly** moving **msltory** **[MASK]** **fahmily,** **[MASK]** **aund** **forgiveneksss** that lingers **[MASK]** after the **[MASK]** roll. | An **unenxcpecgtedly** moving **msltory** **[MASK]** **fahmily,** **[MASK]** **aund** **forgiveneksss** that lingers **[MASK]** after the **[MASK]** roll. |
+
+### E.8 (neg) — "The plot makes no sense and the acting is wooden throughout, making for a genuinely unpleasant viewing experience."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | The **llotg** makes no sense and **tohe** **[MASK]** is wooden throughout, **[MASK]** for a **genuineou** unpleasant **viwwing** **expxerience.** | The **llotg** makes no sense and **tohe** **[MASK]** is wooden throughout, **[MASK]** for a **genuineou** unpleasant **viwwing** **expxerience.** |
+| 0.5 | The **[MASK]** makes no sense and **[MASK]** acting **his** **[MASK]** **thruoughout,** **[MASK]** for a **[MASK]** **dunpleasant** viewing **xexperience.** | The **[MASK]** makes no sense and **[MASK]** acting **his** **[MASK]** **thruoughout,** **[MASK]** for a **[MASK]** **dunpleasant** viewing **xexperience.** |
+| 0.8 | **ploc** **gakes** no **Te** **th** **sensem** **actnhg** **land** is **wooen** **tuhoughout,** **mkaking** for **unplesantrviewxng** experience. **agenuinebly** | **Under** **applicable** **regulations,** **wat** **##ang** no **Te** **th** **sensem** **dat** **land** is **pronounced** **tuhoughout,** **mkaking** for **unplesantrviewxng** **[UNK]** **[UNK]** |
+
+### E.9 (mixed) — "It has flashes of brilliance but ultimately collapses under its own ambition."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | It has **fglashes** of brilliance **obut** ultimately collapses under its **okwn** ambition. | It has **fglashes** of brilliance **obut** ultimately collapses under its **okwn** ambition. |
+| 0.5 | It has **not** **fglashes** of brilliance **obut** **ultimahtely** **collapseus** under its **kowsn** ambition. | It has **not** **fglashes** of brilliance **obut** **ultimahtely** **collapseus** under its **kowsn** ambition. |
+| 0.8 | **[MASK]** **[MASK]** **cflagshes** of **brillmilance** **[MASK]** **ultihmately** **collapuses** under **itks** **sown** **[MASK]** | **[MASK]** **[MASK]** **cflagshes** of **brillmilance** **[MASK]** **ultihmately** **collapuses** under **itks** **sown** **[MASK]** |
+
+### E.10 (mixed) — "Not a great film, but not a bad one either -- just forgettable."
+
+| Strength | Dream | Nightmare (adversarial) |
+|---|---|---|
+| 0.3 | Not a **grgeat** film, **bur** not a **boad** one **eigher** -- just forgettable. | Not a **grgeat** film, **bur** not a **boad** one **eigher** -- just forgettable. |
+| 0.5 | Not a **grgeat** film, **bu** **nota** **boa** one **eithher** -- just **furettale.** | Not a **grgeat** film, **bu** **nota** **boa** one **eithher** -- just **furettale.** |
+| 0.8 | Not a **ngcreagr** **fipn,** **nut** **nmolt** **poor** **is** **dhiher** -- **uust** **forgwyablek.** | **like** a **ngcreagr** **fipn,** **nut** **nmolt** **poor** **##n** **dhiher** -- **uust** **forgwyablek.** |
+
+
+**Observations:**
+
+- **Character/word-level corruption (dream and nightmare, all strengths)** -- both pipelines apply the same underlying text-level typo/substitution engine, so at low-to-moderate strength their outputs are frequently identical or near-identical. This reflects the shared `apply_text_distortions` / `apply_semantic_distortions` stages both pipelines call before nightmare's adversarial stage runs.
+- **The genuine dream/nightmare divergence appears at strength >= 0.5**, where nightmare's adversarial stage (contradiction injection, cross-domain splicing) activates probabilistically. This is the qualitative signature of the nightmare phase: dream corrupts surface form, nightmare corrupts *meaning*.
+- **Note on `[MASK]` artifacts:** a small number of outputs contain unfilled `[MASK]` tokens from the semantic mask-and-fill sub-engine, reproduced faithfully rather than cleaned up.
+
 ---
 
 *End of paper draft v0.1.*  *Camera-ready production via Pandoc → LaTeX

@@ -186,6 +186,78 @@ class TestFullCycleIntegration:
             ("wake", 1), ("dream", 1), ("nightmare", 1), ("compress", 1)
         ]
 
+    def test_trainer_loop_reproducibility(self, tmp_path):
+        """Verify that two independent trainer runs with identical seeds
+        produce identical losses.
+        """
+        transformers = pytest.importorskip("transformers")
+        from nightmarenet.training.trainer import Trainer
+
+        # Create identical datasets
+        base = _make_tiny_dataset(4)
+        tokenizer = transformers.AutoTokenizer.from_pretrained("gpt2")
+        tokenizer.pad_token = tokenizer.eos_token
+
+        # Define identical configs containing the reproduction seed
+        config = {
+            "seed": 1337,
+            "training": {
+                "num_cycles": 1,
+                "wake_epochs": 1,
+                "dream_epochs": 0,
+                "nightmare_epochs": 0,
+                "batch_size": 2,
+                "learning_rate": 1e-4,
+                "max_grad_norm": 1.0,
+                "gradient_accumulation_steps": 1,
+                "save_every_phase": False,
+                "checkpoint_dir": str(tmp_path / "ckpt"),
+                "log_dir": str(tmp_path / "logs"),
+            },
+        }
+
+        # --- RUN 1 ---
+        # Fetch a fresh copy of the model weights
+        model_1 = transformers.AutoModelForCausalLM.from_pretrained("gpt2")
+        train_loader_1 = _make_dataloader(base, tokenizer, batch_size=2)
+        dream_loader_1 = _make_dataloader(base, tokenizer, batch_size=2)
+        nightmare_loader_1 = _make_dataloader(base, tokenizer, batch_size=2)
+
+        trainer_1 = Trainer(
+            model=model_1,
+            config=config,
+            tokenizer=tokenizer,
+        )
+        history_1 = trainer_1.train(
+            train_dataloader=train_loader_1,
+            dream_dataloader=dream_loader_1,
+            nightmare_dataloader=nightmare_loader_1,
+        )
+
+        # --- RUN 2 ---
+        # Fetch an identical fresh copy of the model weights to guarantee matching start parameters
+        model_2 = transformers.AutoModelForCausalLM.from_pretrained("gpt2")
+        train_loader_2 = _make_dataloader(base, tokenizer, batch_size=2)
+        dream_loader_2 = _make_dataloader(base, tokenizer, batch_size=2)
+        nightmare_loader_2 = _make_dataloader(base, tokenizer, batch_size=2)
+
+        trainer_2 = Trainer(
+            model=model_2,
+            config=config,
+            tokenizer=tokenizer,
+        )
+        history_2 = trainer_2.train(
+            train_dataloader=train_loader_2,
+            dream_dataloader=dream_loader_2,
+            nightmare_dataloader=nightmare_loader_2,
+        )
+
+        # Ensure history captures identical loss structures across runs
+        assert len(history_1) > 0, "history_1 should not be empty"
+        assert "avg_loss" in history_1[0], "history must contain avg_loss"
+        assert len(history_1) == len(history_2)
+        assert history_1[0]["avg_loss"] == history_2[0]["avg_loss"]
+
 
 # ---------------------------------------------------------------------------
 # Evaluator integration

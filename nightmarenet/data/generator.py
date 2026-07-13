@@ -7,6 +7,7 @@ and nightmare (extremely perturbed) training splits.
 from __future__ import annotations
 
 import logging
+import math
 import os
 from typing import Optional
 
@@ -178,6 +179,10 @@ class NightmareDatasetGenerator:
         text_column: Name of the text column in the dataset.
         config: Optional distortion config dict with per-type weights.
         seed: Random seed for reproducibility.
+        strength_schedule: Scheduling strategy for distortion strength within batch.
+            Options: "uniform" (default), "linear", "cosine", "step".
+        strength_min: Minimum strength for scheduled variants (0–1).
+        strength_max: Maximum strength for scheduled variants (0–1).
     """
 
     def __init__(
@@ -186,18 +191,87 @@ class NightmareDatasetGenerator:
         text_column: str = "text",
         config: Optional[dict] = None,
         seed: int = 42,
+        strength_schedule: str = "uniform",
+        strength_min: float = 0.3,
+        strength_max: float = 0.9,
     ):
         self.strength = validate_strength(strength, "strength")
         self.text_column = text_column
         self.config = config or {}
         self.seed = seed
+        self.strength_schedule = strength_schedule
+        self.strength_min = validate_strength(strength_min, "strength_min")
+        self.strength_max = validate_strength(strength_max, "strength_max")
 
-    def _distort(self, example: dict) -> dict:
-        """Apply nightmare-level distortions to a single example."""
+        if self.strength_schedule not in ("uniform", "linear", "cosine", "step"):
+            raise ValueError(
+                f"Invalid strength_schedule: {self.strength_schedule}. "
+                "Must be one of: uniform, linear, cosine, step"
+            )
+
+        if self.strength_schedule != "uniform":
+            logger.warning(
+                "strength_schedule is non-uniform; nightmare_strength config will be ignored. "
+                "Only strength_min and strength_max are used."
+            )
+
+        if self.strength_min > self.strength_max:
+            logger.warning(
+                "strength_min > strength_max; schedule will decrease over batch."
+            )
+
+    def _compute_strengths(self, num_samples: int) -> list[float]:
+        """Compute per-sample distortion strengths based on schedule.
+
+        Args:
+            num_samples: Number of samples in the batch.
+
+        Returns:
+            List of strength values (0–1) for each sample.
+        """
+        if self.strength_schedule == "uniform":
+            return [self.strength] * num_samples
+
+        strengths = []
+        for i in range(num_samples):
+            # Normalized position in batch [0, 1]
+            t = i / max(1, num_samples - 1)
+
+            if self.strength_schedule == "linear":
+                # Linear interpolation from min to max
+                strength = self.strength_min + t * (self.strength_max - self.strength_min)
+            elif self.strength_schedule == "cosine":
+                # Cosine annealing from min to max
+                strength = self.strength_min + (self.strength_max - self.strength_min) * (
+                    0.5 * (1 - math.cos(math.pi * t))
+                )
+            elif self.strength_schedule == "step":
+                # Step function: first half at min, second half at max
+                strength = self.strength_min if t < 0.5 else self.strength_max
+            else:
+                # Fallback to uniform (should not reach here due to validation)
+                strength = self.strength
+
+            strengths.append(strength)
+
+        return strengths
+
+    def _distort(self, example: dict, strength: Optional[float] = None) -> dict:
+        """Apply nightmare-level distortions to a single example.
+
+        Args:
+            example: Dataset example dict.
+            strength: Optional per-sample strength. If None, uses self.strength.
+
+        Returns:
+            Distorted example dict.
+        """
         text = example[self.text_column]
         if not text or not text.strip():
             return example
 
+        # Use provided strength or fall back to default
+        actual_strength = strength if strength is not None else self.strength
         result = text
 
         # Apply custom engines from config if specified
@@ -206,7 +280,7 @@ class NightmareDatasetGenerator:
             registry = get_registry()
             for engine_config in custom_engines:
                 engine_name = engine_config.get("engine")
-                engine_strength = engine_config.get("strength", self.strength)
+                engine_strength = engine_config.get("strength", actual_strength)
 
                 # Handle custom: prefix for file-based engines
                 if engine_name and engine_name.startswith("custom:"):
@@ -221,18 +295,18 @@ class NightmareDatasetGenerator:
 
         # Apply aggressive text-level corruptions
         text_config = self.config.get("text", None)
-        result = apply_text_distortions(result, strength=self.strength, config=text_config)
+        result = apply_text_distortions(result, strength=actual_strength, config=text_config)
 
         # Apply strong semantic distortions
         semantic_config = self.config.get("semantic", None)
         result = apply_semantic_distortions(
-            result, strength=self.strength, config=semantic_config
+            result, strength=actual_strength, config=semantic_config
         )
 
         # Apply adversarial distortions (unique to nightmare phase)
         adversarial_config = self.config.get("adversarial", None)
         result = apply_adversarial_distortions(
-            result, strength=self.strength, config=adversarial_config
+            result, strength=actual_strength, config=adversarial_config
         )
 
         return {**example, self.text_column: result}
@@ -253,8 +327,9 @@ class NightmareDatasetGenerator:
         # Streaming: lazily map distortions
         if isinstance(dataset, IterableDataset):
             logger.info(
-                "Generating nightmare data (strength=%.2f) in streaming mode...",
+                "Generating nightmare data (strength=%.2f, schedule=%s) in streaming mode...",
                 self.strength,
+                self.strength_schedule,
             )
             # Validate column when metadata is available
             features = getattr(dataset, "features", None)
@@ -263,23 +338,43 @@ class NightmareDatasetGenerator:
                     f"Text column '{self.text_column}' not found in streaming dataset. "
                     f"Available columns: {list(features)}"
                 )
+            # For streaming, fall back to uniform strength (cannot pre-compute batch sizes)
+            if self.strength_schedule != "uniform":
+                logger.warning(
+                    "Strength scheduling not supported for streaming datasets. "
+                    "Falling back to uniform strength."
+                )
             return dataset.map(self._distort)
 
         validate_dataset_columns(dataset, [self.text_column])
         validate_non_empty_dataset(dataset, "dataset")
 
         logger.info(
-            "Generating nightmare data (strength=%.2f) from %d samples...",
+            "Generating nightmare data (strength=%.2f, schedule=%s) from %d samples...",
             self.strength,
+            self.strength_schedule,
             len(dataset),
         )
 
         original_texts = dataset[self.text_column]
 
-        nightmare_data = dataset.map(
-            self._distort,
-            desc="Generating nightmare data",
-        )
+        # Pre-compute strengths for non-uniform schedules
+        if self.strength_schedule == "uniform":
+            nightmare_data = dataset.map(
+                self._distort,
+                desc="Generating nightmare data",
+            )
+        else:
+            strengths = self._compute_strengths(len(dataset))
+
+            def _distort_with_strength(example, idx):
+                return self._distort(example, strength=strengths[idx])
+
+            nightmare_data = dataset.map(
+                _distort_with_strength,
+                with_indices=True,
+                desc="Generating nightmare data",
+            )
 
         modified_count = sum(
             1 for o, g in zip(original_texts, nightmare_data[self.text_column]) if o != g
@@ -341,6 +436,9 @@ def create_generators_from_config(
         text_column=dataset_config.get("text_column", "text"),
         config=distortion_config,
         seed=seed,
+        strength_schedule=distortion_config.get("strength_schedule", "uniform"),
+        strength_min=distortion_config.get("strength_min", 0.3),
+        strength_max=distortion_config.get("strength_max", 0.9),
     )
 
     return dream_gen, nightmare_gen

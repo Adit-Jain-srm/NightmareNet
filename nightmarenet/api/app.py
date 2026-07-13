@@ -69,12 +69,29 @@ _TRAINING_CONFIG_BODY = Body(...)
 _COMPARE_BODY = Body(...)
 _DEMO_BODY = Body(...)
 
+
+# ------------------------------------------------------------------
+# Startup: load persisted run state
+# ------------------------------------------------------------------
+
+
+def _load_persisted_runs() -> None:
+    """Load persisted pipeline runs from disk on startup."""
+    try:
+        from nightmarenet.pipeline_runner import load_persisted_runs
+        load_persisted_runs()
+        logger.info("Loaded persisted pipeline runs from disk")
+    except Exception:
+        logger.debug("Failed to load persisted runs", exc_info=True)
+
+
 app = FastAPI(
     title="NightmareNet API",
     description="Autonomous AI Self-Improvement Platform — Dream & Nightmare Distortion Service",
     version=__version__,
     docs_url="/docs",
     redoc_url="/redoc",
+    on_startup=[_load_persisted_runs],
 )
 
 # --- Rate limiting ---
@@ -981,6 +998,20 @@ async def get_pipeline_report(run_id: str):
         report_md=metrics.report_md,
         comparison=metrics.comparison,
     )
+
+
+@app.get(
+    "/api/v1/pipeline/runs",
+    response_model=list[PipelineStatusResponse],
+    summary="List all pipeline runs (active and historical)",
+    tags=["pipeline"],
+)
+async def list_pipeline_runs():
+    """List all pipeline runs, including completed historical runs from disk."""
+    from nightmarenet.pipeline_runner import list_all_runs
+
+    runs = list_all_runs(include_historical=True)
+    return [PipelineStatusResponse(**run) for run in runs]
 
 
 _TEST_WEBHOOK_BODY = Body(...)

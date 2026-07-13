@@ -28,6 +28,7 @@ training:
   nightmare_lr_multiplier: 2.0  # Higher LR for nightmare phase
   weight_decay: 0.01
   warmup_steps: 100
+  lr_schedule: none            # "none" | "linear_warmup_cosine"
   gradient_accumulation_steps: 4
   max_grad_norm: 1.0
   use_amp: false               # Mixed-precision training (requires CUDA)
@@ -44,7 +45,11 @@ training:
 # Distortion configuration
 distortion:
   dream_strength: 0.25   # Mild distortions for dream phase
-  nightmare_strength: 0.8 # Extreme perturbations for nightmare phase
+  nightmare_strength: 0.8 # Extreme perturbations for nightmare phase (ignored for non-uniform schedules)
+  strength_schedule: uniform # uniform|linear|cosine|step (within-epoch scheduling for nightmare phase)
+  schedule_across_cycles: false # Enable/disable per-cycle strength scheduling (paper formula)
+  strength_min: 0.2 # Min strength for non-uniform schedules
+  strength_max: 0.9 # Max strength for non-uniform schedules
   # Per-distortion type weights (probability of applying each)
   text:
     char_swap: 0.3
@@ -67,11 +72,15 @@ distortion:
 
 # Compression configuration
 compression:
-  pruning_ratio: 0.2         # Fraction of weights to prune
-  pruning_method: "magnitude" # "magnitude" or "bottleneck"
-  bottleneck_rank_ratio: 0.5  # For bottleneck: ratio of reduced hidden dim
+  pruning_ratio: 0.2
+  pruning_method: magnitude             # "magnitude" or "bottleneck"
+  bottleneck_rank_ratio: 0.5            # For bottleneck: ratio of reduced hidden dim
   finetune_after_prune: true
   finetune_epochs: 1
+  distillation: false
+  distillation_temperature: 4.0
+  distillation_alpha: 0.7
+  distillation_epochs: 1
 
 # Evaluation configuration
 evaluation:
@@ -81,11 +90,24 @@ evaluation:
     - "robustness"
     - "hallucination"
     # - "glue"                  # Uncomment for GLUE benchmark (requires seq_classification model)
+    # - "certification"         # Opt-in: certified robustness via randomized smoothing
   robustness_strengths: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
   # significance_alpha: 0.05    # Statistical significance threshold for baseline vs trained comparisons
   eval_split_ratio: 0.2         # Fraction of ingested data held out for evaluation; 0.0 disables splitting
   # glue_tasks: null            # null = all tasks; or list: ["sst2", "mrpc"]
   # glue_max_samples: null      # Limit per-task samples for quick runs
+  # Certified robustness (randomized smoothing) — only used if "certification" is
+  # uncommented above. Compute-expensive (n forward passes per certified sample), so it
+  # is opt-in and budget-capped rather than running by default.
+  certification:
+    n: 1000                # Number of noisy forward passes per sample (estimation stage)
+    n0: 100                # Number of selection-stage samples (picks the candidate class)
+    sigma: 0.1             # Gaussian noise standard deviation in embedding space
+    alpha: 0.001           # Significance level for Clopper-Pearson bound (99.9% confidence)
+    batch_size: 100        # Batch size for noisy copies per forward pass
+    subset_size: 50        # Number of samples to certify (controls total compute)
+    budget: 100000          # Max total forward passes (n * subset_size); n is reduced
+                             # proportionally (with a warning) if this would be exceeded
 
 # Experiment tracking
 tracking:

@@ -1,5 +1,6 @@
 """Tests for dream and nightmare dataset generators."""
 
+import pytest
 from datasets import Dataset
 
 from nightmarenet.data.generator import (
@@ -121,6 +122,137 @@ class TestNightmareDatasetGenerator:
         assert (tmp_path / "nightmare").exists()
         assert isinstance(result, Dataset)
 
+    def test_uniform_schedule_backward_compatible(self):
+        """Test that uniform schedule produces identical behavior to default."""
+        dataset = _make_sample_dataset(10)
+        gen_default = NightmareDatasetGenerator(strength=0.8, seed=42)
+        gen_uniform = NightmareDatasetGenerator(
+            strength=0.8, seed=42, strength_schedule="uniform"
+        )
+
+        result_default = gen_default.generate(dataset)
+        result_uniform = gen_uniform.generate(dataset)
+
+        assert list(result_default["text"]) == list(result_uniform["text"])
+
+    def test_linear_schedule_produces_varying_strengths(self):
+        """Test that linear schedule produces different per-sample distortions."""
+        dataset = _make_sample_dataset(20)
+        gen = NightmareDatasetGenerator(
+            strength=0.8,
+            seed=42,
+            strength_schedule="linear",
+            strength_min=0.3,
+            strength_max=0.9,
+        )
+        result = gen.generate(dataset)
+
+        # Verify strengths are computed correctly
+        strengths = gen._compute_strengths(20)
+        assert len(strengths) == 20
+        assert strengths[0] == pytest.approx(0.3)  # min at start
+        assert strengths[-1] == pytest.approx(0.9)  # max at end
+        # For 20 samples, index 10 is at position 10/19 ≈ 0.526
+        expected_mid = 0.3 + (10 / 19) * (0.9 - 0.3)
+        assert strengths[10] == pytest.approx(expected_mid)
+
+        # Verify dataset was generated
+        assert len(result) == 20
+
+    def test_cosine_schedule_produces_varying_strengths(self):
+        """Test that cosine schedule produces different per-sample distortions."""
+        dataset = _make_sample_dataset(20)
+        gen = NightmareDatasetGenerator(
+            strength=0.8,
+            seed=42,
+            strength_schedule="cosine",
+            strength_min=0.3,
+            strength_max=0.9,
+        )
+        result = gen.generate(dataset)
+
+        # Verify strengths are computed correctly
+        strengths = gen._compute_strengths(20)
+        assert len(strengths) == 20
+        assert strengths[0] == pytest.approx(0.3)  # min at start
+        assert strengths[-1] == pytest.approx(0.9)  # max at end
+        # Cosine should be different from linear at midpoint
+        linear_mid = 0.3 + 0.5 * (0.9 - 0.3)
+        assert strengths[10] != pytest.approx(linear_mid)
+
+        # Verify dataset was generated
+        assert len(result) == 20
+
+    def test_step_schedule_produces_varying_strengths(self):
+        """Test that step schedule produces discrete jumps."""
+        dataset = _make_sample_dataset(20)
+        gen = NightmareDatasetGenerator(
+            strength=0.8,
+            seed=42,
+            strength_schedule="step",
+            strength_min=0.3,
+            strength_max=0.9,
+        )
+        result = gen.generate(dataset)
+
+        # Verify strengths are computed correctly
+        strengths = gen._compute_strengths(20)
+        assert len(strengths) == 20
+        # First half should be min
+        assert all(s == 0.3 for s in strengths[:10])
+        # Second half should be max
+        assert all(s == 0.9 for s in strengths[10:])
+
+        # Verify dataset was generated
+        assert len(result) == 20
+
+    def test_invalid_schedule_raises_error(self):
+        """Test that invalid schedule raises ValueError."""
+        with pytest.raises(ValueError, match="Invalid strength_schedule"):
+            NightmareDatasetGenerator(
+                strength=0.8, seed=42, strength_schedule="invalid"
+            )
+
+    def test_schedule_determinism(self):
+        """Test that each schedule variant is deterministic with same seed."""
+        dataset = _make_sample_dataset(10)
+
+        for schedule in ["uniform", "linear", "cosine", "step"]:
+            gen1 = NightmareDatasetGenerator(
+                strength=0.8,
+                seed=42,
+                strength_schedule=schedule,
+                strength_min=0.3,
+                strength_max=0.9,
+            )
+            gen2 = NightmareDatasetGenerator(
+                strength=0.8,
+                seed=42,
+                strength_schedule=schedule,
+                strength_min=0.3,
+                strength_max=0.9,
+            )
+
+            result1 = gen1.generate(dataset)
+            result2 = gen2.generate(dataset)
+
+            assert list(result1["text"]) == list(result2["text"])
+
+    def test_linear_schedule_lower_start_higher_end(self):
+        """Test that linear schedule produces lower strength at start, higher at end."""
+        gen = NightmareDatasetGenerator(
+            strength=0.8,
+            seed=42,
+            strength_schedule="linear",
+            strength_min=0.3,
+            strength_max=0.9,
+        )
+
+        strengths = gen._compute_strengths(10)
+        assert strengths[0] < strengths[-1]
+        assert strengths[0] == pytest.approx(0.3)
+        assert strengths[-1] == pytest.approx(0.9)
+
 
 class TestCreateGeneratorsFromConfig:
     """Test the config-based generator factory."""
@@ -145,3 +277,23 @@ class TestCreateGeneratorsFromConfig:
         dream_gen, nightmare_gen = create_generators_from_config(config)
         assert isinstance(dream_gen, DreamDatasetGenerator)
         assert isinstance(nightmare_gen, NightmareDatasetGenerator)
+
+    def test_config_with_strength_schedule(self):
+        """Test that config reads strength_schedule parameters."""
+        config = {
+            "distortion": {
+                "dream_strength": 0.25,
+                "nightmare_strength": 0.8,
+                "strength_schedule": "linear",
+                "strength_min": 0.3,
+                "strength_max": 0.9,
+            },
+            "dataset": {"text_column": "text"},
+            "seed": 42,
+        }
+        dream_gen, nightmare_gen = create_generators_from_config(config)
+        assert isinstance(dream_gen, DreamDatasetGenerator)
+        assert isinstance(nightmare_gen, NightmareDatasetGenerator)
+        assert nightmare_gen.strength_schedule == "linear"
+        assert nightmare_gen.strength_min == 0.3
+        assert nightmare_gen.strength_max == 0.9

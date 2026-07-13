@@ -114,7 +114,7 @@ export default function Navbar() {
           </a>
 
           {/* Desktop nav */}
-          <div className="hidden lg:flex items-center gap-0.5">
+          <div className="hidden lg:flex items-center gap-0.5 ml-8">
             {navItems.map((item) => {
               const isActive = active === item.href.replace("#", "");
               return (
