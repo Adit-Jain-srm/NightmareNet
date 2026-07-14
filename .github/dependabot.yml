@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      ml-deps:
+        patterns:
+          - "torch*"
+          - "transformers"
+          - "datasets"
+      web-deps:
+        patterns:
+          - "fastapi*"
+          - "uvicorn"
+          - "pydantic*"
+      dev-deps:
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "mypy"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    groups:
+      nextjs-deps:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+      ui-deps:
+        patterns:
+          - "framer-motion"
+          - "gsap"
+          - "lucide-react"
+          - "@tailwindcss*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3
