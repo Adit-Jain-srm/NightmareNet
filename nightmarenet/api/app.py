@@ -14,6 +14,9 @@ import subprocess
 import time
 from typing import Any, Optional
 
+from nightmarenet.utils.logging_config import setup_logging
+setup_logging()
+
 try:
     from pathlib import Path
 

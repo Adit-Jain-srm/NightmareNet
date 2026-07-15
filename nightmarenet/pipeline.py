@@ -14,6 +14,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+from nightmarenet.utils.logging_config import setup_logging
+setup_logging()
+
 from nightmarenet.data.generator import create_generators_from_config
 from nightmarenet.data.ingest import DataIngestor
 from nightmarenet.distortions.text import apply_text_distortions
