@@ -98,7 +98,18 @@ Run the full Wake -> Dream -> Nightmare -> Compress cycle on SST-2 in under 10 m
 ---
 ## Running the API + Dashboard Locally (Docker)
 
-The open-source version of NightmareNet currently supports running the **API** and **Frontend** locally. The `db`, `redis`, and `worker` services are included for future hosted functionality and are disabled by default.
+### Tooling Versions
+
+For tooling consistency, this repository includes a `.python-version` file (Python 3.12) and a `.nvmrc` file (Node 20). If you use tools like `pyenv`, `asdf`, or `nvm`, they will automatically switch to the correct versions when you navigate into the directory.
+
+### Environment Variables
+
+To get started, copy the provided example environment files and customize them if needed:
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+The defaults in these files are sufficient for a local functional setup.
 
 ### Default (functional) setup
 
