@@ -146,3 +146,6 @@ follow_imports_for_stubs = false
 
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "scripts"]
+
+[tool.setuptools.package-data]
+"nightmarenet" = ["py.typed"]
