@@ -411,7 +411,7 @@ This is an early-stage validation; we explicitly note:
    `TextAttack` library is straightforward and is the v2 priority.
 4. **Single cycle (and only half of it).** The full Wake → Dream → Nightmare →
    Compress cycle with `num_cycles ≥ 3` (the sleep-inspired core thesis) is
-   implemented in `Pipeline.run()` and validated by 522+ unit tests, but is not
+   implemented in `Pipeline.run()` and validated by 660+ unit tests, but is not
    yet benchmark-measured.
 5. **Single dataset / model.** SST-2 / DistilBERT only. Generalization to
    AG News, IMDB, BERT-base, GPT-2-class models is on the v2 roadmap.

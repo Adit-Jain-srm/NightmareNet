@@ -18,4 +18,4 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Distributed multi-GPU execution support
 - Distortion registry with configurable distortion pipelines
 - Comprehensive evaluation and benchmarking framework
-- 522+ automated unit tests covering training phases, API endpoints, CLI, and distortion modules
+- 660+ automated unit tests covering training phases, API endpoints, CLI, and distortion modules
