@@ -100,6 +100,10 @@ Run the full Wake -> Dream -> Nightmare -> Compress cycle on SST-2 in under 10 m
 
 The open-source version of NightmareNet currently supports running the **API** and **Frontend** locally. The `db`, `redis`, and `worker` services are included for future hosted functionality and are disabled by default.
 
+### Tooling Versions
+
+For tooling consistency, this repository includes a `.python-version` file (Python 3.12) and a `.nvmrc` file (Node 20). If you use tools like `pyenv`, `asdf`, or `nvm`, they will automatically switch to the correct versions when you navigate into the directory.
+
 ### Default (functional) setup
 
 Start the currently supported services:
