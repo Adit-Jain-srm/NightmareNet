@@ -14,6 +14,8 @@ import subprocess
 import time
 from typing import Any, Optional
 
+from nightmarenet.utils.logging_config import setup_logging
+
 try:
     from pathlib import Path
 
@@ -62,6 +64,8 @@ except ImportError as e:
     raise ImportError(
         "FastAPI dependencies not installed. Install with: pip install nightmarenet[api]"
     ) from e
+
+setup_logging()
 
 _DISTORTION_BODY = Body(...)
 _ROBUSTNESS_BODY = Body(...)

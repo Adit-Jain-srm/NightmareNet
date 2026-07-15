@@ -13,8 +13,13 @@ import sys
 from pathlib import Path
 from typing import Optional
 
+from nightmarenet.utils.logging_config import setup_logging
+
 from nightmarenet import __version__
 from nightmarenet.hub.core import pull_model, push_model
+
+
+setup_logging()
 
 
 def cmd_train(args: argparse.Namespace) -> int:

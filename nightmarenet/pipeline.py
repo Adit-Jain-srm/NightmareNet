@@ -14,16 +14,21 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
+from nightmarenet.utils.logging_config import setup_logging
+
 from nightmarenet.data.generator import create_generators_from_config
 from nightmarenet.data.ingest import DataIngestor
 from nightmarenet.distortions.text import apply_text_distortions
 from nightmarenet.evaluation.evaluator import Evaluator
 from nightmarenet.evaluation.metrics import evaluate_cycle, quick_robustness_score
 from nightmarenet.training.callbacks import CallbackManager, TrainingEvent
+from nightmarenet.training.loss import DreamLoss
 from nightmarenet.training.trainer import Trainer, _tokenize_dataset
 from nightmarenet.utils.config import load_config
 from nightmarenet.utils.telemetry import record_metric, setup_telemetry, trace_phase
 from nightmarenet.utils.webhooks import trigger_webhook
+
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
