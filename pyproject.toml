@@ -55,6 +55,7 @@ api = [
     "httpx>=0.25.0",
     "python-multipart>=0.0.7",
     "slowapi>=0.1.9",
+    "python-dotenv>=1.0",
 ]
 tracking = [
     "wandb>=0.16.0",
