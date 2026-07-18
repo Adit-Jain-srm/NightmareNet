@@ -60,6 +60,7 @@ def run_distillation(
     epochs: int = 1,
     temperature: float = 4.0,
     alpha: float = 0.7,
+    beta: float = 0.5,
     epsilon: float = 0.01,
     scaler: Optional[torch.amp.GradScaler] = None,
 ) -> dict:
@@ -73,7 +74,8 @@ def run_distillation(
         device: Device to run on.
         epochs: Number of distillation epochs.
         temperature: Softmax temperature for KL divergence.
-        alpha: Weight for distillation loss vs task loss (1.0 = pure distillation).
+        alpha: Weight for task loss (1-alpha is for clean KL).
+        beta: Weight for adversarial KL loss.
         epsilon: FGSM perturbation magnitude.
         scaler: Optional GradScaler for AMP.
 
@@ -96,25 +98,43 @@ def run_distillation(
 
             use_amp = scaler is not None
             with torch.amp.autocast("cuda", enabled=use_amp):
-                # Teacher logits (no grad)
+                # 1. Clean teacher logits
                 with torch.no_grad():
-                    teacher_out = teacher(**adv_batch)
-                    teacher_logits = teacher_out.logits  # (B, T, V)
+                    teacher_clean_out = teacher(**batch)
+                    teacher_clean_logits = teacher_clean_out.logits  # (B, T, V)
 
-                # Student logits
+                # 2. Adversarial teacher logits
+                with torch.no_grad():
+                    teacher_adv_out = teacher(**adv_batch)
+                    teacher_adv_logits = teacher_adv_out.logits  # (B, T, V)
+
+                # 3. Clean student logits & task loss
                 student.train()
-                student_out = student(**adv_batch, labels=batch.get("input_ids"))
-                student_logits = student_out.logits  # (B, T, V)
-                task_loss = student_out.loss
+                batch_clean = batch.copy()
+                batch_clean["labels"] = batch_clean.get("input_ids")
+                student_clean_out = student(**batch_clean)
+                student_clean_logits = student_clean_out.logits  # (B, T, V)
+                task_loss = student_clean_out.loss
 
-                # KL divergence loss with temperature scaling
-                kl_loss = func.kl_div(
-                    func.log_softmax(student_logits / temperature, dim=-1),
-                    func.softmax(teacher_logits / temperature, dim=-1),
+                # 4. Adversarial student logits
+                student_adv_out = student(**adv_batch)
+                student_adv_logits = student_adv_out.logits  # (B, T, V)
+
+                # KL divergence on clean data
+                clean_kl = func.kl_div(
+                    func.log_softmax(student_clean_logits / temperature, dim=-1),
+                    func.softmax(teacher_clean_logits / temperature, dim=-1),
                     reduction="batchmean",
                 ) * (temperature**2)
 
-                loss = alpha * kl_loss + (1.0 - alpha) * task_loss
+                # KL divergence on adversarial data
+                adv_kl = func.kl_div(
+                    func.log_softmax(student_adv_logits / temperature, dim=-1),
+                    func.softmax(teacher_adv_logits / temperature, dim=-1),
+                    reduction="batchmean",
+                ) * (temperature ** 2)
+
+                loss = alpha * task_loss + (1.0 - alpha) * clean_kl + beta * adv_kl
 
             if torch.isnan(loss) or torch.isinf(loss):
                 logger.warning("Distillation: NaN/Inf loss, skipping step.")
