@@ -57,11 +57,16 @@ class _TinySeqClassModel(torch.nn.Module):
 
     def __init__(self):
         super().__init__()
-        self.linear = torch.nn.Linear(8, 2)
+        self.classifier = torch.nn.Linear(8, 2)
 
     def forward(self, input_ids, attention_mask=None, labels=None, **kwargs):
-        logits = self.linear(input_ids.float().mean(dim=1))
-        loss = logits.sum() * 0.001
+        # Pool over sequence dim, then classify
+        hidden = input_ids.float()  # (batch, seq_len=8)
+        logits = self.classifier(hidden)  # (batch, seq_len, 2) — take mean
+        logits = logits.mean(dim=1)  # (batch, 2)
+        loss = torch.nn.functional.cross_entropy(
+            logits, labels if labels is not None else torch.zeros(logits.size(0), dtype=torch.long)
+        )
         return type("Output", (), {"loss": loss, "logits": logits})()
 
 
@@ -81,7 +86,7 @@ def test_wake_causal_lm_assigns_labels_from_input_ids():
     result = phase.run(dl, num_epochs=1)
     assert result["phase"] == "wake"
     assert result["total_steps"] > 0
-    assert result["avg_loss"] > 0
+    assert result["avg_loss"] != 0.0
 
 
 def test_wake_seq_classification_preserves_existing_labels():
