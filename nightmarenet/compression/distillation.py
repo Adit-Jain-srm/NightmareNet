@@ -109,7 +109,9 @@ def run_distillation(
 
                 # 3. Clean student logits & task loss
                 student.train()
-                student_clean_out = student(**batch, labels=batch.get("input_ids"))
+                batch_clean = batch.copy()
+                batch_clean["labels"] = batch_clean.get("input_ids")
+                student_clean_out = student(**batch_clean)
                 student_clean_logits = student_clean_out.logits  # (B, T, V)
                 task_loss = student_clean_out.loss
 

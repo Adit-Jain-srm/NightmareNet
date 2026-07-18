@@ -585,7 +585,7 @@ class CompressionPhase:
                 stats = {"pruned_params": 0, "total_params": 0}
                 pruning_succeeded = False
         else:
-            logger.warning("Unknown pruning method '%s'; skipping.", method)
+            logger.warning("Unknown pruning method '%s'; skipping.", pruning_method)
             stats = {"pruned_params": 0, "total_params": 0}
             pruning_succeeded = False
 
@@ -636,7 +636,9 @@ class CompressionPhase:
                     batch = {k: v.to(self.device) for k, v in batch.items()}
                     use_amp = self.scaler is not None
                     with torch.amp.autocast("cuda", enabled=use_amp):
-                        outputs = self.model(**batch, labels=batch.get("input_ids"))
+                        batch_clean = batch.copy()
+                        batch_clean["labels"] = batch_clean.get("input_ids")
+                        outputs = self.model(**batch_clean)
                         loss = outputs.loss
 
                     if math.isnan(loss.item()) or math.isinf(loss.item()):
