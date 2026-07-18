@@ -65,6 +65,7 @@ class TestDistillationLoss:
             epochs=1,
             temperature=4.0,
             alpha=0.7,
+            beta=0.5,
         )
 
         # Run another epoch
@@ -77,6 +78,7 @@ class TestDistillationLoss:
             epochs=1,
             temperature=4.0,
             alpha=0.7,
+            beta=0.5,
         )
 
         assert result_1["distillation_loss"] > 0
@@ -93,7 +95,7 @@ class TestDistillationDisabled:
         config = {
             "pruning_ratio": 0.1,
             "pruning_method": "magnitude",
-            "distillation": False,
+            "method": "pruning",
             "finetune_after_prune": False,
         }
 
@@ -123,7 +125,7 @@ class TestDistillationGatedOnPruning:
         config = {
             "pruning_ratio": 0.1,
             "pruning_method": "magnitude",
-            "distillation": True,
+            "method": "distillation",
             "finetune_after_prune": False,
         }
 

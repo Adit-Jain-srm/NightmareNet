@@ -557,12 +557,13 @@ class CompressionPhase:
             Dict with compression metrics.
         """
         pruning_ratio = self.config.get("pruning_ratio", 0.2)
-        method = self.config.get("pruning_method", "magnitude")
+        pruning_method = self.config.get("pruning_method", "magnitude")
+        method = self.config.get("method", "pruning")
 
-        logger.info("Compression Phase - Method: %s, Ratio: %.2f", method, pruning_ratio)
+        logger.info("Compression Phase - Method: %s, Pruning Method: %s, Ratio: %.2f", method, pruning_method, pruning_ratio)
 
         # Snapshot teacher BEFORE pruning (for distillation)
-        distillation_enabled = self.config.get("distillation", False)
+        distillation_enabled = (method == "distillation")
         teacher_model = None
         if distillation_enabled and dataloader is not None and optimizer is not None:
             import copy
@@ -572,7 +573,7 @@ class CompressionPhase:
                 param.requires_grad = False
             logger.info("Compression Phase - Teacher snapshot taken for distillation.")
 
-        if method == "magnitude":
+        if pruning_method == "magnitude":
             try:
                 from nightmarenet.compression.pruning import MagnitudePruner
 
@@ -595,6 +596,7 @@ class CompressionPhase:
 
             temperature = self.config.get("distillation_temperature", 4.0)
             alpha = self.config.get("distillation_alpha", 0.7)
+            beta = self.config.get("distillation_beta", 0.5)
             distillation_epochs = self.config.get("distillation_epochs", 1)
             logger.info("Compression Phase - Running RSLAD-style distillation...")
             distillation_stats = run_distillation(
@@ -606,11 +608,13 @@ class CompressionPhase:
                 epochs=distillation_epochs,
                 temperature=temperature,
                 alpha=alpha,
+                beta=beta,
                 scaler=self.scaler,
             )
         # Optional fine-tuning after pruning
         if (
-            self.config.get("finetune_after_prune", True)
+            not distillation_enabled
+            and self.config.get("finetune_after_prune", True)
             and dataloader is not None
             and optimizer is not None
         ):
