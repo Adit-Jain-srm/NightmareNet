@@ -73,6 +73,8 @@ def trigger_webhook(
     event_type: str,
     message: str,
     details: Optional[Dict[str, Any]] = None,
+    timeout: float = 5.0,
+    max_retries: int = 3,
 ) -> None:
     """Send webhook notifications to configured endpoints based on event_type.
 
@@ -81,6 +83,8 @@ def trigger_webhook(
         event_type: One of 'run_complete', 'regression_detected', 'alert', 'deploy'.
         message: The headline text/message.
         details: A dictionary of key-value details to include.
+        timeout: Request timeout in seconds (default 5.0).
+        max_retries: Maximum attempt count for transient errors (default 3).
     """
     webhooks = config.get("notifications", {}).get("webhooks", [])
     if not webhooks:
@@ -96,12 +100,38 @@ def trigger_webhook(
             continue
 
         try:
-            _send_webhook_request(url, event_type, message, details or {})
+            _send_webhook_request(
+                url,
+                event_type,
+                message,
+                details or {},
+                timeout=timeout,
+                max_retries=max_retries,
+            )
         except Exception as e:
             logger.warning("Failed to send webhook notification to %s: %s", url, e)
 
 
-def _send_webhook_request(url: str, event_type: str, message: str, details: Dict[str, Any]) -> None:
+def _send_webhook_request(
+    url: str,
+    event_type: str,
+    message: str,
+    details: Dict[str, Any],
+    timeout: float = 5.0,
+    max_retries: int = 3,
+    backoff_factor: float = 1.0,
+) -> None:
+    """Send an HTTP POST request to a webhook URL with exponential backoff retry logic.
+
+    Args:
+        url: Destination webhook URL.
+        event_type: Event type identifier.
+        message: Primary notification message.
+        details: Additional structured event metadata.
+        timeout: Timeout per request attempt in seconds.
+        max_retries: Total number of attempts to make (default 3).
+        backoff_factor: Multiplier for exponential backoff sleep interval.
+    """
     # Build payload based on URL/destination
     payload: Dict[str, Any] = {}
 
@@ -185,22 +215,40 @@ def _send_webhook_request(url: str, event_type: str, message: str, details: Dict
         headers={"Content-Type": "application/json", "User-Agent": "NightmareNet-Webhook/0.2.0"},
     )
 
-    max_retries = 1
-    for attempt in range(max_retries + 1):
+    attempts = max(1, max_retries)
+    for attempt in range(attempts):
         try:
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
                 response.read()
             return
         except urllib.error.HTTPError as e:
-            if e.code == 429 or (500 <= e.code < 600):
-                if attempt < max_retries:
-                    logger.warning(
-                        "Webhook request to %s failed with status %d. Retrying in 2 seconds...",
-                        url,
-                        e.code,
-                    )
-                    time.sleep(2)
-                    continue
+            is_transient = (e.code == 429) or (500 <= e.code < 600)
+            if is_transient and attempt < attempts - 1:
+                sleep_secs = backoff_factor * (2**attempt)
+                logger.warning(
+                    "Webhook request to %s failed with status %d (attempt %d/%d). Retrying in %.1f seconds...",
+                    url,
+                    e.code,
+                    attempt + 1,
+                    attempts,
+                    sleep_secs,
+                )
+                time.sleep(sleep_secs)
+                continue
+            raise e
+        except (urllib.error.URLError, TimeoutError, socket.timeout) as e:
+            if attempt < attempts - 1:
+                sleep_secs = backoff_factor * (2**attempt)
+                logger.warning(
+                    "Webhook request to %s failed with network error %s (attempt %d/%d). Retrying in %.1f seconds...",
+                    url,
+                    e,
+                    attempt + 1,
+                    attempts,
+                    sleep_secs,
+                )
+                time.sleep(sleep_secs)
+                continue
             raise e
 
 
