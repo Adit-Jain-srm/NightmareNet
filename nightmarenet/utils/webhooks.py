@@ -114,7 +114,15 @@ def trigger_webhook(
             logger.warning("Failed to send webhook notification to %s: %s", url, e)
 
 
-def _send_webhook_request(url: str, event_type: str, message: str, details: Dict[str, Any]) -> None:
+def _send_webhook_request(
+    url: str,
+    event_type: str,
+    message: str,
+    details: Dict[str, Any],
+    timeout: float = 5.0,
+    max_retries: int = 3,
+    backoff_factor: float = 1.0,
+) -> None:
     # Build payload based on URL/destination using rich formatters
     dashboard_url = details.get("dashboard_url") if details else None
     # Remove dashboard_url from details before passing to builder

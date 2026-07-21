@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import urllib.error
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -28,22 +27,34 @@ class TestValidateWebhookUrl:
     def test_accepts_slack_with_services_path(self):
         with patch("socket.getaddrinfo") as mock_res:
             mock_res.return_value = [(2, 1, 6, "", ("44.228.100.1", 0))]
-            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is True
+            assert (
+                validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc")
+                is True
+            )
 
     def test_accepts_discord(self):
         with patch("socket.getaddrinfo") as mock_res:
             mock_res.return_value = [(2, 1, 6, "", ("162.159.128.1", 0))]
-            assert validate_webhook_url("https://discord.com/api/webhooks/123/token") is True
+            assert (
+                validate_webhook_url("https://discord.com/api/webhooks/123/token")
+                is True
+            )
 
     def test_rejects_internal_ip_loopback(self):
         with patch("socket.getaddrinfo") as mock_res:
             mock_res.return_value = [(2, 1, 6, "", ("127.0.0.1", 0))]
-            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
+            assert (
+                validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc")
+                is False
+            )
 
     def test_rejects_internal_ip_private(self):
         with patch("socket.getaddrinfo") as mock_res:
             mock_res.return_value = [(2, 1, 6, "", ("192.168.1.1", 0))]
-            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
+            assert (
+                validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc")
+                is False
+            )
 
     def test_rejects_if_any_resolved_address_is_private(self):
         with patch("socket.getaddrinfo") as mock_res:
@@ -51,13 +62,19 @@ class TestValidateWebhookUrl:
                 (2, 1, 6, "", ("44.228.100.1", 0)),
                 (2, 1, 6, "", ("10.0.0.1", 0)),
             ]
-            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
+            assert (
+                validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc")
+                is False
+            )
 
     def test_rejects_dns_failure(self):
         import socket as _socket
 
         with patch("socket.getaddrinfo", side_effect=_socket.gaierror("fail")):
-            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
+            assert (
+                validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc")
+                is False
+            )
 
 
 class TestWebhookEndpointBlocksInternalIP:
@@ -148,7 +165,9 @@ class TestSlackMessageBuilder:
             SlackMessageBuilder._get_color("run_complete")
             == SlackMessageBuilder.COLOR_SUCCESS
         )
-        assert SlackMessageBuilder._get_color("deploy") == SlackMessageBuilder.COLOR_INFO
+        assert (
+            SlackMessageBuilder._get_color("deploy") == SlackMessageBuilder.COLOR_INFO
+        )
 
 
 class TestDiscordMessageBuilder:
@@ -186,7 +205,8 @@ class TestDiscordMessageBuilder:
 
     def test_color_selection(self):
         assert (
-            DiscordMessageBuilder._get_color("alert") == DiscordMessageBuilder.COLOR_ERROR
+            DiscordMessageBuilder._get_color("alert")
+            == DiscordMessageBuilder.COLOR_ERROR
         )
         assert (
             DiscordMessageBuilder._get_color("regression_detected")
@@ -196,7 +216,10 @@ class TestDiscordMessageBuilder:
             DiscordMessageBuilder._get_color("run_complete")
             == DiscordMessageBuilder.COLOR_SUCCESS
         )
-        assert DiscordMessageBuilder._get_color("deploy") == DiscordMessageBuilder.COLOR_INFO
+        assert (
+            DiscordMessageBuilder._get_color("deploy")
+            == DiscordMessageBuilder.COLOR_INFO
+        )
 
     def test_timestamp_present(self):
         payload = DiscordMessageBuilder.build("run_complete", "Test")
@@ -233,14 +256,18 @@ class TestBuildWebhookPayload:
         assert payload["@type"] == "MessageCard"
 
     def test_generic_url_uses_generic_format(self):
-        payload = build_webhook_payload("https://example.com/webhook", "run_complete", "Test")
+        payload = build_webhook_payload(
+            "https://example.com/webhook", "run_complete", "Test"
+        )
         assert "event" in payload
         assert payload["event"] == "run_complete"
         assert "message" in payload
 
     def test_dashboard_url_passed_to_builders(self):
         payload = build_webhook_payload(
-            "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", dashboard_url="https://dash.com"
+            "https://hooks.slack.com/services/T/B/x",
+            "run_complete",
+            "Test",
+            dashboard_url="https://dash.com",
         )
         assert any(block.get("type") == "actions" for block in payload["blocks"])
-
