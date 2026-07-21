@@ -83,6 +83,9 @@ def _create_cover_page(
         ["Model Name", report["model"].get("name") or "N/A"],
         ["Model Type", report["model"].get("type") or "N/A"],
         ["Dataset", report["dataset"].get("name") or "N/A"],
+        ["Model Name", report["model"].get("name", "N/A")],
+        ["Model Type", report["model"].get("type", "N/A")],
+        ["Dataset", report["dataset"].get("name", "N/A")],
     ]
 
     table = Table(model_info, colWidths=[2 * inch, 4 * inch])
@@ -150,6 +153,12 @@ def _create_robustness_section(
         ["Distorted Accuracy", str(robustness.get("distorted_accuracy", "N/A"))],
         ["AUC Robustness", str(robustness.get("auc_robustness", "N/A"))],
         ["Delta", str(robustness.get("delta", "N/A"))],
+        [
+            ["Clean Accuracy", str(robustness.get("clean_accuracy", "N/A"))],
+            ["Distorted Accuracy", str(robustness.get("distorted_accuracy", "N/A"))],
+            ["AUC Robustness", str(robustness.get("auc_robustness", "N/A"))],
+            ["Delta", str(robustness.get("delta", "N/A"))],
+        ]
     ]
 
     _create_section("Robustness Metrics", content, story, styles)
@@ -166,6 +175,10 @@ def _create_artifact_integrity_section(
     content = [
         ["Config SHA-256", integrity.get("config_sha256", "N/A")],
         ["Model SHA-256", integrity.get("model_sha256", "N/A")],
+        [
+            ["Config SHA-256", integrity.get("config_sha256", "N/A")],
+            ["Model SHA-256", integrity.get("model_sha256", "N/A")],
+        ]
     ]
 
     _create_section("Artifact Integrity", content, story, styles)
@@ -184,6 +197,12 @@ def _create_environment_section(
         ["Platform", env.get("platform", "N/A")],
         ["PyTorch Version", env.get("pytorch_version", "N/A")],
         ["GPU", env.get("gpu", "N/A")],
+        [
+            ["Python Version", env.get("python_version", "N/A")],
+            ["Platform", env.get("platform", "N/A")],
+            ["PyTorch Version", env.get("pytorch_version", "N/A")],
+            ["GPU", env.get("gpu", "N/A")],
+        ]
     ]
 
     _create_section("Runtime Environment", content, story, styles)
@@ -273,6 +292,12 @@ def _create_appendix(
 
     json_str = json.dumps(report, indent=2, default=str)
     story.append(Paragraph(f"<pre>{json_str}</pre>", styles["Code"]))
+    import html
+    import json
+
+    json_str = json.dumps(report, indent=2, default=str)
+    escaped_json = html.escape(json_str)
+    story.append(Paragraph(f"<pre>{escaped_json}</pre>", styles["Code"]))
     story.append(Spacer(1, 0.3 * inch))
 
 
@@ -288,6 +313,11 @@ def _add_digital_signature(
     need to be implemented using pyhanko's signing APIs with configured
     certificate and private key material.
     """
+    """Add digital signature metadata to PDF."""
+    # For now, return the PDF as-is
+    # In a production environment, this would use a proper digital signature
+    # with a certificate authority. The metadata is already included in the
+    # document content via the appendix section.
     pdf_buffer.seek(0)
     return pdf_buffer
 
@@ -354,6 +384,15 @@ def generate_pdf(
     _create_environment_section(report, story, styles)
     _create_eu_ai_act_section(report, story, styles)
     _create_nist_section(report, story, styles)
+    story.append(PageBreak())
+    _create_artifact_integrity_section(report, story, styles)
+    story.append(PageBreak())
+    _create_environment_section(report, story, styles)
+    story.append(PageBreak())
+    _create_eu_ai_act_section(report, story, styles)
+    story.append(PageBreak())
+    _create_nist_section(report, story, styles)
+    story.append(PageBreak())
     _create_appendix(report, story, styles)
 
     # Build PDF

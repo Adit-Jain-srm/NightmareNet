@@ -606,6 +606,42 @@ class Evaluator:
                         f"- Verdict: {sig_verdict} (α={sig.get('alpha', 0.05)})",
                     ]
                 )
+
+            trained_robustness = r.get("trained", {})
+            if "top_failures" in trained_robustness:
+                lines.extend(
+                    [
+                        "",
+                        "## Confidence Delta Analysis",
+                        "",
+                        "### Top 10 Most Vulnerable Samples",
+                        "",
+                        "| Sample | Preview | Clean | Distorted | Delta |",
+                        "|--------|---------|-------|-----------|-------|",
+                    ]
+                )
+                for f in trained_robustness["top_failures"]:
+                    idx = f.get("sample_index", "N/A")
+                    prev = f.get("preview", "N/A")
+                    cln = f.get("clean_confidence", 0.0)
+                    dst = f.get("distorted_confidence", 0.0)
+                    dlt = f.get("confidence_delta", 0.0)
+                    lines.append(f"| {idx} | {prev} | {_fmt(cln)} | {_fmt(dst)} | {_fmt(dlt)} |")
+
+                dist = trained_robustness.get("delta_distribution", {})
+                if dist:
+                    lines.extend(
+                        [
+                            "",
+                            "### Severity Distribution",
+                            "",
+                            f"- **0-10% drop**: {dist.get('0_10', 0)}",
+                            f"- **10-25% drop**: {dist.get('10_25', 0)}",
+                            f"- **25-50% drop**: {dist.get('25_50', 0)}",
+                            f"- **50%+ drop**: {dist.get('50_plus', 0)}",
+                        ]
+                    )
+
             lines.append("")
 
         if "certification" in metrics and _metric_ok(metrics["certification"]):

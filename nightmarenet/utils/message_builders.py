@@ -120,6 +120,13 @@ class SlackMessageBuilder:
     def _get_emoji(event_type: str) -> str:
         """Get emoji for event type."""
         return _get_event_emoji(event_type)
+        emoji_map = {
+            "run_complete": "✅",
+            "regression_detected": "⚠️",
+            "alert": "🚨",
+            "deploy": "🚀",
+        }
+        return emoji_map.get(event_type, "ℹ️")
 
     @staticmethod
     def _get_color(event_type: str) -> Optional[str]:
@@ -188,6 +195,13 @@ class DiscordMessageBuilder:
     def _get_emoji(event_type: str) -> str:
         """Get emoji for event type."""
         return _get_event_emoji(event_type)
+        emoji_map = {
+            "run_complete": "✅",
+            "regression_detected": "⚠️",
+            "alert": "🚨",
+            "deploy": "🚀",
+        }
+        return emoji_map.get(event_type, "ℹ️")
 
     @staticmethod
     def _get_color(event_type: str) -> int:
