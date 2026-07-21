@@ -280,11 +280,14 @@ def _add_digital_signature(
     pdf_buffer: io.BytesIO,
     report: dict,
 ) -> io.BytesIO:
-    """Add digital signature metadata to PDF."""
-    # For now, return the PDF as-is
-    # In a production environment, this would use a proper digital signature
-    # with a certificate authority. The metadata is already included in the
-    # document content via the appendix section.
+    """Add signature metadata to PDF (metadata only, not cryptographic signing).
+    
+    This function currently returns the PDF unchanged. The signature metadata
+    is included in the document content via the appendix section. For actual
+    cryptographic signing with a certificate authority, this function would
+    need to be implemented using pyhanko's signing APIs with configured
+    certificate and private key material.
+    """
     pdf_buffer.seek(0)
     return pdf_buffer
 
