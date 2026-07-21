@@ -80,9 +80,9 @@ def _create_cover_page(
     story.append(Spacer(1, 0.5 * inch))
 
     model_info = [
-        ["Model Name", report["model"].get("name", "N/A")],
-        ["Model Type", report["model"].get("type", "N/A")],
-        ["Dataset", report["dataset"].get("name", "N/A")],
+        ["Model Name", report["model"].get("name") or "N/A"],
+        ["Model Type", report["model"].get("type") or "N/A"],
+        ["Dataset", report["dataset"].get("name") or "N/A"],
     ]
 
     table = Table(model_info, colWidths=[2 * inch, 4 * inch])

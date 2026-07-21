@@ -360,7 +360,6 @@ export function ExperimentList({
     if (!experimentToDelete) return;
     
     setLoadingActions((prev) => new Set(prev).add(experimentToDelete));
-    setDeleteConfirmOpen(false);
     
     try {
       await deleteExperiment(experimentToDelete);
@@ -369,8 +368,8 @@ export function ExperimentList({
         description: "The experiment has been successfully removed.",
         variant: "success",
       });
-      // Note: In a real implementation, you would refresh the experiments list here
-      // This would require passing a refresh callback or managing the list state differently
+      // Note: List refresh requires architectural changes (experiments passed as props)
+      // Consider passing a refresh callback or moving to local state management
     } catch (error) {
       toast.push({
         title: "Delete failed",
@@ -383,6 +382,7 @@ export function ExperimentList({
         next.delete(experimentToDelete);
         return next;
       });
+      setDeleteConfirmOpen(false);
       setExperimentToDelete(null);
     }
   }, [experimentToDelete, toast]);
@@ -391,7 +391,7 @@ export function ExperimentList({
     setLoadingActions((prev) => new Set(prev).add(row.id));
     
     try {
-      const config = row.config || {
+      const baseConfig = row.config || {
         source_type: "text" as const,
         text_content: "",
         model_name: row.model,
@@ -399,6 +399,13 @@ export function ExperimentList({
         num_cycles: row.cycles,
         dream_strength: 0.25,
         nightmare_strength: 0.8,
+      };
+      
+      // Apply 1.2x strength multiplier for re-run
+      const config = {
+        ...baseConfig,
+        dream_strength: (baseConfig.dream_strength ?? 0.25) * 1.2,
+        nightmare_strength: (baseConfig.nightmare_strength ?? 0.8) * 1.2,
       };
       
       await createPipeline(config);
@@ -437,7 +444,7 @@ export function ExperimentList({
       
       toast.push({
         title: "Export prepared",
-        description: `Generating ${id}.csv — check downloads in a moment.`,
+        description: `${id}.csv downloaded successfully.`,
         variant: "info",
       });
     } catch (error) {
