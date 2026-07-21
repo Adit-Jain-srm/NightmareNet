@@ -100,6 +100,11 @@ export = [
     "onnx>=1.14.0",
     "onnxruntime>=1.16.0"
 ]
+compliance-pdf = [
+    "reportlab>=4.0.0",
+    "pyhanko>=0.23.0",
+    "markdown>=3.5.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/Adit-Jain-srm/NightmareNet"
