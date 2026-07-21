@@ -306,7 +306,7 @@ def _add_digital_signature(
     report: dict,
 ) -> io.BytesIO:
     """Add signature metadata to PDF (metadata only, not cryptographic signing).
-    
+
     This function currently returns the PDF unchanged. The signature metadata
     is included in the document content via the appendix section. For actual
     cryptographic signing with a certificate authority, this function would
