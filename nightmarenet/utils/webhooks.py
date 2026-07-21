@@ -12,6 +12,8 @@ import urllib.parse
 import urllib.request
 from typing import Any, Dict, Optional
 
+from nightmarenet.utils.message_builders import build_webhook_payload
+
 logger = logging.getLogger(__name__)
 
 
@@ -112,101 +114,14 @@ def trigger_webhook(
             logger.warning("Failed to send webhook notification to %s: %s", url, e)
 
 
-def _send_webhook_request(
-    url: str,
-    event_type: str,
-    message: str,
-    details: Dict[str, Any],
-    timeout: float = 5.0,
-    max_retries: int = 3,
-    backoff_factor: float = 1.0,
-) -> None:
-    """Send an HTTP POST request to a webhook URL with exponential backoff retry logic.
-
-    Args:
-        url: Destination webhook URL.
-        event_type: Event type identifier.
-        message: Primary notification message.
-        details: Additional structured event metadata.
-        timeout: Timeout per request attempt in seconds.
-        max_retries: Total number of attempts to make (default 3).
-        backoff_factor: Multiplier for exponential backoff sleep interval.
-    """
-    # Build payload based on URL/destination
-    payload: Dict[str, Any] = {}
-
-    details_str = ""
-    if details:
-        details_str = "\n".join(f"- **{k}**: {v}" for k, v in details.items())
-
-    if "slack.com" in url:
-        payload = {
-            "text": f"*{message}*",
-            "blocks": [
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"NightmareNet: {event_type.upper()}",
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"{message}\n\n{details_str}" if details_str else message,
-                    },
-                },
-            ],
-        }
-    elif "discord.com" in url or "discordapp.com" in url:
-        payload = {
-            "embeds": [
-                {
-                    "title": f"NightmareNet: {event_type.upper()}",
-                    "description": message,
-                    "color": (
-                        16738304 if event_type in ("alert", "regression_detected") else 3447003
-                    ),
-                    "fields": [
-                        {"name": k, "value": str(v), "inline": True} for k, v in details.items()
-                    ]
-                    if details
-                    else [],
-                }
-            ]
-        }
-    elif "office.com" in url or "microsoft.com" in url or "webhook.office.com" in url:
-        payload = {
-            "@type": "MessageCard",
-            "@context": "http://schema.org/extensions",
-            "themeColor": (
-                "FF0000" if event_type in ("alert", "regression_detected") else "0078D7"
-            ),
-            "summary": message,
-            "title": f"NightmareNet: {event_type.upper()}",
-            "sections": [
-                {
-                    "activityTitle": message,
-                    "facts": [{"name": k, "value": str(v)} for k, v in details.items()]
-                    if details
-                    else [],
-                    "markdown": True,
-                }
-            ],
-        }
-    else:
-        # Generic compatibility payload
-        payload = {
-            "event": event_type,
-            "message": message,
-            "details": details,
-            "text": f"{message}\n\n{details_str}" if details_str else message,
-            "content": f"**NightmareNet: {event_type.upper()}**\n{message}\n\n{details_str}"
-            if details_str
-            else message,
-        }
+def _send_webhook_request(url: str, event_type: str, message: str, details: Dict[str, Any]) -> None:
+    # Build payload based on URL/destination using rich formatters
+    dashboard_url = details.get("dashboard_url") if details else None
+    # Remove dashboard_url from details before passing to builder
+    details_copy = details.copy() if details else {}
+    if dashboard_url and "dashboard_url" in details_copy:
+        details_copy.pop("dashboard_url")
+    payload = build_webhook_payload(url, event_type, message, details_copy, dashboard_url)
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(

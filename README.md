@@ -108,6 +108,8 @@ Learn how to use, extend, and deploy NightmareNet through our step-by-step tutor
 *   [Tutorial 4: Vision Pipeline](docs/tutorials/vision-pipeline.md) — Load images, apply vision distortions (color jitter, noise, FGSM/PGD attacks), and evaluate vision models.
 *   [Tutorial 5: Deployment](docs/tutorials/deployment.md) — Configure, run, and scale production-grade docker containers, configure keys, and integrate alerts.
 
+Client developers can also use the committed OpenAPI spec at [`docs/api/openapi.json`](docs/api/openapi.json) (regenerate with `make openapi`).
+
 ---
 
 ## Computer Vision Support
@@ -181,6 +183,16 @@ This starts only:
 - ✅ `api`
 - ✅ `frontend`
 
+### Environment configuration
+
+Copy the example environment files before starting the project:
+
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+Review the comments in each file and update the values as needed for your local environment.
 ### Hosted profile (planned infrastructure)
 
 To include the optional infrastructure services, enable the `hosted` profile:
@@ -199,6 +211,14 @@ This starts:
 
 > **Note:** The `db`, `redis`, and `worker` services are intended for the future hosted platform and are not required by the current open-source API. Running `docker compose up` without a profile starts only the functional services.
 
+> **Tool version files**
+>
+> This repository includes:
+>
+> - `.python-version` (Python 3.12)
+> - `.nvmrc` (Node.js 20)
+>
+> If you use `pyenv`, `asdf`, or `mise`, your Python version can be selected automatically when entering the repository. If you use `nvm`, run `nvm use` to switch to Node.js 20.
 ## What's Inside — 20 Panels of Capability
 
 NightmareNet ships as a unified workspace where every concern gets its own first-class panel. This is a feature-dense, information-rich product — not a sparse landing page.

@@ -250,3 +250,42 @@ def generate_report(
         f.write(_generate_markdown(report))
 
     return report
+
+
+def generate_pdf(
+    config: dict,
+    comparison: dict,
+    model_path: str,
+    output_dir: str = "results",
+    tracker=None,
+) -> str:
+    """Generate a PDF compliance report with digital signature.
+
+    Args:
+        config: Training configuration dictionary.
+        comparison: Comparison metrics dictionary.
+        model_path: Path to the model file or directory.
+        output_dir: Directory where the PDF will be saved.
+        tracker: Optional tracker object for run ID.
+
+    Returns:
+        Path to the generated PDF file.
+
+    Raises:
+        ImportError: If PDF generation dependencies are not installed.
+    """
+    from nightmarenet.compliance.pdf_builder import generate_pdf as generate_pdf_impl
+
+    report = _build_report(
+        config=config,
+        comparison=comparison,
+        model_path=model_path,
+        tracker=tracker,
+    )
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    run_id = tracker.run_id if tracker is not None else "latest"
+    pdf_path = Path(output_dir) / f"{run_id}_compliance_report.pdf"
+
+    return generate_pdf_impl(report, str(pdf_path))

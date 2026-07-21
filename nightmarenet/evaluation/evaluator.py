@@ -203,7 +203,21 @@ class Evaluator:
                     max_length=model_config.get("max_length", 128),
                     batch_size=self.config.get("training", {}).get("batch_size", 8),
                     device=self.device,
+                    export_failures=self.eval_config.get("export_failures", False),
                 )
+                if self.eval_config.get("export_failures", False):
+                    failures = results["robustness"].get("per_sample_data")
+                    if failures:
+                        from nightmarenet.evaluation.failure_export import save_failure_report
+
+                        format = self.eval_config.get("failure_export_format", "json")
+                        threshold = self.eval_config.get("failure_threshold", 0.20)
+                        saved_path = save_failure_report(
+                            failures, self.output_dir, format, threshold
+                        )
+                        if saved_path:
+                            logger.info("Saved failure report to %s", saved_path)
+
                 if self.tracker:
                     self._log_eval(
                         "robustness",
@@ -434,6 +448,15 @@ class Evaluator:
             if delta_auc is not None:
                 comparison["robustness_delta"] = delta_auc
 
+        failure_categories = (
+            trained_results.get("failure_categories")
+            or trained_results.get("robustness", {}).get("failure_categories")
+            or baseline_results.get("failure_categories")
+            or baseline_results.get("robustness", {}).get("failure_categories")
+        )
+        if failure_categories is not None:
+            comparison["failure_categories"] = failure_categories
+
         return comparison
 
     def save_results(self, results: dict, filename: str = "evaluation_results.json") -> None:
@@ -592,6 +615,42 @@ class Evaluator:
                         f"- Verdict: {sig_verdict} (α={sig.get('alpha', 0.05)})",
                     ]
                 )
+
+            trained_robustness = r.get("trained", {})
+            if "top_failures" in trained_robustness:
+                lines.extend(
+                    [
+                        "",
+                        "## Confidence Delta Analysis",
+                        "",
+                        "### Top 10 Most Vulnerable Samples",
+                        "",
+                        "| Sample | Preview | Clean | Distorted | Delta |",
+                        "|--------|---------|-------|-----------|-------|",
+                    ]
+                )
+                for f in trained_robustness["top_failures"]:
+                    idx = f.get("sample_index", "N/A")
+                    prev = f.get("preview", "N/A")
+                    cln = f.get("clean_confidence", 0.0)
+                    dst = f.get("distorted_confidence", 0.0)
+                    dlt = f.get("confidence_delta", 0.0)
+                    lines.append(f"| {idx} | {prev} | {_fmt(cln)} | {_fmt(dst)} | {_fmt(dlt)} |")
+
+                dist = trained_robustness.get("delta_distribution", {})
+                if dist:
+                    lines.extend(
+                        [
+                            "",
+                            "### Severity Distribution",
+                            "",
+                            f"- **0-10% drop**: {dist.get('0_10', 0)}",
+                            f"- **10-25% drop**: {dist.get('10_25', 0)}",
+                            f"- **25-50% drop**: {dist.get('25_50', 0)}",
+                            f"- **50%+ drop**: {dist.get('50_plus', 0)}",
+                        ]
+                    )
+
             lines.append("")
 
         if "certification" in metrics and _metric_ok(metrics["certification"]):
@@ -613,6 +672,30 @@ class Evaluator:
                 delta = r.get("deltas", {}).get(key, "N/A")
                 lines.append(f"| {key} | {_fmt(bl)} | {_fmt(tr)} | {_fmt(delta, signed=True)} |")
             lines.append("")
+
+        failure_cats = comparison.get("failure_categories")
+        if failure_cats is None and "robustness" in metrics:
+            failure_cats = metrics["robustness"].get("trained", {}).get("failure_categories")
+            if failure_cats is None:
+                failure_cats = metrics["robustness"].get("baseline", {}).get("failure_categories")
+
+        if failure_cats is not None:
+            lines.extend(["## Failure by Distortion Type", ""])
+            if failure_cats and any(cat.get("count", 0) > 0 for cat in failure_cats.values()):
+                lines.extend(
+                    [
+                        "| Distortion | Failures | Failure Rate | Avg Confidence Δ |",
+                        "|------------|----------|--------------|------------------|",
+                    ]
+                )
+                for dtype, cat in failure_cats.items():
+                    cnt = cat.get("count", 0)
+                    rate = cat.get("failure_rate", 0.0)
+                    avg_delta = cat.get("avg_confidence_delta", 0.0)
+                    lines.append(f"| {dtype} | {cnt} | {rate * 100:.1f}% | {avg_delta:.4f} |")
+                lines.append("")
+            else:
+                lines.extend(["No failures detected across evaluated distortion types.", ""])
 
         return "\n".join(lines)
 

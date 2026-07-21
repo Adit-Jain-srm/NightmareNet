@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "./AppShell";
 import type { DashboardSectionKey } from "./Sidebar";
@@ -157,12 +158,23 @@ function DashboardRootInner() {
             </>
           )}
 
+          <ErrorBoundary
+  fallbackTitle="Experiments unavailable"
+  fallbackMessage="The experiment list failed to render. Retry this panel or report the issue."
+>
+
           {section === "experiments" && (
             <motion.div variants={fadeIn}>
               <ExperimentList onSectionChange={navigate} />
             </motion.div>
           )}
 
+          </ErrorBoundary>
+
+          <ErrorBoundary
+  fallbackTitle="Run details unavailable"
+  fallbackMessage="The selected run details failed to render. Retry this panel or report the issue."
+>
           {section === "run-detail" && (
             <>
               <motion.div variants={fadeIn}>
@@ -179,17 +191,25 @@ function DashboardRootInner() {
             </>
           )}
 
+          </ErrorBoundary>
+
           {section === "phases" && (
             <motion.div variants={fadeIn}>
               <PhaseVisualizer activePhase={1} />
             </motion.div>
           )}
 
+          <ErrorBoundary
+  fallbackTitle="Live metrics unavailable"
+  fallbackMessage="Live metrics failed to render. Other dashboard panels remain available."
+>
           {section === "metrics" && (
             <motion.div variants={fadeIn}>
               <LiveMetrics />
             </motion.div>
           )}
+
+          </ErrorBoundary>
 
           {section === "robustness" && (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">

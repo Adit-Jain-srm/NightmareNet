@@ -1,0 +1,3357 @@
+{
+  "components": {
+    "schemas": {
+      "Body_upload_text_file_api_v1_upload_text_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_text_file_api_v1_upload_text_post",
+        "type": "object"
+      },
+      "CompareRequest": {
+        "description": "Request body for comparing distortion effects at two strength profiles.",
+        "properties": {
+          "baseline_strength": {
+            "default": 0.3,
+            "description": "Baseline distortion strength (milder).",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Baseline Strength",
+            "type": "number"
+          },
+          "challenge_strength": {
+            "default": 0.8,
+            "description": "Challenge distortion strength (stronger).",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Challenge Strength",
+            "type": "number"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 42,
+            "description": "Random seed for reproducibility.",
+            "title": "Seed"
+          },
+          "text": {
+            "description": "Text to evaluate.",
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "CompareRequest",
+        "type": "object"
+      },
+      "CompareResponse": {
+        "description": "Response for distortion comparison endpoint.",
+        "properties": {
+          "analysis": {
+            "title": "Analysis",
+            "type": "string"
+          },
+          "baseline_strength": {
+            "title": "Baseline Strength",
+            "type": "number"
+          },
+          "challenge_strength": {
+            "title": "Challenge Strength",
+            "type": "number"
+          },
+          "dream": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DistortionDetail"
+            },
+            "title": "Dream",
+            "type": "object"
+          },
+          "nightmare": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DistortionDetail"
+            },
+            "title": "Nightmare",
+            "type": "object"
+          },
+          "original_text": {
+            "title": "Original Text",
+            "type": "string"
+          },
+          "resilience_score": {
+            "description": "How well text structure survives escalation (0-1, higher=more resilient).",
+            "title": "Resilience Score",
+            "type": "number"
+          }
+        },
+        "required": [
+          "original_text",
+          "baseline_strength",
+          "challenge_strength",
+          "dream",
+          "nightmare",
+          "resilience_score",
+          "analysis"
+        ],
+        "title": "CompareResponse",
+        "type": "object"
+      },
+      "ConfigSuggestion": {
+        "description": "A single config suggestion with current/suggested values and reasoning.",
+        "properties": {
+          "current": {
+            "description": "Current value in the config",
+            "title": "Current"
+          },
+          "param": {
+            "description": "Parameter path (e.g. 'batch_size')",
+            "title": "Param",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Why this change helps",
+            "title": "Reason",
+            "type": "string"
+          },
+          "suggested": {
+            "description": "Suggested new value",
+            "title": "Suggested"
+          }
+        },
+        "required": [
+          "param",
+          "current",
+          "suggested",
+          "reason"
+        ],
+        "title": "ConfigSuggestion",
+        "type": "object"
+      },
+      "CopilotAskRequest": {
+        "description": "Request body for the copilot ask endpoint.",
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-form dashboard context (e.g. last_run_robustness).",
+            "title": "Context"
+          },
+          "question": {
+            "description": "Free-text question from the dashboard dock.",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "section": {
+            "default": "command-center",
+            "description": "Current dashboard section the user is viewing.",
+            "title": "Section",
+            "type": "string"
+          },
+          "stream": {
+            "default": true,
+            "description": "If true, respond with SSE; otherwise return a single JSON object.",
+            "title": "Stream",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "CopilotAskRequest",
+        "type": "object"
+      },
+      "DataImportRequest": {
+        "description": "Request for HuggingFace/Kaggle import optimization.",
+        "properties": {
+          "brand_controls": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand Controls"
+          },
+          "column_mapping": {
+            "additionalProperties": true,
+            "title": "Column Mapping",
+            "type": "object"
+          },
+          "files": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Files",
+            "type": "array"
+          },
+          "recipe_specification": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipe Specification"
+          },
+          "source": {
+            "pattern": "^(huggingface|kaggle)$",
+            "title": "Source",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "url",
+          "files",
+          "column_mapping"
+        ],
+        "title": "DataImportRequest",
+        "type": "object"
+      },
+      "DataOptimizeRequest": {
+        "description": "Request model for dataset optimization.",
+        "properties": {
+          "brand_controls": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Brand Controls"
+          },
+          "column_mapping": {
+            "additionalProperties": true,
+            "title": "Column Mapping",
+            "type": "object"
+          },
+          "estimate_only": {
+            "default": false,
+            "title": "Estimate Only",
+            "type": "boolean"
+          },
+          "job_specification": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Job Specification"
+          },
+          "phase": {
+            "anyOf": [
+              {
+                "pattern": "^(wake|dream|nightmare|compress)$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Phase"
+          },
+          "recipe_specification": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recipe Specification"
+          },
+          "texts": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "title": "Texts",
+            "type": "array"
+          }
+        },
+        "required": [
+          "texts",
+          "column_mapping"
+        ],
+        "title": "DataOptimizeRequest",
+        "type": "object"
+      },
+      "DataOptimizeResponse": {
+        "description": "Response model for optimization results.",
+        "properties": {
+          "after_stats": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Stats"
+          },
+          "before_stats": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Stats"
+          },
+          "elapsed_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Seconds"
+          },
+          "estimate": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimate"
+          },
+          "optimized_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimized Count"
+          },
+          "quality": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality"
+          },
+          "quality_delta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Delta"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "DataOptimizeResponse",
+        "type": "object"
+      },
+      "DemoRequest": {
+        "description": "Request body for the interactive demo endpoint.",
+        "properties": {
+          "seed": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 42,
+            "description": "Random seed for reproducible demo results.",
+            "title": "Seed"
+          },
+          "text": {
+            "description": "Text to distort through dream and nightmare modes.",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "DemoRequest",
+        "type": "object"
+      },
+      "DemoResponse": {
+        "description": "Response for the interactive demo \u2014 dream + nightmare in one call.",
+        "properties": {
+          "dream": {
+            "$ref": "#/components/schemas/DistortionDetail",
+            "description": "Dream distortion result at strength=0.25."
+          },
+          "insight": {
+            "description": "Human-readable explanation of what the distortions reveal.",
+            "title": "Insight",
+            "type": "string"
+          },
+          "nightmare": {
+            "$ref": "#/components/schemas/DistortionDetail",
+            "description": "Nightmare distortion result at strength=0.80."
+          },
+          "original_text": {
+            "title": "Original Text",
+            "type": "string"
+          },
+          "resilience_delta": {
+            "description": "Similarity drop from dream to nightmare (0-1).",
+            "title": "Resilience Delta",
+            "type": "number"
+          }
+        },
+        "required": [
+          "original_text",
+          "dream",
+          "nightmare",
+          "resilience_delta",
+          "insight"
+        ],
+        "title": "DemoResponse",
+        "type": "object"
+      },
+      "DistortionDetail": {
+        "description": "Detail of a single distortion result.",
+        "properties": {
+          "distorted_text": {
+            "title": "Distorted Text",
+            "type": "string"
+          },
+          "length_ratio": {
+            "title": "Length Ratio",
+            "type": "number"
+          },
+          "similarity": {
+            "title": "Similarity",
+            "type": "number"
+          }
+        },
+        "required": [
+          "distorted_text",
+          "similarity",
+          "length_ratio"
+        ],
+        "title": "DistortionDetail",
+        "type": "object"
+      },
+      "DistortionRequest": {
+        "description": "Request body for dream/nightmare text generation endpoints.",
+        "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional per-distortion type weight overrides.",
+            "title": "Config"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "maximum": 2147483647.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Random seed for reproducibility.",
+            "title": "Seed"
+          },
+          "strength": {
+            "default": 0.3,
+            "description": "Distortion strength in [0, 1]. Dream: 0.2-0.3, Nightmare: 0.7-0.9.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Strength",
+            "type": "number"
+          },
+          "text": {
+            "description": "Input text to distort.",
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "DistortionRequest",
+        "type": "object"
+      },
+      "DistortionResponse": {
+        "description": "Response body for dream/nightmare text generation endpoints.",
+        "properties": {
+          "distorted_text": {
+            "title": "Distorted Text",
+            "type": "string"
+          },
+          "distortion_type": {
+            "title": "Distortion Type",
+            "type": "string"
+          },
+          "original_text": {
+            "title": "Original Text",
+            "type": "string"
+          },
+          "seed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed"
+          },
+          "strength": {
+            "title": "Strength",
+            "type": "number"
+          }
+        },
+        "required": [
+          "original_text",
+          "distorted_text",
+          "distortion_type",
+          "strength"
+        ],
+        "title": "DistortionResponse",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "description": "Standard error response.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "description": "Response for health check endpoint.",
+        "properties": {
+          "status": {
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          },
+          "tests_passing": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tests Passing"
+          },
+          "version": {
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "OptimizationStatusResponse": {
+        "description": "Response model for optimization run status.",
+        "properties": {
+          "after_stats": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Stats"
+          },
+          "before_stats": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Before Stats"
+          },
+          "elapsed_seconds": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Elapsed Seconds"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "progress_pct": {
+            "title": "Progress Pct",
+            "type": "number"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "text_count": {
+            "title": "Text Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "state",
+          "text_count",
+          "progress_pct",
+          "message"
+        ],
+        "title": "OptimizationStatusResponse",
+        "type": "object"
+      },
+      "PipelineCancelRequest": {
+        "description": "Request body for cancelling a pipeline run.",
+        "properties": {
+          "force": {
+            "default": false,
+            "description": "Force cancellation",
+            "title": "Force",
+            "type": "boolean"
+          },
+          "pipeline_id": {
+            "description": "ID of the pipeline to cancel",
+            "title": "Pipeline Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pipeline_id"
+        ],
+        "title": "PipelineCancelRequest",
+        "type": "object"
+      },
+      "PipelineCreateRequest": {
+        "description": "Request body for creating a new end-to-end pipeline run.",
+        "properties": {
+          "batch_size": {
+            "default": 8,
+            "maximum": 64.0,
+            "minimum": 1.0,
+            "title": "Batch Size",
+            "type": "integer"
+          },
+          "dream_epochs": {
+            "default": 1,
+            "description": "Dream epochs per cycle.",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Dream Epochs",
+            "type": "integer"
+          },
+          "dream_strength": {
+            "default": 0.25,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Dream Strength",
+            "type": "number"
+          },
+          "hf_dataset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "HuggingFace dataset name (when source_type='huggingface').",
+            "title": "Hf Dataset"
+          },
+          "hf_subset": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "HuggingFace dataset subset.",
+            "title": "Hf Subset"
+          },
+          "learning_rate": {
+            "default": 5e-05,
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Learning Rate",
+            "type": "number"
+          },
+          "max_samples": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": 500,
+            "description": "Max training samples (None for unlimited).",
+            "title": "Max Samples"
+          },
+          "model_name": {
+            "default": "distilbert-base-uncased",
+            "description": "HuggingFace model name.",
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_type": {
+            "default": "masked_lm",
+            "description": "Model type: causal_lm, masked_lm, or seq_classification.",
+            "title": "Model Type",
+            "type": "string"
+          },
+          "nightmare_epochs": {
+            "default": 1,
+            "description": "Nightmare epochs per cycle.",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Nightmare Epochs",
+            "type": "integer"
+          },
+          "nightmare_strength": {
+            "default": 0.8,
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Nightmare Strength",
+            "type": "number"
+          },
+          "num_cycles": {
+            "default": 1,
+            "description": "Sleep cycles.",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Num Cycles",
+            "type": "integer"
+          },
+          "source_type": {
+            "description": "One of: 'urls', 'huggingface', 'text'.",
+            "title": "Source Type",
+            "type": "string"
+          },
+          "text_content": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Raw text content (when source_type='text').",
+            "title": "Text Content"
+          },
+          "urls": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "List of URLs to scrape (when source_type='urls').",
+            "title": "Urls"
+          },
+          "wake_epochs": {
+            "default": 1,
+            "description": "Wake epochs per cycle.",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Wake Epochs",
+            "type": "integer"
+          },
+          "webhooks": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WebhookConfigSchema"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Optional list of webhooks to trigger during pipeline events.",
+            "title": "Webhooks"
+          }
+        },
+        "required": [
+          "source_type"
+        ],
+        "title": "PipelineCreateRequest",
+        "type": "object"
+      },
+      "PipelineEvaluateRequest": {
+        "description": "Request body for evaluating a pipeline.",
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "description": "Evaluation config",
+            "title": "Config",
+            "type": "object"
+          },
+          "model_name": {
+            "default": "gpt2",
+            "description": "Model to evaluate",
+            "title": "Model Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "config"
+        ],
+        "title": "PipelineEvaluateRequest",
+        "type": "object"
+      },
+      "PipelineReportResponse": {
+        "description": "Full evaluation report for a completed pipeline.",
+        "properties": {
+          "comparison": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparison"
+          },
+          "report_md": {
+            "title": "Report Md",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "report_md"
+        ],
+        "title": "PipelineReportResponse",
+        "type": "object"
+      },
+      "PipelineRunsListResponse": {
+        "description": "Paginated response for listing pipeline runs.",
+        "properties": {
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "offset": {
+            "title": "Offset",
+            "type": "integer"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineStatusResponse"
+            },
+            "title": "Runs",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "runs",
+          "total",
+          "offset",
+          "limit"
+        ],
+        "title": "PipelineRunsListResponse",
+        "type": "object"
+      },
+      "PipelineStatusResponse": {
+        "description": "Current status of a pipeline run.",
+        "properties": {
+          "current_cycle": {
+            "default": 0,
+            "title": "Current Cycle",
+            "type": "integer"
+          },
+          "current_phase": {
+            "default": "",
+            "title": "Current Phase",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "eta_seconds": {
+            "default": 0.0,
+            "title": "Eta Seconds",
+            "type": "number"
+          },
+          "has_report": {
+            "default": false,
+            "title": "Has Report",
+            "type": "boolean"
+          },
+          "history": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "History",
+            "type": "array"
+          },
+          "is_running": {
+            "default": false,
+            "title": "Is Running",
+            "type": "boolean"
+          },
+          "phase_loss": {
+            "default": 0.0,
+            "title": "Phase Loss",
+            "type": "number"
+          },
+          "progress_pct": {
+            "default": 0.0,
+            "title": "Progress Pct",
+            "type": "number"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "total_cycles": {
+            "default": 0,
+            "title": "Total Cycles",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "title": "PipelineStatusResponse",
+        "type": "object"
+      },
+      "PipelineTrainRequest": {
+        "description": "Request body for training a pipeline.",
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "description": "Training config",
+            "title": "Config",
+            "type": "object"
+          },
+          "cycles": {
+            "default": 1,
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Cycles",
+            "type": "integer"
+          },
+          "model_name": {
+            "default": "gpt2",
+            "description": "Model to train",
+            "title": "Model Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "config"
+        ],
+        "title": "PipelineTrainRequest",
+        "type": "object"
+      },
+      "RobustnessRequest": {
+        "description": "Request body for robustness evaluation endpoint.",
+        "properties": {
+          "strengths": {
+            "default": [
+              0.1,
+              0.3,
+              0.5,
+              0.7,
+              0.9
+            ],
+            "description": "Distortion strengths to test at (each must be in [0, 1]).",
+            "items": {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            "minItems": 1,
+            "title": "Strengths",
+            "type": "array"
+          },
+          "text": {
+            "description": "Text to evaluate.",
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "RobustnessRequest",
+        "type": "object"
+      },
+      "RobustnessResponse": {
+        "description": "Response body for robustness evaluation endpoint.",
+        "properties": {
+          "original_text": {
+            "title": "Original Text",
+            "type": "string"
+          },
+          "scores": {
+            "additionalProperties": true,
+            "title": "Scores",
+            "type": "object"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "original_text",
+          "scores",
+          "summary"
+        ],
+        "title": "RobustnessResponse",
+        "type": "object"
+      },
+      "SettingsWebhooksRequest": {
+        "description": "Request body for updating webhook settings.",
+        "properties": {
+          "webhooks": {
+            "description": "List of webhook configurations",
+            "items": {
+              "$ref": "#/components/schemas/WebhookConfigSchema"
+            },
+            "title": "Webhooks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "webhooks"
+        ],
+        "title": "SettingsWebhooksRequest",
+        "type": "object"
+      },
+      "SuggestConfigRequest": {
+        "description": "Request body for the config suggestion endpoint.",
+        "properties": {
+          "current_config": {
+            "additionalProperties": true,
+            "description": "Training YAML as a dict",
+            "title": "Current Config",
+            "type": "object"
+          },
+          "hardware": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Hardware description (e.g. 'RTX 3050 Ti 4GB')",
+            "title": "Hardware"
+          },
+          "last_metrics": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Last run metrics (clean_accuracy, avg_distorted_accuracy, etc.)",
+            "title": "Last Metrics"
+          }
+        },
+        "required": [
+          "current_config"
+        ],
+        "title": "SuggestConfigRequest",
+        "type": "object"
+      },
+      "SuggestConfigResponse": {
+        "description": "Response from the config suggestion endpoint.",
+        "properties": {
+          "latency_ms": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "End-to-end latency in milliseconds",
+            "title": "Latency Ms"
+          },
+          "model": {
+            "description": "Backend used: LLM model id or 'heuristic'",
+            "title": "Model",
+            "type": "string"
+          },
+          "suggestions": {
+            "items": {
+              "$ref": "#/components/schemas/ConfigSuggestion"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          },
+          "tokens_used": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "LLM tokens consumed (None for heuristic)",
+            "title": "Tokens Used"
+          }
+        },
+        "required": [
+          "suggestions",
+          "model"
+        ],
+        "title": "SuggestConfigResponse",
+        "type": "object"
+      },
+      "TestWebhookRequest": {
+        "description": "Request body for testing a webhook URL.",
+        "properties": {
+          "event_type": {
+            "default": "run_complete",
+            "description": "Event type to test: run_complete, regression_detected, alert, deploy",
+            "title": "Event Type",
+            "type": "string"
+          },
+          "url": {
+            "description": "The webhook endpoint URL.",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "TestWebhookRequest",
+        "type": "object"
+      },
+      "TrainingConfigRequest": {
+        "description": "Request body for training configuration validation and preview.",
+        "properties": {
+          "batch_size": {
+            "default": 8,
+            "description": "Training batch size.",
+            "maximum": 256.0,
+            "minimum": 1.0,
+            "title": "Batch Size",
+            "type": "integer"
+          },
+          "dream_epochs": {
+            "default": 2,
+            "description": "Epochs per dream phase.",
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Dream Epochs",
+            "type": "integer"
+          },
+          "dream_strength": {
+            "default": 0.25,
+            "description": "Dream distortion strength.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Dream Strength",
+            "type": "number"
+          },
+          "early_stopping": {
+            "default": false,
+            "description": "Stop training when loss plateaus.",
+            "title": "Early Stopping",
+            "type": "boolean"
+          },
+          "kl_weight": {
+            "default": 0.1,
+            "description": "KL divergence loss weight during dream phase.",
+            "maximum": 10.0,
+            "minimum": 0.0,
+            "title": "Kl Weight",
+            "type": "number"
+          },
+          "learning_rate": {
+            "default": 5e-05,
+            "description": "Base learning rate.",
+            "exclusiveMinimum": 0.0,
+            "maximum": 1.0,
+            "title": "Learning Rate",
+            "type": "number"
+          },
+          "model_name": {
+            "default": "gpt2",
+            "description": "HuggingFace model name or path.",
+            "title": "Model Name",
+            "type": "string"
+          },
+          "model_type": {
+            "default": "causal_lm",
+            "description": "Model type: causal_lm, masked_lm, or seq_classification.",
+            "title": "Model Type",
+            "type": "string"
+          },
+          "nightmare_epochs": {
+            "default": 1,
+            "description": "Epochs per nightmare phase.",
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Nightmare Epochs",
+            "type": "integer"
+          },
+          "nightmare_lr_multiplier": {
+            "default": 2.0,
+            "description": "Learning rate multiplier for nightmare phase.",
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Nightmare Lr Multiplier",
+            "type": "number"
+          },
+          "nightmare_strength": {
+            "default": 0.8,
+            "description": "Nightmare distortion strength.",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Nightmare Strength",
+            "type": "number"
+          },
+          "num_cycles": {
+            "default": 3,
+            "description": "Number of full sleep cycles.",
+            "maximum": 100.0,
+            "minimum": 1.0,
+            "title": "Num Cycles",
+            "type": "integer"
+          },
+          "pruning_ratio": {
+            "default": 0.2,
+            "description": "Fraction of weights to prune.",
+            "exclusiveMaximum": 1.0,
+            "minimum": 0.0,
+            "title": "Pruning Ratio",
+            "type": "number"
+          },
+          "use_learned_adversarial": {
+            "default": false,
+            "description": "Use learned adversarial distortions (MLM-based). Slower but stronger.",
+            "title": "Use Learned Adversarial",
+            "type": "boolean"
+          },
+          "wake_epochs": {
+            "default": 3,
+            "description": "Epochs per wake phase.",
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Wake Epochs",
+            "type": "integer"
+          }
+        },
+        "title": "TrainingConfigRequest",
+        "type": "object"
+      },
+      "TrainingConfigResponse": {
+        "description": "Response for training config validation and preview.",
+        "properties": {
+          "config_summary": {
+            "additionalProperties": true,
+            "title": "Config Summary",
+            "type": "object"
+          },
+          "estimated_phases": {
+            "items": {
+              "$ref": "#/components/schemas/TrainingPhasePreview"
+            },
+            "title": "Estimated Phases",
+            "type": "array"
+          },
+          "recommendations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Recommendations",
+            "type": "array"
+          },
+          "total_epochs": {
+            "title": "Total Epochs",
+            "type": "integer"
+          },
+          "total_phases": {
+            "title": "Total Phases",
+            "type": "integer"
+          },
+          "valid": {
+            "title": "Valid",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "valid",
+          "total_phases",
+          "total_epochs",
+          "estimated_phases",
+          "config_summary",
+          "recommendations"
+        ],
+        "title": "TrainingConfigResponse",
+        "type": "object"
+      },
+      "TrainingPhasePreview": {
+        "description": "Preview of a single training phase.",
+        "properties": {
+          "cycle": {
+            "title": "Cycle",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "epochs": {
+            "title": "Epochs",
+            "type": "integer"
+          },
+          "learning_rate": {
+            "title": "Learning Rate",
+            "type": "number"
+          },
+          "phase": {
+            "title": "Phase",
+            "type": "string"
+          }
+        },
+        "required": [
+          "cycle",
+          "phase",
+          "epochs",
+          "learning_rate",
+          "description"
+        ],
+        "title": "TrainingPhasePreview",
+        "type": "object"
+      },
+      "UploadResponse": {
+        "description": "Response for file upload endpoint.",
+        "properties": {
+          "char_count": {
+            "title": "Char Count",
+            "type": "integer"
+          },
+          "file_type": {
+            "title": "File Type",
+            "type": "string"
+          },
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "line_count": {
+            "title": "Line Count",
+            "type": "integer"
+          },
+          "preview": {
+            "description": "First 500 characters of the file content.",
+            "title": "Preview",
+            "type": "string"
+          },
+          "text_content": {
+            "title": "Text Content",
+            "type": "string"
+          },
+          "word_count": {
+            "title": "Word Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "filename",
+          "file_type",
+          "text_content",
+          "char_count",
+          "word_count",
+          "line_count",
+          "preview"
+        ],
+        "title": "UploadResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookConfigSchema": {
+        "description": "Configuration for a webhook subscription.",
+        "properties": {
+          "events": {
+            "description": "Events to subscribe to: run_complete, regression_detected, alert, deploy",
+            "items": {
+              "type": "string"
+            },
+            "title": "Events",
+            "type": "array"
+          },
+          "url": {
+            "description": "The webhook URL.",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "WebhookConfigSchema",
+        "type": "object"
+      },
+      "WebhookSettingsRequest": {
+        "description": "Request body for saving webhook settings.",
+        "properties": {
+          "webhooks": {
+            "description": "List of webhook configurations.",
+            "items": {
+              "$ref": "#/components/schemas/WebhookConfigSchema"
+            },
+            "title": "Webhooks",
+            "type": "array"
+          }
+        },
+        "title": "WebhookSettingsRequest",
+        "type": "object"
+      },
+      "WebhookSettingsResponse": {
+        "description": "Response body containing webhook settings.",
+        "properties": {
+          "webhooks": {
+            "description": "List of webhook configurations.",
+            "items": {
+              "$ref": "#/components/schemas/WebhookConfigSchema"
+            },
+            "title": "Webhooks",
+            "type": "array"
+          }
+        },
+        "title": "WebhookSettingsResponse",
+        "type": "object"
+      },
+      "WebhookTestResponse": {
+        "description": "Response for testing webhooks, preserving legacy contract.",
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "WebhookTestResponse",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Autonomous AI Self-Improvement Platform \u2014 Dream & Nightmare Distortion Service",
+    "title": "NightmareNet API",
+    "version": "0.2.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/badge/{score}.json": {
+      "get": {
+        "description": "Return JSON describing the badge so clients can render their own.",
+        "operationId": "badge_json_api_v1_badge__score__json_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "score",
+            "required": true,
+            "schema": {
+              "title": "Score",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Badge metadata"
+          },
+          "400": {
+            "description": "Score must be a real number in [0, 1]"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Return badge metadata as JSON",
+        "tags": [
+          "Badge"
+        ]
+      }
+    },
+    "/api/v1/badge/{score}.svg": {
+      "get": {
+        "description": "Render a shields.io-style SVG badge for ``score`` \u2208 ``[0, 1]``.",
+        "operationId": "badge_svg_api_v1_badge__score__svg_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "score",
+            "required": true,
+            "schema": {
+              "title": "Score",
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "image/svg+xml": {}
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Score must be a real number in [0, 1]"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Render a robustness badge as SVG",
+        "tags": [
+          "Badge"
+        ]
+      }
+    },
+    "/api/v1/compare": {
+      "post": {
+        "description": "Compare dream and nightmare distortion effects at two strength levels.",
+        "operationId": "compare_distortions_api_v1_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompareRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompareResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Compare Distortions",
+        "tags": [
+          "Evaluation"
+        ]
+      }
+    },
+    "/api/v1/compliance/report/{run_id}": {
+      "get": {
+        "description": "Return a generated compliance report.",
+        "operationId": "get_compliance_report_api_v1_compliance_report__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Compliance Report",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/api/v1/compliance/reports": {
+      "get": {
+        "description": "List available compliance reports.",
+        "operationId": "list_compliance_reports_api_v1_compliance_reports_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Compliance Reports",
+        "tags": [
+          "Compliance"
+        ]
+      }
+    },
+    "/api/v1/copilot/ask": {
+      "post": {
+        "description": "Stream or return a context-aware copilot answer.",
+        "operationId": "copilot_ask_api_v1_copilot_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CopilotAskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$defs": {
+                    "CopilotSuggestion": {
+                      "description": "A single suggested next action surfaced by the copilot.",
+                      "properties": {
+                        "action": {
+                          "title": "Action",
+                          "type": "string"
+                        },
+                        "detail": {
+                          "title": "Detail",
+                          "type": "string"
+                        },
+                        "label": {
+                          "title": "Label",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "label",
+                        "action",
+                        "detail"
+                      ],
+                      "title": "CopilotSuggestion",
+                      "type": "object"
+                    }
+                  },
+                  "description": "Non-streaming response shape; matches the final SSE event payload.",
+                  "properties": {
+                    "answer": {
+                      "title": "Answer",
+                      "type": "string"
+                    },
+                    "model": {
+                      "title": "Model",
+                      "type": "string"
+                    },
+                    "suggestions": {
+                      "items": {
+                        "$ref": "#/$defs/CopilotSuggestion"
+                      },
+                      "title": "Suggestions",
+                      "type": "array"
+                    }
+                  },
+                  "required": [
+                    "answer",
+                    "suggestions",
+                    "model"
+                  ],
+                  "title": "CopilotAskResponse",
+                  "type": "object"
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "description": "Sequence of `data: {...}` lines. Each line is either a `{token}` event or the terminal `{done, suggestions, model}` event.",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Either an SSE stream (when stream=true) or a JSON answer."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ask the NightmareNet copilot",
+        "tags": [
+          "copilot"
+        ]
+      }
+    },
+    "/api/v1/data/import": {
+      "post": {
+        "description": "Import from HuggingFace/Kaggle and optimize via Adaption.",
+        "operationId": "import_and_optimize_api_v1_data_import_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataOptimizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "SDK unavailable"
+          }
+        },
+        "summary": "Import And Optimize",
+        "tags": [
+          "Data Optimization"
+        ]
+      }
+    },
+    "/api/v1/data/optimize": {
+      "post": {
+        "description": "Optimize a text dataset via Adaption Labs.\n\nWhen ``estimate_only=True``, returns credit cost without running\nthe full optimization. Otherwise runs the optimization in a\nbackground thread and returns results with timing and quality deltas.",
+        "operationId": "optimize_data_api_v1_data_optimize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataOptimizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataOptimizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad request \u2014 invalid input"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "500": {
+            "description": "Internal server error"
+          },
+          "503": {
+            "description": "Adaption SDK or dependency unavailable"
+          },
+          "504": {
+            "description": "Optimization timed out"
+          }
+        },
+        "summary": "Optimize Data",
+        "tags": [
+          "Data Optimization"
+        ]
+      }
+    },
+    "/api/v1/data/optimize/estimate": {
+      "post": {
+        "description": "Estimate optimization cost without starting a run.",
+        "operationId": "estimate_optimization_api_v1_data_optimize_estimate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataOptimizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataOptimizeResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "SDK unavailable"
+          }
+        },
+        "summary": "Estimate Optimization",
+        "tags": [
+          "Data Optimization"
+        ]
+      }
+    },
+    "/api/v1/data/optimize/start": {
+      "post": {
+        "description": "Start an async optimization run and return a run_id for polling.",
+        "operationId": "start_optimization_api_v1_data_optimize_start_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataOptimizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizationStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Registry at capacity"
+          }
+        },
+        "summary": "Start Optimization",
+        "tags": [
+          "Data Optimization"
+        ]
+      }
+    },
+    "/api/v1/data/optimize/stream": {
+      "post": {
+        "description": "Stream optimization progress as Server-Sent Events.\n\nEmits events with ``{state, progress_pct, message}`` until\ncompletion, then a final event with the full result.",
+        "operationId": "optimize_data_stream_api_v1_data_optimize_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DataOptimizeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "SDK unavailable"
+          }
+        },
+        "summary": "Optimize Data Stream",
+        "tags": [
+          "Data Optimization"
+        ]
+      }
+    },
+    "/api/v1/data/optimize/{run_id}/status": {
+      "get": {
+        "description": "Poll the status of an async optimization run.",
+        "operationId": "get_optimization_status_api_v1_data_optimize__run_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OptimizationStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "Run not found"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Optimization Status",
+        "tags": [
+          "Data Optimization"
+        ]
+      }
+    },
+    "/api/v1/demo": {
+      "post": {
+        "description": "Run dream + nightmare distortions in one call for the guided demo.\n\nReturns both distortion results with a resilience delta and a\nshort explanation about the input text.",
+        "operationId": "interactive_demo_api_v1_demo_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Interactive Demo",
+        "tags": [
+          "Demo"
+        ]
+      }
+    },
+    "/api/v1/evaluate/robustness": {
+      "post": {
+        "description": "Evaluate text robustness across multiple distortion strengths.\n\nApplies dream and nightmare distortions at each specified strength level\nand reports how the text degrades, providing a robustness profile.",
+        "operationId": "evaluate_robustness_api_v1_evaluate_robustness_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RobustnessRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RobustnessResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Evaluate Robustness",
+        "tags": [
+          "Evaluation"
+        ]
+      }
+    },
+    "/api/v1/generate/dream": {
+      "post": {
+        "description": "Generate dream-distorted text with mild perturbations.\n\nDream distortions use text-level and semantic-level transformations\nat lower strength (recommended 0.2\u20130.3) to create slightly altered\ntraining data that forces pattern generalization.",
+        "operationId": "generate_dream_api_v1_generate_dream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DistortionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistortionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Generate Dream",
+        "tags": [
+          "Distortion"
+        ]
+      }
+    },
+    "/api/v1/generate/nightmare": {
+      "post": {
+        "description": "Generate nightmare-distorted text with aggressive perturbations.\n\nNightmare distortions apply text-level, semantic-level, AND adversarial\ntransformations at higher strength (recommended 0.7\u20130.9) to stress-test\nmodel robustness.",
+        "operationId": "generate_nightmare_api_v1_generate_nightmare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DistortionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DistortionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Generate Nightmare",
+        "tags": [
+          "Distortion"
+        ]
+      }
+    },
+    "/api/v1/health": {
+      "get": {
+        "description": "Health check endpoint.",
+        "operationId": "health_check_api_v1_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/api/v1/notifications/test-webhook": {
+      "post": {
+        "description": "Send a test notification payload to verify webhook integration.",
+        "operationId": "test_webhook_endpoint_api_v1_notifications_test_webhook_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestWebhookRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookTestResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Send a test notification to a webhook URL",
+        "tags": [
+          "notifications"
+        ]
+      }
+    },
+    "/api/v1/pipeline/cancel": {
+      "post": {
+        "description": "Cancel pipeline run via POST body (Legacy/Alternative).",
+        "operationId": "cancel_pipeline_post_endpoint_api_v1_pipeline_cancel_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineCancelRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Cancel Pipeline Post Endpoint Api V1 Pipeline Cancel Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel Pipeline Post Endpoint",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/create": {
+      "post": {
+        "description": "Create a new pipeline, ingest data, and start training.",
+        "operationId": "create_pipeline_api_v1_pipeline_create_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create and start an E2E pipeline run",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/evaluate": {
+      "post": {
+        "description": "Evaluate pipeline robustness.",
+        "operationId": "evaluate_pipeline_endpoint_api_v1_pipeline_evaluate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineEvaluateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Evaluate Pipeline Endpoint Api V1 Pipeline Evaluate Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Evaluate Pipeline Endpoint",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/runs": {
+      "get": {
+        "description": "List all pipeline runs with pagination support.\n\nReturns a paginated list of pipeline runs (including completed/historical\nruns from disk) with metadata for client-side pagination UI.\nDefaults to first 50 runs.",
+        "operationId": "list_runs_api_v1_pipeline_runs_get",
+        "parameters": [
+          {
+            "description": "Number of runs to skip",
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "description": "Number of runs to skip",
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Maximum number of runs to return",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "description": "Maximum number of runs to return",
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRunsListResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List all pipeline runs with pagination",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/train": {
+      "post": {
+        "description": "Start pipeline training phase.",
+        "operationId": "train_pipeline_endpoint_api_v1_pipeline_train_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineTrainRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Train Pipeline Endpoint Api V1 Pipeline Train Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Train Pipeline Endpoint",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{run_id}/cancel": {
+      "post": {
+        "description": "Cancel a running pipeline, saving current checkpoint.",
+        "operationId": "cancel_pipeline_api_v1_pipeline__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Cancel a running pipeline",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{run_id}/report": {
+      "get": {
+        "description": "Retrieve the evaluation report for a completed pipeline.",
+        "operationId": "get_pipeline_report_api_v1_pipeline__run_id__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineReportResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get pipeline evaluation report",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/pipeline/{run_id}/status": {
+      "get": {
+        "description": "Poll the current status and metrics of a pipeline run.",
+        "operationId": "get_pipeline_status_api_v1_pipeline__run_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get pipeline run status",
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "/api/v1/settings/webhooks": {
+      "get": {
+        "description": "Retrieve the current webhook settings.",
+        "operationId": "get_webhook_settings_api_v1_settings_webhooks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get webhook settings",
+        "tags": [
+          "settings"
+        ]
+      },
+      "post": {
+        "description": "Save webhook settings.",
+        "operationId": "save_webhook_settings_api_v1_settings_webhooks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSettingsResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save webhook settings",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/v1/suggest/config": {
+      "post": {
+        "description": "Suggest hyperparameter improvements based on current config and metrics.",
+        "operationId": "suggest_config_api_v1_suggest_config_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuggestConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "AI-powered config suggestions",
+        "tags": [
+          "suggest"
+        ]
+      }
+    },
+    "/api/v1/train/config": {
+      "post": {
+        "description": "Validate and preview a training configuration.",
+        "operationId": "preview_training_config_api_v1_train_config_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrainingConfigRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrainingConfigResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Preview Training Config",
+        "tags": [
+          "Training"
+        ]
+      }
+    },
+    "/api/v1/upload/text": {
+      "post": {
+        "description": "Upload a text file for processing through the distortion pipeline.",
+        "operationId": "upload_text_file_api_v1_upload_text_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_text_file_api_v1_upload_text_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Request Entity Too Large"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Upload Text File",
+        "tags": [
+          "Upload"
+        ]
+      }
+    },
+    "/settings/webhooks": {
+      "post": {
+        "description": "Update configured webhooks.",
+        "operationId": "update_webhooks_endpoint_settings_webhooks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsWebhooksRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Update Webhooks Endpoint Settings Webhooks Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Webhooks Endpoint",
+        "tags": [
+          "settings"
+        ]
+      }
+    }
+  }
+}

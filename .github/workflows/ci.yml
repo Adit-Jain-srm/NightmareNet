@@ -53,6 +53,10 @@ jobs:
           --cov-report=xml
           --cov-report=term-missing
 
+      - name: Check OpenAPI spec drift
+        if: matrix.python-version == '3.12'
+        run: PYTHONPATH=. python scripts/export_openapi.py --check
+
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4

@@ -87,6 +87,9 @@ compression:
 
 # Evaluation configuration
 evaluation:
+  export_failures: false
+  failure_export_format: "json"
+  failure_threshold: 0.20
   metrics:
     - "recall"
     - "generalization"
