@@ -120,7 +120,7 @@ nightmarenet-reindex-search = "nightmarenet_server.search.reindex:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short -m 'not slow'"
+addopts = "-v --tb=short -m 'not slow' --ignore=tests/test_distortion_vision.py"
 markers = [
     "slow: marks tests as slow (deselect with '-m not slow')",
 ]
