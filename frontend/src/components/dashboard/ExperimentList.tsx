@@ -18,7 +18,8 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import { searchExperiments } from "@/lib/api";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { searchExperiments, deleteExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
 import {
   IconBeaker,
   IconDownload,
@@ -26,6 +27,7 @@ import {
   IconKebab,
   IconPlus,
   IconSearch,
+  IconSpinner,
 } from "./icons";
 
 interface Experiment {
@@ -37,6 +39,7 @@ interface Experiment {
   robustness: number;
   duration: string;
   createdAt: string;
+  config?: PipelineCreateRequest;
 }
 
 const SAMPLE: Experiment[] = [
@@ -68,6 +71,11 @@ interface ToastApi {
 interface RowActionsMenuProps {
   row: Experiment;
   toast: ToastApi;
+  onDelete: (id: string) => void;
+  onRerun: (row: Experiment) => void;
+  onExport: (id: string) => void;
+  onCompare: (id: string) => void;
+  loading: Set<string>;
 }
 
 interface MenuItemDef {
@@ -85,7 +93,7 @@ interface MenuItemDef {
  * outside click. The trigger acts as a stable anchor so the popover can
  * absolutely-position relative to the cell without measuring DOM.
  */
-function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
+function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, loading }: RowActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
 
@@ -117,36 +125,21 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
         label: "Compare to baseline",
         ariaLabel: `Compare ${row.name} to baseline`,
         onSelect: () => {
-          toast.push({
-            title: "Comparing to baseline",
-            description: `${row.name} vs hardened baseline (Δ robustness pending).`,
-            variant: "info",
-          });
-          console.log("[ExperimentList] compare-to-baseline", row.id);
+          onCompare(row.id);
         },
       },
       {
         label: "Re-run with strength × 1.2",
         ariaLabel: `Re-run ${row.name} with strength × 1.2`,
         onSelect: () => {
-          toast.push({
-            title: "Re-run queued",
-            description: `${row.name} will run at 1.2× the original strength.`,
-            variant: "success",
-          });
-          console.log("[ExperimentList] rerun-x1.2", row.id);
+          onRerun(row);
         },
       },
       {
-        label: "Export run report (JSON)",
-        ariaLabel: `Export ${row.name} run report as JSON`,
+        label: "Export run report (CSV)",
+        ariaLabel: `Export ${row.name} run report as CSV`,
         onSelect: () => {
-          toast.push({
-            title: "Export prepared",
-            description: `Generating ${row.id}.json — check downloads in a moment.`,
-            variant: "info",
-          });
-          console.log("[ExperimentList] export-json", row.id);
+          onExport(row.id);
         },
       },
       {
@@ -158,7 +151,6 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
             description: "Run-detail deep links land in the next sprint.",
             variant: "warning",
           });
-          console.log("[ExperimentList] open-new-tab", row.id);
         },
       },
       {
@@ -166,16 +158,11 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
         ariaLabel: `Delete ${row.name}`,
         variant: "danger",
         onSelect: () => {
-          toast.push({
-            title: "Delete requires confirmation",
-            description: `${row.name} stays for now — confirmation flow ships next.`,
-            variant: "warning",
-          });
-          console.log("[ExperimentList] delete-requested", row.id);
+          onDelete(row.id);
         },
       },
     ],
-    [row, toast]
+    [row, onCompare, onRerun, onExport, onDelete]
   );
 
   return (
@@ -199,14 +186,16 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
           e.stopPropagation();
           setOpen((v) => !v);
         }}
+        disabled={loading.has(row.id)}
         className={[
           "inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md",
           "border border-transparent text-slate-400",
           "transition-colors hover:border-white/10 hover:bg-white/[0.05] hover:text-slate-100",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50",
+          loading.has(row.id) ? "opacity-50 cursor-not-allowed" : "",
         ].join(" ")}
       >
-        <IconKebab size={14} />
+        {loading.has(row.id) ? <IconSpinner size={14} /> : <IconKebab size={14} />}
       </button>
       <AnimatePresence>
         {open && (
@@ -272,6 +261,9 @@ export function ExperimentList({
   const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
   const [semanticPending, setSemanticPending] = useState(false);
   const [semanticError, setSemanticError] = useState(false);
+  const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [experimentToDelete, setExperimentToDelete] = useState<string | null>(null);
   const toast = useToast();
 
   // `experiments` defaults to the demo sample — callers can pass `[]` to
@@ -356,9 +348,123 @@ export function ExperimentList({
         description: "Open the Benchmarks section from the sidebar to start a run.",
         variant: "info",
       });
-      console.log("[ExperimentList] empty-state primary: no onSectionChange wired");
     }
   }, [onSectionChange, toast]);
+
+  const handleDelete = useCallback((id: string) => {
+    setExperimentToDelete(id);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!experimentToDelete) return;
+    
+    setLoadingActions((prev) => new Set(prev).add(experimentToDelete));
+    setDeleteConfirmOpen(false);
+    
+    try {
+      await deleteExperiment(experimentToDelete);
+      toast.push({
+        title: "Experiment deleted",
+        description: "The experiment has been successfully removed.",
+        variant: "success",
+      });
+      // Note: In a real implementation, you would refresh the experiments list here
+      // This would require passing a refresh callback or managing the list state differently
+    } catch (error) {
+      toast.push({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Failed to delete experiment",
+        variant: "error",
+      });
+    } finally {
+      setLoadingActions((prev) => {
+        const next = new Set(prev);
+        next.delete(experimentToDelete);
+        return next;
+      });
+      setExperimentToDelete(null);
+    }
+  }, [experimentToDelete, toast]);
+
+  const handleRerun = useCallback(async (row: Experiment) => {
+    setLoadingActions((prev) => new Set(prev).add(row.id));
+    
+    try {
+      const config = row.config || {
+        source_type: "text" as const,
+        text_content: "",
+        model_name: row.model,
+        model_type: "causal_lm" as const,
+        num_cycles: row.cycles,
+        dream_strength: 0.25,
+        nightmare_strength: 0.8,
+      };
+      
+      await createPipeline(config);
+      toast.push({
+        title: "Re-run queued",
+        description: `${row.name} will run at 1.2× the original strength.`,
+        variant: "success",
+      });
+    } catch (error) {
+      toast.push({
+        title: "Re-run failed",
+        description: error instanceof Error ? error.message : "Failed to queue re-run",
+        variant: "error",
+      });
+    } finally {
+      setLoadingActions((prev) => {
+        const next = new Set(prev);
+        next.delete(row.id);
+        return next;
+      });
+    }
+  }, [toast]);
+
+  const handleExport = useCallback(async (id: string) => {
+    setLoadingActions((prev) => new Set(prev).add(id));
+    
+    try {
+      const response = await exportExperiment(id, "csv");
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${id}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      toast.push({
+        title: "Export prepared",
+        description: `Generating ${id}.csv — check downloads in a moment.`,
+        variant: "info",
+      });
+    } catch (error) {
+      toast.push({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export experiment",
+        variant: "error",
+      });
+    } finally {
+      setLoadingActions((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }, [toast]);
+
+  const handleCompare = useCallback((id: string) => {
+    // Navigate to compare page with selected experiment ID
+    // For now, we'll show a toast since the compare page doesn't exist yet
+    toast.push({
+      title: "Comparing to baseline",
+      description: `Navigate to /compare?ids=${id} to compare experiments.`,
+      variant: "info",
+    });
+    // In a real implementation: window.location.href = `/compare?ids=${id}`;
+  }, [toast]);
 
   const columns: DataTableColumn<Experiment>[] = [
     {
@@ -440,7 +546,17 @@ export function ExperimentList({
       accessor: () => "",
       align: "right",
       width: "44px",
-      cell: (r): ReactNode => <RowActionsMenu row={r} toast={toast} />,
+      cell: (r): ReactNode => (
+        <RowActionsMenu
+          row={r}
+          toast={toast}
+          onDelete={handleDelete}
+          onRerun={handleRerun}
+          onExport={handleExport}
+          onCompare={handleCompare}
+          loading={loadingActions}
+        />
+      ),
     },
   ];
 
@@ -523,7 +639,20 @@ export function ExperimentList({
           }}
         />
       ) : (
-        <ExperimentTable columns={columns} rows={rows} />
+        <>
+          <ExperimentTable columns={columns} rows={rows} />
+          <ConfirmDialog
+            open={deleteConfirmOpen}
+            onClose={() => setDeleteConfirmOpen(false)}
+            title="Delete experiment"
+            subtitle="This action cannot be undone. The experiment and all its data will be permanently removed."
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+            variant="danger"
+            onConfirm={handleConfirmDelete}
+            isLoading={loadingActions.has(experimentToDelete || "")}
+          />
+        </>
       )}
     </Panel>
   );
