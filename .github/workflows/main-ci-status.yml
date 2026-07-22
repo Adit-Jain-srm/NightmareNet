@@ -23,7 +23,7 @@ jobs:
   update-status-issue:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         with:
           script: |
             const conclusion = context.payload.workflow_run.conclusion;
