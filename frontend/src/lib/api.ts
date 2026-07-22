@@ -681,3 +681,14 @@ export function saveWebhooks(body: WebhookSettingsRequest): Promise<WebhookSetti
     body: JSON.stringify(body),
   });
 }
+
+export interface ExperimentUpdateRequest {
+  name: string;
+}
+
+export function updateExperiment(id: string, req: ExperimentUpdateRequest): Promise<{ success: boolean; id: string; name: string }> {
+  return apiFetch<{ success: boolean; id: string; name: string }>(`/api/v1/experiments/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(req),
+  });
+}
