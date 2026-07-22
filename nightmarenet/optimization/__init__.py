@@ -1,5 +1,5 @@
 """Optimization and Hyperparameter Search."""
 
-from .hpo import HyperparameterOptimizer
+from nightmarenet.optimization.hpo import HyperparameterOptimizer
 
 __all__ = ["HyperparameterOptimizer"]

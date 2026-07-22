@@ -1,5 +1,7 @@
 """Optuna Hyperparameter Optimization integration for NightmareNet."""
 
+from __future__ import annotations
+
 import copy
 import logging
 from typing import TYPE_CHECKING, Any
@@ -15,6 +17,7 @@ try:
 
     OPTUNA_AVAILABLE = True
 except ImportError:
+    optuna = None  # type: ignore[assignment]
     OPTUNA_AVAILABLE = False
 
 
@@ -64,7 +67,7 @@ class HyperparameterOptimizer:
             load_if_exists=True,
         )
 
-    def _suggest_parameters(self, trial: "optuna.Trial") -> dict:
+    def _suggest_parameters(self, trial: optuna.Trial) -> dict:
         """Parse search space from config and suggest parameters."""
         trial_params = {}
         for param_key, param_def in self.search_space.items():
@@ -86,10 +89,10 @@ class HyperparameterOptimizer:
             elif param_type == "categorical":
                 trial_params[param_key] = trial.suggest_categorical(param_key, param_def["choices"])
             else:
-                logger.warning(f"Unknown parameter type '{param_type}' for {param_key}")
+                logger.warning("Unknown parameter type '%s' for %s", param_type, param_key)
         return trial_params
 
-    def _objective(self, trial: "optuna.Trial") -> float:
+    def _objective(self, trial: optuna.Trial) -> float:
         """Optuna objective function."""
         suggested_params = self._suggest_parameters(trial)
 
@@ -99,6 +102,7 @@ class HyperparameterOptimizer:
 
         # Pruning coordination
         pruned_flag = [False]
+        pipeline = None
 
         def on_event(metrics: dict) -> None:
             if not self.pruning_enabled:
@@ -132,7 +136,7 @@ class HyperparameterOptimizer:
 
         metric_val = comparison.get("robustness_delta")
         if metric_val is None:
-            for fallback in ("robustness", "avg_robustness"):
+            for fallback in ("robustness", "avg_robustness", "mean_robustness"):
                 if fallback in comparison:
                     metric_val = comparison[fallback]
                     break
@@ -145,16 +149,16 @@ class HyperparameterOptimizer:
 
     def optimize(self) -> optuna.Study:
         """Run the optimization study."""
-        logger.info(f"Starting optimization for {self.n_trials} trials.")
+        logger.info("Starting optimization for %d trials.", self.n_trials)
         self.study.optimize(self._objective, n_trials=self.n_trials)
 
         try:
             best_trial = self.study.best_trial
-            logger.info(f"Optimization finished. Best trial: {best_trial.number}")
-            logger.info(f"  Value: {best_trial.value}")
-            logger.info("  Params: ")
+            logger.info("Optimization finished. Best trial: %d", best_trial.number)
+            logger.info("  Value: %s", best_trial.value)
+            logger.info("  Params:")
             for k, v in best_trial.params.items():
-                logger.info(f"    {k}: {v}")
+                logger.info("    %s: %s", k, v)
         except ValueError:
             logger.info("Optimization finished but no completed trials were found.")
 

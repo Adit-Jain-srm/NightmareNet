@@ -1,6 +1,10 @@
 "use client";
 
+<<<<<<< HEAD
 import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
+=======
+import { useCallback, useMemo, useState } from "react";
+>>>>>>> 76683f8bc9edf93fa2bae2b8b2e0717544eea059
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "./AppShell";
@@ -247,7 +251,47 @@ function DashboardRootInner() {
                 </motion.div>
               </div>
               <motion.div variants={fadeIn}>
+<<<<<<< HEAD
                 <PanelSuspense label="Live Metrics" variant="chart">
+=======
+                <LiveMetrics />
+              </motion.div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <motion.div variants={fadeIn}>
+                  <DistortionPreview />
+                </motion.div>
+                <motion.div variants={fadeIn}>
+                  <AuditTrail />
+                </motion.div>
+              </div>
+            </>
+          )}
+
+          <ErrorBoundary
+  fallbackTitle="Experiments unavailable"
+  fallbackMessage="The experiment list failed to render. Retry this panel or report the issue."
+>
+
+          {section === "experiments" && (
+            <motion.div variants={fadeIn}>
+              <ExperimentList onSectionChange={navigate} />
+            </motion.div>
+          )}
+
+          </ErrorBoundary>
+
+          <ErrorBoundary
+  fallbackTitle="Run details unavailable"
+  fallbackMessage="The selected run details failed to render. Retry this panel or report the issue."
+>
+          {section === "run-detail" && (
+            <>
+              <motion.div variants={fadeIn}>
+                <RunDetail />
+              </motion.div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <motion.div variants={fadeIn}>
+>>>>>>> 76683f8bc9edf93fa2bae2b8b2e0717544eea059
                   <LiveMetrics />
                 </PanelSuspense>
               </motion.div>
@@ -266,6 +310,7 @@ function DashboardRootInner() {
             </>
           )}
 
+<<<<<<< HEAD
           <ErrorBoundary
             fallbackTitle="Experiments unavailable"
             fallbackMessage="The experiment list failed to render. Retry this panel or report the issue."
@@ -304,6 +349,8 @@ function DashboardRootInner() {
                 </div>
               </>
             )}
+=======
+>>>>>>> 76683f8bc9edf93fa2bae2b8b2e0717544eea059
           </ErrorBoundary>
 
           {section === "phases" && (
@@ -315,6 +362,7 @@ function DashboardRootInner() {
           )}
 
           <ErrorBoundary
+<<<<<<< HEAD
             fallbackTitle="Live metrics unavailable"
             fallbackMessage="Live metrics failed to render. Other dashboard panels remain available."
           >
@@ -325,6 +373,18 @@ function DashboardRootInner() {
                 </PanelSuspense>
               </motion.div>
             )}
+          </ErrorBoundary>
+=======
+  fallbackTitle="Live metrics unavailable"
+  fallbackMessage="Live metrics failed to render. Other dashboard panels remain available."
+>
+          {section === "metrics" && (
+            <motion.div variants={fadeIn}>
+              <LiveMetrics />
+            </motion.div>
+          )}
+>>>>>>> 76683f8bc9edf93fa2bae2b8b2e0717544eea059
+
           </ErrorBoundary>
 
           {section === "robustness" && (

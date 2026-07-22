@@ -6,6 +6,11 @@ from unittest.mock import patch
 
 import pytest
 
+from nightmarenet.utils.message_builders import (
+    DiscordMessageBuilder,
+    SlackMessageBuilder,
+    build_webhook_payload,
+)
 from nightmarenet.utils.webhooks import validate_webhook_url
 
 
@@ -97,3 +102,144 @@ class TestWebhookEndpointBlocksInternalIP:
                 )
 
         mock_trigger.assert_not_called()
+
+
+class TestSlackMessageBuilder:
+    def test_build_basic_message(self):
+        payload = SlackMessageBuilder.build("run_complete", "Test message")
+        assert "blocks" in payload
+        assert "text" in payload
+        assert len(payload["blocks"]) >= 2  # header + section + divider
+
+    def test_build_with_details(self):
+        details = {"run_id": "123", "model": "gpt-4"}
+        payload = SlackMessageBuilder.build("run_complete", "Test", details)
+        assert any("fields" in block for block in payload["blocks"])
+        assert any("run_id" in str(block) for block in payload["blocks"])
+
+    def test_build_with_dashboard_url(self):
+        payload = SlackMessageBuilder.build(
+            "run_complete", "Test", dashboard_url="https://example.com"
+        )
+        assert any(block.get("type") == "actions" for block in payload["blocks"])
+        actions_block = next(b for b in payload["blocks"] if b.get("type") == "actions")
+        assert actions_block["elements"][0]["url"] == "https://example.com"
+
+    def test_emoji_selection(self):
+        payload = SlackMessageBuilder.build("run_complete", "Test")
+        assert "✅" in payload["blocks"][0]["text"]["text"]
+        payload = SlackMessageBuilder.build("regression_detected", "Test")
+        assert "⚠️" in payload["blocks"][0]["text"]["text"]
+        payload = SlackMessageBuilder.build("alert", "Test")
+        assert "🚨" in payload["blocks"][0]["text"]["text"]
+        payload = SlackMessageBuilder.build("deploy", "Test")
+        assert "🚀" in payload["blocks"][0]["text"]["text"]
+
+    def test_color_selection(self):
+        assert (
+            SlackMessageBuilder._get_color("alert") == SlackMessageBuilder.COLOR_ERROR
+        )
+        assert (
+            SlackMessageBuilder._get_color("regression_detected")
+            == SlackMessageBuilder.COLOR_ERROR
+        )
+        assert (
+            SlackMessageBuilder._get_color("run_complete")
+            == SlackMessageBuilder.COLOR_SUCCESS
+        )
+        assert SlackMessageBuilder._get_color("deploy") == SlackMessageBuilder.COLOR_INFO
+
+
+class TestDiscordMessageBuilder:
+    def test_build_basic_message(self):
+        payload = DiscordMessageBuilder.build("run_complete", "Test message")
+        assert "embeds" in payload
+        assert len(payload["embeds"]) == 1
+        assert payload["embeds"][0]["title"]
+        assert payload["embeds"][0]["description"] == "Test message"
+
+    def test_build_with_details(self):
+        details = {"run_id": "123", "model": "gpt-4"}
+        payload = DiscordMessageBuilder.build("run_complete", "Test", details)
+        embed = payload["embeds"][0]
+        assert "fields" in embed
+        assert len(embed["fields"]) == 2
+        assert embed["fields"][0]["name"] == "run_id"
+        assert embed["fields"][0]["value"] == "123"
+
+    def test_build_with_dashboard_url(self):
+        payload = DiscordMessageBuilder.build(
+            "run_complete", "Test", dashboard_url="https://example.com"
+        )
+        assert payload["embeds"][0]["url"] == "https://example.com"
+
+    def test_emoji_selection(self):
+        payload = DiscordMessageBuilder.build("run_complete", "Test")
+        assert "✅" in payload["embeds"][0]["title"]
+        payload = DiscordMessageBuilder.build("regression_detected", "Test")
+        assert "⚠️" in payload["embeds"][0]["title"]
+        payload = DiscordMessageBuilder.build("alert", "Test")
+        assert "🚨" in payload["embeds"][0]["title"]
+        payload = DiscordMessageBuilder.build("deploy", "Test")
+        assert "🚀" in payload["embeds"][0]["title"]
+
+    def test_color_selection(self):
+        assert (
+            DiscordMessageBuilder._get_color("alert") == DiscordMessageBuilder.COLOR_ERROR
+        )
+        assert (
+            DiscordMessageBuilder._get_color("regression_detected")
+            == DiscordMessageBuilder.COLOR_ERROR
+        )
+        assert (
+            DiscordMessageBuilder._get_color("run_complete")
+            == DiscordMessageBuilder.COLOR_SUCCESS
+        )
+        assert DiscordMessageBuilder._get_color("deploy") == DiscordMessageBuilder.COLOR_INFO
+
+    def test_timestamp_present(self):
+        payload = DiscordMessageBuilder.build("run_complete", "Test")
+        assert "timestamp" in payload["embeds"][0]
+        assert payload["embeds"][0]["timestamp"].endswith("Z")
+
+
+class TestBuildWebhookPayload:
+    def test_slack_url_uses_slack_builder(self):
+        payload = build_webhook_payload(
+            "https://hooks.slack.com/services/T/B/x", "run_complete", "Test"
+        )
+        assert "blocks" in payload
+        assert payload["blocks"][0]["type"] == "header"
+
+    def test_discord_url_uses_discord_builder(self):
+        payload = build_webhook_payload(
+            "https://discord.com/api/webhooks/123/token", "run_complete", "Test"
+        )
+        assert "embeds" in payload
+        assert len(payload["embeds"]) == 1
+
+    def test_discordapp_url_uses_discord_builder(self):
+        payload = build_webhook_payload(
+            "https://discordapp.com/api/webhooks/123/token", "run_complete", "Test"
+        )
+        assert "embeds" in payload
+
+    def test_office_url_uses_office_format(self):
+        payload = build_webhook_payload(
+            "https://example.webhook.office.com/webhook", "run_complete", "Test"
+        )
+        assert "@type" in payload
+        assert payload["@type"] == "MessageCard"
+
+    def test_generic_url_uses_generic_format(self):
+        payload = build_webhook_payload("https://example.com/webhook", "run_complete", "Test")
+        assert "event" in payload
+        assert payload["event"] == "run_complete"
+        assert "message" in payload
+
+    def test_dashboard_url_passed_to_builders(self):
+        payload = build_webhook_payload(
+            "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", dashboard_url="https://dash.com"
+        )
+        assert any(block.get("type") == "actions" for block in payload["blocks"])
+

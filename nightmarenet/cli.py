@@ -626,7 +626,6 @@ def cmd_optimize(args: argparse.Namespace) -> int:
 
     return 0
 
-
 def cmd_push(args: argparse.Namespace) -> int:
     """Push a hardened model package structure to HuggingFace Hub."""
     try:
@@ -947,10 +946,10 @@ def main(argv: Optional[list] = None) -> int:
         "distort": cmd_distort,
         "foundation": cmd_foundation,
         "transfer": cmd_transfer,
-        "optimize": cmd_optimize,
         "push": cmd_push,
         "pull": cmd_pull,
         "export": cmd_export,
+        "optimize": cmd_optimize,
     }
 
     return commands[args.command](args)
