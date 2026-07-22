@@ -214,11 +214,11 @@ def test_auto_wiring():
 
     with patch("nightmarenet.evaluation.metrics.compute_perplexity") as mock_ppl, \
          patch("nightmarenet.evaluation.metrics.classification_metrics") as mock_cls:
-        
+
         # Mock responses to bypass actual inference
         mock_ppl.return_value = {"perplexity": 2.0, "per_sample_ppls": [2.0]}
-        # We need a failure, so orig_preds != dist_preds. Since it is called twice (clean, then distorted)
-        # we can just use side_effect to return different predictions.
+        # We need a failure, so orig_preds != dist_preds. Since it is called
+        # twice (clean, then distorted), we use side_effect to return different predictions.
         mock_cls.side_effect = [
             {"per_sample_preds": [0], "per_sample_confs": [0.9]},  # Clean dataset
             {"per_sample_preds": [1], "per_sample_confs": [0.4]}   # Distorted dataset
