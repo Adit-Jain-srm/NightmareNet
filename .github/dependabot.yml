@@ -1,0 +1,96 @@
+version: 2
+updates:
+  # ---- Python (root pyproject.toml) ----
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels: ["dependencies"]
+    reviewers: ["Adit-Jain-srm"]
+    open-pull-requests-limit: 50
+    groups:
+      ml-deps:
+        patterns:
+          - "torch*"
+          - "transformers"
+          - "datasets"
+          - "accelerate"
+      dev-deps:
+        patterns:
+          - "pytest*"
+          - "ruff"
+          - "mypy"
+      other-deps:
+        patterns:
+          - "*"
+    # Torch/transformers major bumps are frequently breaking (API + CUDA
+    # compatibility) — require a human to review major version jumps
+    # instead of letting them auto-group into a mergeable PR.
+    ignore:
+      - dependency-name: "torch*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "transformers"
+        update-types: ["version-update:semver-major"]
+
+  # ---- Frontend (Next.js / React) ----
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels: ["dependencies"]
+    reviewers: ["Adit-Jain-srm"]
+    open-pull-requests-limit: 50
+    groups:
+      next-react:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+          - "@types/react*"
+      dev-deps:
+        patterns:
+          - "eslint*"
+          - "@types/*"
+          - "typescript"
+      other-deps:
+        patterns:
+          - "*"
+    # React 19 / Next 16 majors change APIs enough that they need manual
+    # review rather than auto-merge candidacy.
+    ignore:
+      - dependency-name: "next"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major"]
+
+  # ---- GitHub Actions ----
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(ci)"
+    labels: ["dependencies"]
+    reviewers: ["Adit-Jain-srm"]
+    open-pull-requests-limit: 50
+
+  # ---- Docker base images ----
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(ci)"
+    labels: ["dependencies"]
+    reviewers: ["Adit-Jain-srm"]
+    open-pull-requests-limit: 50

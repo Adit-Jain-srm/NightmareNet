@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import importlib.util
 import io
+import logging
+import os
+import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 try:
     from reportlab.lib.enums import TA_CENTER
@@ -27,15 +34,10 @@ PYHANKO_AVAILABLE = importlib.util.find_spec("pyhanko") is not None
 
 
 def _check_dependencies() -> None:
-    """Check if required dependencies are available."""
+    """Check if required dependencies are available for PDF generation."""
     if not REPORTLAB_AVAILABLE:
         raise ImportError(
             "reportlab is required for PDF generation. "
-            "Install with: pip install nightmarenet[compliance-pdf]"
-        )
-    if not PYHANKO_AVAILABLE:
-        raise ImportError(
-            "pyhanko is required for digital signatures. "
             "Install with: pip install nightmarenet[compliance-pdf]"
         )
 
@@ -80,6 +82,9 @@ def _create_cover_page(
     story.append(Spacer(1, 0.5 * inch))
 
     model_info = [
+        ["Model Name", report["model"].get("name") or "N/A"],
+        ["Model Type", report["model"].get("type") or "N/A"],
+        ["Dataset", report["dataset"].get("name") or "N/A"],
         ["Model Name", report["model"].get("name", "N/A")],
         ["Model Type", report["model"].get("type", "N/A")],
         ["Dataset", report["dataset"].get("name", "N/A")],
@@ -146,6 +151,10 @@ def _create_robustness_section(
     robustness = report["robustness"]
 
     content = [
+        ["Clean Accuracy", str(robustness.get("clean_accuracy", "N/A"))],
+        ["Distorted Accuracy", str(robustness.get("distorted_accuracy", "N/A"))],
+        ["AUC Robustness", str(robustness.get("auc_robustness", "N/A"))],
+        ["Delta", str(robustness.get("delta", "N/A"))],
         [
             ["Clean Accuracy", str(robustness.get("clean_accuracy", "N/A"))],
             ["Distorted Accuracy", str(robustness.get("distorted_accuracy", "N/A"))],
@@ -166,6 +175,8 @@ def _create_artifact_integrity_section(
     integrity = report["artifact_integrity"]
 
     content = [
+        ["Config SHA-256", integrity.get("config_sha256", "N/A")],
+        ["Model SHA-256", integrity.get("model_sha256", "N/A")],
         [
             ["Config SHA-256", integrity.get("config_sha256", "N/A")],
             ["Model SHA-256", integrity.get("model_sha256", "N/A")],
@@ -184,6 +195,10 @@ def _create_environment_section(
     env = report["environment"]
 
     content = [
+        ["Python Version", env.get("python_version", "N/A")],
+        ["Platform", env.get("platform", "N/A")],
+        ["PyTorch Version", env.get("pytorch_version", "N/A")],
+        ["GPU", env.get("gpu", "N/A")],
         [
             ["Python Version", env.get("python_version", "N/A")],
             ["Platform", env.get("platform", "N/A")],
@@ -275,6 +290,10 @@ def _create_appendix(
     story.append(Paragraph("Full Report Data (JSON format):", styles["Normal"]))
     story.append(Spacer(1, 0.1 * inch))
 
+    import json
+
+    json_str = json.dumps(report, indent=2, default=str)
+    story.append(Paragraph(f"<pre>{json_str}</pre>", styles["Code"]))
     import html
     import json
 
@@ -284,28 +303,140 @@ def _create_appendix(
     story.append(Spacer(1, 0.3 * inch))
 
 
+def _generate_ephemeral_cert() -> tuple[str, str]:
+    """Generate an ephemeral self-signed certificate and private key in temporary files.
+
+    Returns:
+        Tuple of (cert_file_path, key_file_path).
+    """
+    from datetime import timedelta
+
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(NameOID.COMMON_NAME, "NightmareNet Compliance Engine"),
+        ]
+    )
+    now = datetime.now(timezone.utc)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+    key_pem = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    cert_file = tempfile.NamedTemporaryFile("wb", suffix=".pem", delete=False)
+    key_file = tempfile.NamedTemporaryFile("wb", suffix=".pem", delete=False)
+    os.chmod(key_file.name, 0o600)
+
+    try:
+        cert_file.write(cert_pem)
+        cert_file.flush()
+        key_file.write(key_pem)
+        key_file.flush()
+    finally:
+        cert_file.close()
+        key_file.close()
+
+    return cert_file.name, key_file.name
+
+
 def _add_digital_signature(
     pdf_buffer: io.BytesIO,
     report: dict,
+    config: Optional[dict] = None,
 ) -> io.BytesIO:
-    """Add digital signature metadata to PDF."""
-    # For now, return the PDF as-is
-    # In a production environment, this would use a proper digital signature
-    # with a certificate authority. The metadata is already included in the
-    # document content via the appendix section.
+    """Add a cryptographic digital signature to the PDF using pyHanko.
+
+    Supports custom certificate configured via compliance.signing_cert_path
+    or generates an ephemeral self-signed certificate. Falls back gracefully
+    to returning the unsigned PDF buffer on any error.
+    """
     pdf_buffer.seek(0)
-    return pdf_buffer
+
+    if not PYHANKO_AVAILABLE:
+        logger.warning("pyHanko unavailable — returning unsigned PDF report.")
+        return pdf_buffer
+
+    cert_path = None
+    if config:
+        tracking_cfg = config.get("tracking", {})
+        compliance_cfg = tracking_cfg.get("compliance", {})
+        if isinstance(compliance_cfg, dict):
+            cert_path = compliance_cfg.get("signing_cert_path")
+
+    tmp_cert_path = None
+    tmp_key_path = None
+
+    try:
+        from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+        from pyhanko.sign import signers
+
+        if cert_path and Path(cert_path).exists():
+            signer = signers.SimpleSigner.load(key_file=cert_path, cert_file=cert_path)
+        else:
+            if cert_path:
+                logger.warning(
+                    "Configured signing_cert_path '%s' not found. "
+                    "Falling back to ephemeral self-signed certificate.",
+                    cert_path,
+                )
+            tmp_cert_path, tmp_key_path = _generate_ephemeral_cert()
+            signer = signers.SimpleSigner.load(key_file=tmp_key_path, cert_file=tmp_cert_path)
+
+        writer = IncrementalPdfFileWriter(pdf_buffer)
+        sig_meta = signers.PdfSignatureMetadata(
+            field_name="Signature1",
+            reason="EU AI Act Article 15 Compliance Report",
+            location="NightmareNet Compliance Engine",
+        )
+
+        signed_buffer = io.BytesIO()
+        signers.sign_pdf(writer, sig_meta, signer=signer, output=signed_buffer)
+        signed_buffer.seek(0)
+        return signed_buffer
+
+    except Exception as e:
+        logger.warning("PDF digital signature failed: %s. Returning unsigned PDF.", e)
+        pdf_buffer.seek(0)
+        return pdf_buffer
+
+    finally:
+        for path in (tmp_cert_path, tmp_key_path):
+            if path:
+                try:
+                    Path(path).unlink(missing_ok=True)
+                except Exception:
+                    pass
 
 
 def generate_pdf(
     report: dict,
     output_path: str,
+    config: Optional[dict] = None,
 ) -> str:
     """Generate a PDF compliance report with digital signature.
 
     Args:
         report: Compliance report dictionary from generate_report().
         output_path: Path where the PDF should be saved.
+        config: Optional configuration dictionary.
 
     Returns:
         Path to the generated PDF file.
@@ -355,6 +486,10 @@ def generate_pdf(
 
     # Content sections
     _create_robustness_section(report, story, styles)
+    _create_artifact_integrity_section(report, story, styles)
+    _create_environment_section(report, story, styles)
+    _create_eu_ai_act_section(report, story, styles)
+    _create_nist_section(report, story, styles)
     story.append(PageBreak())
     _create_artifact_integrity_section(report, story, styles)
     story.append(PageBreak())
@@ -370,7 +505,7 @@ def generate_pdf(
     doc.build(story)
 
     # Add digital signature
-    signed_pdf = _add_digital_signature(pdf_buffer, report)
+    signed_pdf = _add_digital_signature(pdf_buffer, report, config=config)
 
     # Write to file
     output_file = Path(output_path)

@@ -12,7 +12,7 @@ traffic.
 
 import json
 import logging
-from typing import Tuple
+from typing import Optional, Tuple, Union
 from xml.sax.saxutils import escape
 
 logger = logging.getLogger(__name__)
@@ -74,21 +74,29 @@ def _validate_score(score: float) -> float:
     return s
 
 
-def _render_svg(score: float, color: str) -> str:
+def _render_svg(score_or_text: Union[float, str], color: str) -> str:
     """Render the badge as an SVG string. Inputs are trusted (already validated)."""
-    score_text = f"{score:.2f}"
+    if isinstance(score_or_text, (int, float)):
+        value_text = f"{score_or_text:.2f}"
+    else:
+        value_text = str(score_or_text)
+
     label_safe = escape(_LABEL_TEXT)
-    value_safe = escape(score_text)
+    value_safe = escape(value_text)
     color_safe = escape(color)
 
+    val_width = max(_VALUE_WIDTH, len(value_text) * 7 + 10)
+    total_width = _LABEL_WIDTH + val_width
+
     label_cx = _LABEL_WIDTH / 2
-    value_cx = _LABEL_WIDTH + _VALUE_WIDTH / 2
+    value_cx = _LABEL_WIDTH + val_width / 2
+
     # Render text twice (shadow + main) for the classic shields.io
     # legibility trick — a 1px-down dark shadow improves contrast on
     # GitHub's light *and* dark themes.
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" '
-        f'width="{_TOTAL_WIDTH}" height="{_HEIGHT}" '
+        f'width="{total_width}" height="{_HEIGHT}" '
         f'role="img" aria-label="{label_safe}: {value_safe}">'
         f"<title>{label_safe}: {value_safe}</title>"
         f'<linearGradient id="s" x2="0" y2="100%">'
@@ -96,13 +104,13 @@ def _render_svg(score: float, color: str) -> str:
         f'<stop offset="1" stop-opacity=".1"/>'
         f"</linearGradient>"
         f'<clipPath id="r">'
-        f'<rect width="{_TOTAL_WIDTH}" height="{_HEIGHT}" rx="3" fill="#fff"/>'
+        f'<rect width="{total_width}" height="{_HEIGHT}" rx="3" fill="#fff"/>'
         f"</clipPath>"
         f'<g clip-path="url(#r)">'
         f'<rect width="{_LABEL_WIDTH}" height="{_HEIGHT}" fill="#555"/>'
-        f'<rect x="{_LABEL_WIDTH}" width="{_VALUE_WIDTH}" '
+        f'<rect x="{_LABEL_WIDTH}" width="{val_width}" '
         f'height="{_HEIGHT}" fill="{color_safe}"/>'
-        f'<rect width="{_TOTAL_WIDTH}" height="{_HEIGHT}" fill="url(#s)"/>'
+        f'<rect width="{total_width}" height="{_HEIGHT}" fill="url(#s)"/>'
         f"</g>"
         f'<g fill="#fff" text-anchor="middle" '
         f'font-family="Verdana,Geneva,DejaVu Sans,sans-serif" '
@@ -115,6 +123,97 @@ def _render_svg(score: float, color: str) -> str:
         f'<text x="{value_cx}" y="14">{value_safe}</text>'
         f"</g>"
         f"</svg>"
+    )
+
+
+def _extract_robustness_score(run: dict) -> Optional[float]:
+    """Extract robustness score (0.0 to 1.0) from a run dictionary."""
+    metrics = run.get("metrics") or {}
+    if not isinstance(metrics, dict):
+        metrics = {}
+
+    for key in ("robustness_score", "auc_robustness", "robustness"):
+        val = run.get(key)
+        if val is None:
+            val = metrics.get(key)
+        if isinstance(val, (int, float)) and not isinstance(val, bool):
+            return float(val)
+
+    comparison = run.get("comparison") or metrics.get("comparison") or {}
+    if isinstance(comparison, dict):
+        rob_metric = comparison.get("metrics", {}).get("robustness", {})
+        if isinstance(rob_metric, dict):
+            auc = rob_metric.get("trained", {}).get("auc_robustness")
+            if isinstance(auc, (int, float)) and not isinstance(auc, bool):
+                return float(auc)
+        for key in ("trained_auc", "auc_robustness", "robustness_score"):
+            auc = comparison.get(key)
+            if isinstance(auc, (int, float)) and not isinstance(auc, bool):
+                return float(auc)
+
+    trained_res = run.get("trained_results") or metrics.get("trained_results") or {}
+    if isinstance(trained_res, dict):
+        rob_res = trained_res.get("robustness", {})
+        if isinstance(rob_res, dict):
+            auc = rob_res.get("auc_robustness") or rob_res.get("score")
+            if isinstance(auc, (int, float)) and not isinstance(auc, bool):
+                return float(auc)
+        elif isinstance(rob_res, (int, float)) and not isinstance(rob_res, bool):
+            return float(rob_res)
+
+    return None
+
+
+def _get_latest_badge_color(score: float) -> str:
+    """Return badge color based on score threshold: green (>80%), yellow (50-80%), red (<50%)."""
+    if score > 0.80:
+        return "#22c55e"  # green
+    elif score >= 0.50:
+        return "#eab308"  # yellow
+    else:
+        return "#ef4444"  # red
+
+
+@router.get(
+    "/latest.svg",
+    summary="Render dynamic robustness badge from most recent run",
+    responses={
+        200: {"content": {"image/svg+xml": {}}},
+    },
+)
+async def latest_badge_svg() -> Response:
+    """Render dynamic SVG badge reflecting the robustness score of the most recent completed run."""
+    try:
+        from nightmarenet.pipeline_runner import list_all_runs
+
+        all_runs = list_all_runs(include_historical=True)
+    except Exception as e:
+        logger.warning("Failed to retrieve runs for latest badge: %s", e)
+        all_runs = []
+
+    completed_runs = [r for r in all_runs if isinstance(r, dict) and r.get("status") == "complete"]
+    completed_runs.sort(
+        key=lambda r: float(r.get("last_heartbeat") or r.get("start_time") or 0.0),
+        reverse=True,
+    )
+
+    score: Optional[float] = None
+    for run in completed_runs:
+        s = _extract_robustness_score(run)
+        if s is not None:
+            score = s
+            break
+
+    if score is None:
+        svg = _render_svg("no data", "#9f9f9f")
+    else:
+        color = _get_latest_badge_color(score)
+        svg = _render_svg(score, color)
+
+    return Response(
+        content=svg,
+        media_type=_SVG_CONTENT_TYPE,
+        headers={"Cache-Control": _CACHE_HEADER},
     )
 
 

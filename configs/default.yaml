@@ -126,6 +126,10 @@ tracking:
 
   # Generate EU AI Act Article 15 compliance reports
   compliance_report: false
+  # Optional: Path to X.509 signing certificate (.pem or .pfx/.p12) for PDF signing.
+  # If null or unset, an ephemeral self-signed certificate is generated.
+  compliance:
+    signing_cert_path: null
   # Optional: Automatically push the best hardened model checkpoint to HuggingFace Hub
   # upon successful completion of the full Wake/Dream/Nightmare/Compress pipeline cycle.
   # Leave blank or omit to disable auto-push.

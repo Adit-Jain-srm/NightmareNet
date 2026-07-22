@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-07-21
+
+### Added
+
+- GitHub Release automation with release-please (Release PRs, tags, notes)
+- Wheel/sdist attached to GitHub Releases via the tag-triggered release workflow
+- Release process documentation in `docs/releasing.md`
+
 ## [0.2.0] - 2026-07-01
 
 ### Added

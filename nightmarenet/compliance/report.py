@@ -288,4 +288,4 @@ def generate_pdf(
     run_id = tracker.run_id if tracker is not None else "latest"
     pdf_path = Path(output_dir) / f"{run_id}_compliance_report.pdf"
 
-    return generate_pdf_impl(report, str(pdf_path))
+    return generate_pdf_impl(report, str(pdf_path), config=config)

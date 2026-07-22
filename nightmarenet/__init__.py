@@ -1,6 +1,6 @@
 """NightmareNet: Autonomous AI Self-Improvement Platform."""
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"  # x-release-please-version
 
 try:
     from nightmarenet.distortions.registry import get_registry as get_registry

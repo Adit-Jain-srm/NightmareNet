@@ -2,7 +2,8 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 
-from nightmarenet.hub.core import _generate_model_card, pull_model, push_model
+from nightmarenet.hub.core import pull_model, push_model
+from nightmarenet.hub.model_card import generate_model_card
 
 
 def test_generate_model_card_formatting():
@@ -14,7 +15,7 @@ def test_generate_model_card_formatting():
         "distortion_families": ["text", "semantic"],
         "config": {"model": {"name": "distilbert-base-uncased"}},
     }
-    card_content = _generate_model_card(repo_id, metadata)
+    card_content = generate_model_card(repo_id, metadata)
     # Assert tag headers are present
     assert "nightmarenet" in card_content
     assert "robustness" in card_content

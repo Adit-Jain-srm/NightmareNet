@@ -1,0 +1,30 @@
+[
+  {
+    "phase": "wake",
+    "avg_loss": 2.693658638000488,
+    "total_steps": 5,
+    "cycle": 0
+  },
+  {
+    "phase": "dream",
+    "avg_loss": 2.301826238632202,
+    "avg_kl_loss": 0.018392960913479327,
+    "total_steps": 5,
+    "cycle": 0
+  },
+  {
+    "phase": "nightmare",
+    "avg_loss": 2.4951963424682617,
+    "total_steps": 5,
+    "cycle": 0
+  },
+  {
+    "phase": "compress",
+    "method": "magnitude",
+    "pruning_ratio": 0.1,
+    "pruned_params": 1117193,
+    "total_params": 11172032,
+    "sparsity": 0.09999908700583743,
+    "cycle": 0
+  }
+]
