@@ -109,6 +109,8 @@ compliance-pdf = [
     "reportlab>=4.0.0",
     "pyhanko>=0.23.0",
     "markdown>=3.5.0",
+art = [
+    "adversarial-robustness-toolbox>=1.15.0",
 ]
 
 [project.urls]

@@ -155,7 +155,19 @@ docker pull ghcr.io/adit-jain-srm/nightmarenet-worker:latest
 
 Images are also tagged with the release version (e.g. `v0.2.1`) and a short commit SHA (`sha-<hash>`).
 
+### Environment Configuration
+
+Copy the example environment files before starting the application:
+
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+Review the comments in each file and update the values as needed for your local environment.
+
 ### Local Development Setup (Recommended)
+
 To run both the FastAPI backend and Next.js frontend concurrently in your local environment, use the unified setup command:
 
 ```bash
@@ -183,16 +195,6 @@ This starts only:
 - ✅ `api`
 - ✅ `frontend`
 
-### Environment configuration
-
-Copy the example environment files before starting the project:
-
-```bash
-cp .env.example .env
-cp frontend/.env.example frontend/.env
-```
-
-Review the comments in each file and update the values as needed for your local environment.
 ### Hosted profile (planned infrastructure)
 
 To include the optional infrastructure services, enable the `hosted` profile:

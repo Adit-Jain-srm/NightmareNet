@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import torch
@@ -28,6 +28,109 @@ def _safe_float(value: float, default: float = 0.0) -> float:
         logger.warning("Detected NaN/Inf metric value, using default %.4f", default)
         return default
     return float(value)
+
+
+def categorize_failures_by_distortion(
+    failure_records: Optional[list[dict[str, Any]]] = None,
+    total_samples_per_distortion: Optional[dict[str, int]] = None,
+) -> dict[str, dict[str, Any]]:
+    """Group failed evaluation samples by distortion type and compute category statistics.
+
+    Args:
+        failure_records: List of per-sample evaluation records.
+            Each record dictionary may contain:
+            - "distortion_type" (or "distortion", "distortion_name", "type")
+            - "is_failure" (or "failed", "correct")
+            - "confidence_delta" (or "confidence_drop", "delta")
+            - "total_samples" (optional per-record sample count)
+        total_samples_per_distortion: Optional dict mapping distortion type names
+            to total sample counts evaluated for that distortion type.
+
+    Returns:
+        Deterministic dict mapping distortion types to:
+        {
+            "count": int,
+            "failure_rate": float,
+            "avg_confidence_delta": float
+        }
+        Sorted by highest failure rate, then failure count, then name.
+    """
+    if not failure_records:
+        return {}
+
+    stats: dict[str, dict[str, Any]] = {}
+
+    for rec in failure_records:
+        if not isinstance(rec, dict):
+            continue
+
+        dtype = str(
+            rec.get("distortion_type")
+            or rec.get("distortion")
+            or rec.get("distortion_name")
+            or rec.get("type")
+            or "unknown"
+        )
+
+        is_fail = rec.get("is_failure")
+        if is_fail is None:
+            is_fail = rec.get("failed")
+        if is_fail is None:
+            is_fail = not rec.get("correct") if "correct" in rec else True
+        is_fail = bool(is_fail)
+
+        raw_delta = rec.get("confidence_delta")
+        if raw_delta is None:
+            raw_delta = rec.get("confidence_drop", rec.get("delta", 0.0))
+        try:
+            conf_delta = _safe_float(float(raw_delta) if raw_delta is not None else 0.0)
+        except (ValueError, TypeError):
+            conf_delta = 0.0
+
+        if dtype not in stats:
+            stats[dtype] = {
+                "count": 0,
+                "total": 0,
+                "confidence_deltas": [],
+                "sample_total": rec.get("total_samples"),
+            }
+
+        stats[dtype]["total"] += 1
+        if is_fail:
+            stats[dtype]["count"] += 1
+            stats[dtype]["confidence_deltas"].append(conf_delta)
+
+    categories: dict[str, dict[str, Any]] = {}
+
+    for dtype, s in stats.items():
+        count = s["count"]
+        if total_samples_per_distortion and dtype in total_samples_per_distortion:
+            total = total_samples_per_distortion[dtype]
+        elif s["sample_total"] is not None:
+            total = int(s["sample_total"])
+        else:
+            total = s["total"]
+
+        total = max(total, count)
+        failure_rate = _safe_float(count / total) if total > 0 else 0.0
+        avg_conf_delta = (
+            _safe_float(sum(s["confidence_deltas"]) / count)
+            if count > 0 and s["confidence_deltas"]
+            else 0.0
+        )
+
+        categories[dtype] = {
+            "count": count,
+            "failure_rate": failure_rate,
+            "avg_confidence_delta": avg_conf_delta,
+        }
+
+    sorted_keys = sorted(
+        categories.keys(),
+        key=lambda k: (-categories[k]["failure_rate"], -categories[k]["count"], k),
+    )
+
+    return {k: categories[k] for k in sorted_keys}
 
 
 def compute_confidence_delta(clean_conf: float, dist_conf: float) -> float:
@@ -397,6 +500,8 @@ def robustness_score(
     max_length: int = 128,
     batch_size: int = 8,
     device="cpu",
+    failure_records: Optional[list[dict[str, Any]]] = None,
+    total_samples_per_distortion: Optional[dict[str, int]] = None,
     export_failures: bool = False,
 ) -> dict:
     """Compute robustness score under increasing distortion strengths.
@@ -414,12 +519,18 @@ def robustness_score(
         max_length: Max sequence length for tokenization.
         batch_size: Batch size for evaluation.
         device: Device to run inference on.
+        failure_records: Optional list of per-sample evaluation failure records.
+        total_samples_per_distortion: Optional mapping of distortion types to sample totals.
 
     Returns:
-        Dict with per-strength perplexities and AUC robustness score.
+        Dict with per-strength perplexities, AUC robustness score, and failure categories.
     """
     if strengths is None:
         strengths = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+    failure_categories = categorize_failures_by_distortion(
+        failure_records, total_samples_per_distortion
+    )
 
     is_vision = tokenizer is None or not hasattr(base_dataset, "map")
 
@@ -516,6 +627,7 @@ def robustness_score(
             "strengths": strengths,
             "accuracies": accuracies,
             "auc_robustness": _safe_float(auc),
+            "failure_categories": failure_categories,
         }
         if export_failures:
             res["per_sample_data"] = failures_data
@@ -669,6 +781,7 @@ def robustness_score(
         "strengths": strengths,
         "perplexities": [_safe_float(p, default=float("inf")) for p in perplexities],
         "auc_robustness": _safe_float(auc),
+        "failure_categories": failure_categories,
     }
     if export_failures:
         res["per_sample_data"] = failures_data

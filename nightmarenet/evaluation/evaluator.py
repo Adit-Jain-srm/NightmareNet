@@ -448,6 +448,15 @@ class Evaluator:
             if delta_auc is not None:
                 comparison["robustness_delta"] = delta_auc
 
+        failure_categories = (
+            trained_results.get("failure_categories")
+            or trained_results.get("robustness", {}).get("failure_categories")
+            or baseline_results.get("failure_categories")
+            or baseline_results.get("robustness", {}).get("failure_categories")
+        )
+        if failure_categories is not None:
+            comparison["failure_categories"] = failure_categories
+
         return comparison
 
     def save_results(self, results: dict, filename: str = "evaluation_results.json") -> None:
@@ -663,6 +672,30 @@ class Evaluator:
                 delta = r.get("deltas", {}).get(key, "N/A")
                 lines.append(f"| {key} | {_fmt(bl)} | {_fmt(tr)} | {_fmt(delta, signed=True)} |")
             lines.append("")
+
+        failure_cats = comparison.get("failure_categories")
+        if failure_cats is None and "robustness" in metrics:
+            failure_cats = metrics["robustness"].get("trained", {}).get("failure_categories")
+            if failure_cats is None:
+                failure_cats = metrics["robustness"].get("baseline", {}).get("failure_categories")
+
+        if failure_cats is not None:
+            lines.extend(["## Failure by Distortion Type", ""])
+            if failure_cats and any(cat.get("count", 0) > 0 for cat in failure_cats.values()):
+                lines.extend(
+                    [
+                        "| Distortion | Failures | Failure Rate | Avg Confidence Δ |",
+                        "|------------|----------|--------------|------------------|",
+                    ]
+                )
+                for dtype, cat in failure_cats.items():
+                    cnt = cat.get("count", 0)
+                    rate = cat.get("failure_rate", 0.0)
+                    avg_delta = cat.get("avg_confidence_delta", 0.0)
+                    lines.append(f"| {dtype} | {cnt} | {rate * 100:.1f}% | {avg_delta:.4f} |")
+                lines.append("")
+            else:
+                lines.extend(["No failures detected across evaluated distortion types.", ""])
 
         return "\n".join(lines)
 
