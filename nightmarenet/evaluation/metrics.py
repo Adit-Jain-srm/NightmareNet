@@ -622,6 +622,16 @@ def robustness_score(
             _trapz_fn = np.trapz  # type: ignore[attr-defined]
         auc = float(_trapz_fn(accuracies, strengths))
 
+        failure_categories = {}
+        if failure_records:
+            failure_categories = categorize_failures_by_distortion(
+                failure_records, total_samples_per_distortion
+            )
+        elif export_failures and failures_data:
+            failure_categories = categorize_failures_by_distortion(
+                failures_data, total_samples_per_distortion
+            )
+
         res = {
             "metric": "robustness",
             "strengths": strengths,
@@ -781,7 +791,7 @@ def robustness_score(
         failure_categories = categorize_failures_by_distortion(
             failure_records, total_samples_per_distortion
         )
-    elif export_failures and 'failures_data' in locals() and failures_data:
+    elif export_failures and failures_data:
         failure_categories = categorize_failures_by_distortion(
             failures_data, total_samples_per_distortion
         )
