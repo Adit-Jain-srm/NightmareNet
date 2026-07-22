@@ -448,12 +448,13 @@ class Evaluator:
             if delta_auc is not None:
                 comparison["robustness_delta"] = delta_auc
 
-        failure_categories = (
-            trained_results.get("failure_categories")
-            or trained_results.get("robustness", {}).get("failure_categories")
-            or baseline_results.get("failure_categories")
-            or baseline_results.get("robustness", {}).get("failure_categories")
-        )
+        failure_categories = trained_results.get("failure_categories")
+        if failure_categories is None:
+            failure_categories = trained_results.get("robustness", {}).get("failure_categories")
+        if failure_categories is None:
+            failure_categories = baseline_results.get("failure_categories")
+        if failure_categories is None:
+            failure_categories = baseline_results.get("robustness", {}).get("failure_categories")
         if failure_categories is not None:
             comparison["failure_categories"] = failure_categories
 
