@@ -1,0 +1,44 @@
+# Auto-merge safe Dependabot PRs after required CI checks pass.
+#
+# Eligible:
+#   - Any update that is NOT semver-major
+#   - Not associated with a security alert (those need human review)
+# Not eligible (manual review):
+#   - version-update:semver-major (breaking changes)
+#   - Security alert PRs (need impact assessment)
+#
+# Safety net: required status checks (Tests & Lint on 3.9/3.11/3.12) must
+# pass before the merge executes — if a minor bump breaks lint or tests,
+# it stays open for manual intervention.
+#
+# Requires: Settings → Allow auto-merge enabled.
+
+name: Dependabot auto-merge
+
+on:
+  pull_request:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  dependabot:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          alert-lookup: true
+
+      - name: Enable auto-merge for non-major updates
+        if: >
+          steps.metadata.outputs.alert-state == '' &&
+          steps.metadata.outputs.update-type != 'version-update:semver-major'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
