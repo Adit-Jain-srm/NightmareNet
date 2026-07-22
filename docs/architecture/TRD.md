@@ -556,77 +556,15 @@ flowchart LR
 
 ## 12. Architecture Decision Records
 
-### ADR-001: Sleep-Inspired Phase Architecture over Monolithic Training
+### ADR-0001: [Sleep-Inspired Phase Architecture over Monolithic Training](../adr/0001-sleep-inspired-phase-architecture-over-monolithic-training.md)
 
-**Status**: Accepted
-**Date**: 2026-03-15
-**Context**: Need a training methodology that addresses robustness, forgetting, and compression simultaneously.
-**Decision**: Implement 4 discrete phases (Wake/Dream/Nightmare/Compress) as separate classes rather than a single loss function combining all objectives.
-**Consequences**:
-- (+) Each phase is independently testable and configurable
-- (+) Phases can be reordered, repeated, or skipped via config
-- (+) Clear separation of concerns; easier to reason about
-- (+) Aligns with neuroscience literature (memory consolidation during sleep)
-- (-) More complex orchestration logic in Trainer
-- (-) Phase transitions introduce potential information loss
+### ADR-0002: [FastAPI over Flask/Django for API Layer](../adr/0002-fastapi-over-flask-django-for-api-layer.md)
 
-### ADR-002: FastAPI over Flask/Django for API Layer
+### ADR-0003: [In-Memory Pipeline Registry over Database-Backed Queue](../adr/0003-in-memory-pipeline-registry-over-database-backed-queue.md)
 
-**Status**: Accepted
-**Date**: 2026-03-20
-**Context**: Need a Python web framework that supports async operations, auto-generates OpenAPI docs, and integrates with Pydantic for type-safe validation.
-**Decision**: Use FastAPI as the API framework.
-**Consequences**:
-- (+) Native async support for concurrent request handling
-- (+) Automatic OpenAPI/Swagger documentation
-- (+) Pydantic v2 integration for request/response validation
-- (+) High performance (Starlette + uvicorn)
-- (-) Smaller community than Flask/Django (mitigated by rapid growth)
-- (-) Pydantic v2 incompatibility with `from __future__ import annotations`
+### ADR-0004: [Hybrid Open-Source + Hosted Platform Model](../adr/0004-hybrid-open-source-hosted-platform-model.md)
 
-### ADR-003: In-Memory Pipeline Registry over Database-Backed Queue
-
-**Status**: Accepted (revisit at scale)
-**Date**: 2026-04-01
-**Context**: Need to manage long-running training pipelines with start/stop/status semantics.
-**Decision**: Use bounded in-memory dictionary with threading locks. Cap at 64 runners (configurable). Evict completed runs first when at capacity.
-**Consequences**:
-- (+) Zero infrastructure dependencies for self-hosted users
-- (+) Simple implementation, easy to reason about
-- (+) Fast status lookups (O(1) dict access)
-- (-) State lost on process restart
-- (-) Not shared across API replicas
-- (-) Must migrate to persistent backend for hosted platform (Redis/PostgreSQL)
-
-### ADR-004: Hybrid Open-Source + Hosted Platform Model
-
-**Status**: Accepted
-**Date**: 2026-04-10
-**Context**: Need a go-to-market strategy that builds community adoption while generating revenue.
-**Decision**: Apache 2.0 open-source core (distortions, training, evaluation, CLI) with proprietary hosted platform (orchestration, multi-GPU, compliance, teams).
-**Consequences**:
-- (+) Low barrier to adoption; academic citations drive awareness
-- (+) Community contributions improve core quality
-- (+) Enterprise features justify premium pricing
-- (+) Compliance/audit features have clear value for paying customers
-- (-) Must maintain clear boundary between OSS and paid features
-- (-) Risk of competitors forking OSS core
-- (-) Must deliver enough value in hosted to justify pricing
-
-### ADR-005: Configuration-Driven over Code-Driven Experiments
-
-**Status**: Accepted
-**Date**: 2026-04-15
-**Context**: Users need reproducible experiments without modifying source code.
-**Decision**: All experiment parameters defined in YAML config files with schema validation. CLI accepts `--config` path. Python API accepts dict. No experiment requires code changes.
-**Consequences**:
-- (+) Full reproducibility via config file versioning
-- (+) Non-programmers can run experiments
-- (+) Config diffing shows exactly what changed between experiments
-- (+) Validates at load time with clear error messages
-- (-) Limited expressiveness compared to Python config (e.g., Hydra)
-- (-) Complex conditional logic requires config nesting
-- (-) Schema must be maintained in sync with implementation
+### ADR-0005: [Configuration-Driven over Code-Driven Experiments](../adr/0005-configuration-driven-over-code-driven-experiments.md)
 
 ---
 
