@@ -367,9 +367,43 @@ def cmd_distort(args: argparse.Namespace) -> int:
             print(f"✗ {message}", file=sys.stderr)
             return 1
 
-    # Handle --preset
-    if getattr(args, "preset", None):
-        preset_name = args.preset
+    # Handle --chain
+    if getattr(args, "chain", None):
+        from nightmarenet.distortions.dsl.executor import ChainExecutor
+        from nightmarenet.distortions.dsl.parser import parse_dsl_expression
+        from nightmarenet.distortions.dsl.schema import ChainConfig
+        from nightmarenet.exceptions import DSLSyntaxError
+
+        chain_expr = args.chain
+        text = args.text
+        strength = args.strength
+        seed = args.seed
+
+        try:
+            steps = parse_dsl_expression(chain_expr, validate_engines=True)
+            chain_config = ChainConfig(
+                name="inline_chain",
+                version="1.0",
+                description="Inline DSL chain",
+                chain=steps,
+            )
+            executor = ChainExecutor()
+            result = executor.execute(text, chain_config, overall_strength=strength, seed=seed)
+
+            print(f"Original:  {text}")
+            print(f"Distorted: {result}")
+            print(f"  Chain: {chain_expr}, Strength: {strength}")
+            return 0
+        except DSLSyntaxError as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 1
+        except Exception as e:
+            print(f"Error executing chain: {e}", file=sys.stderr)
+            return 1
+
+    # Handle --config / --preset
+    preset_name = getattr(args, "config", None)
+    if preset_name:
         text = args.text
         strength = args.strength
         seed = args.seed
@@ -816,7 +850,9 @@ def build_parser() -> argparse.ArgumentParser:
     distort_parser.add_argument(
         "--seed", type=int, default=None, help="Random seed for reproducibility"
     )
-    distort_parser.add_argument("--preset", help="Name of preset chain to apply")
+    config_chain_group = distort_parser.add_mutually_exclusive_group()
+    config_chain_group.add_argument("--config", "--preset", dest="config", help="Name of preset chain to apply")
+    config_chain_group.add_argument("--chain", help="Inline DSL expression string")
     distort_parser.add_argument(
         "--list-presets", action="store_true", help="List available preset chains"
     )

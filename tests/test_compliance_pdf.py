@@ -7,7 +7,21 @@ from pathlib import Path
 
 import pytest
 
-from nightmarenet.compliance.report import generate_pdf
+from nightmarenet.compliance.report import generate_report
+import nightmarenet.compliance.pdf_builder as pdf_builder
+
+
+def generate_pdf(config, comparison, model_path, output_dir, tracker=None):
+    """Helper to generate a report and then a PDF for testing."""
+    report = generate_report(
+        config=config,
+        comparison=comparison,
+        model_path=model_path,
+        output_dir=output_dir,
+        tracker=tracker,
+    )
+    output_path = str(Path(output_dir) / "compliance_report.pdf")
+    return pdf_builder.generate_pdf(report=report, output_path=output_path)
 
 
 @pytest.fixture
@@ -268,3 +282,70 @@ def test_pdf_builder_get_version():
     version = _get_version()
     assert isinstance(version, str)
     assert len(version) > 0
+
+
+def test_dynamic_toc_page_numbers(
+    sample_config,
+    sample_comparison,
+    sample_model_file,
+    tmp_path,
+):
+    """Test that TOC is generated dynamically with accurate page numbers."""
+    try:
+        from nightmarenet.compliance.pdf_builder import (
+            PYHANKO_AVAILABLE,
+            REPORTLAB_AVAILABLE,
+        )
+    except ImportError:
+        pytest.skip("PDF builder module not available")
+
+    if not (REPORTLAB_AVAILABLE and PYHANKO_AVAILABLE):
+        pytest.skip("PDF dependencies not installed")
+
+    import nightmarenet.compliance.pdf_builder as pdf_builder
+
+    # We will spy on multiBuild to inspect the story
+    original_multiBuild = pdf_builder.ComplianceDocTemplate.multiBuild
+
+    captured_story = []
+
+    def spy_multiBuild(self, story, *args, **kwargs):
+        captured_story.extend(story)
+        return original_multiBuild(self, story, *args, **kwargs)
+
+    pdf_builder.ComplianceDocTemplate.multiBuild = spy_multiBuild
+
+    output_dir = str(tmp_path / "output")
+    pdf_path = generate_pdf(
+        config=sample_config,
+        comparison=sample_comparison,
+        model_path=sample_model_file,
+        output_dir=output_dir,
+    )
+
+    pdf_builder.ComplianceDocTemplate.multiBuild = original_multiBuild
+
+    from reportlab.platypus.tableofcontents import TableOfContents
+
+    # Find the TOC flowable
+    toc = next((f for f in captured_story if isinstance(f, TableOfContents)), None)
+    assert toc is not None, "TableOfContents flowable missing from story"
+
+    # Ensure entries were added
+    assert len(toc._entries) > 0, "TOC should have entries"
+
+    # Verify we have "Robustness Metrics" and it has a page number
+    robustness_entry = next((e for e in toc._entries if e[1] == "Robustness Metrics"), None)
+    assert robustness_entry is not None, "Robustness Metrics missing from TOC"
+    assert robustness_entry[2] > 0, "Page number should be assigned dynamically"
+
+    # Verify "Artifact Integrity" is in TOC
+    artifact_entry = next((e for e in toc._entries if e[1] == "Artifact Integrity"), None)
+    assert artifact_entry is not None, "Artifact Integrity missing from TOC"
+    assert artifact_entry[2] >= robustness_entry[2], "Page numbers should monotonically increase"
+
+    # Ensure no hardcoded PageBreaks exist between content sections
+    from reportlab.platypus import PageBreak
+    pb_count = sum(1 for f in captured_story if isinstance(f, PageBreak))
+    assert pb_count <= 2, "Should only have PageBreaks for Cover and TOC"
+

@@ -18,12 +18,26 @@ try:
         Spacer,
         Table,
     )
+    from reportlab.platypus.tableofcontents import TableOfContents
 
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
 
 PYHANKO_AVAILABLE = importlib.util.find_spec("pyhanko") is not None
+
+
+if REPORTLAB_AVAILABLE:
+    class ComplianceDocTemplate(SimpleDocTemplate):
+        def afterFlowable(self, flowable):
+            """Register TOC entries dynamically."""
+            if flowable.__class__.__name__ == "Paragraph":
+                style_name = getattr(flowable.style, "name", "")
+                text = flowable.getPlainText()
+                if style_name == "Heading2" and text != "Table of Contents":
+                    self.notify("TOCEntry", (0, text, self.page))
+                elif style_name == "Heading3":
+                    self.notify("TOCEntry", (1, text, self.page))
 
 
 def _check_dependencies() -> None:
@@ -237,29 +251,32 @@ def _create_table_of_contents(
     story: list,
     styles: dict,
 ) -> None:
-    """Create a manual table of contents."""
+    """Create a dynamic table of contents."""
     story.append(Paragraph("Table of Contents", styles["Heading2"]))
     story.append(Spacer(1, 0.2 * inch))
 
-    toc_items = [
-        ["1. Robustness Metrics", "3"],
-        ["2. Artifact Integrity", "4"],
-        ["3. Runtime Environment", "5"],
-        ["4. EU AI Act Article 15 Mapping", "6"],
-        ["5. NIST AI RMF Mapping", "7"],
-        ["6. Appendix: Raw Metrics", "8"],
+    toc = TableOfContents()
+    toc.levelStyles = [
+        ParagraphStyle(
+            fontName="Helvetica",
+            fontSize=11,
+            name="TOCHeading1",
+            leftIndent=20,
+            firstLineIndent=-20,
+            spaceBefore=5,
+            leading=14,
+        ),
+        ParagraphStyle(
+            fontName="Helvetica",
+            fontSize=10,
+            name="TOCHeading2",
+            leftIndent=40,
+            firstLineIndent=-20,
+            spaceBefore=0,
+            leading=12,
+        ),
     ]
-
-    toc_table = Table(toc_items, colWidths=[3 * inch, 1 * inch])
-    toc_table.setStyle(
-        [
-            ("FONTNAME", (0, 0), (-1, -1), "Helvetica"),
-            ("FONTSIZE", (0, 0), (-1, -1), 11),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-            ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ]
-    )
-    story.append(toc_table)
+    story.append(toc)
     story.append(PageBreak())
 
 
@@ -319,7 +336,7 @@ def generate_pdf(
     pdf_buffer = io.BytesIO()
 
     # Setup document
-    doc = SimpleDocTemplate(
+    doc = ComplianceDocTemplate(
         pdf_buffer,
         pagesize=letter,
         rightMargin=72,
@@ -355,19 +372,14 @@ def generate_pdf(
 
     # Content sections
     _create_robustness_section(report, story, styles)
-    story.append(PageBreak())
     _create_artifact_integrity_section(report, story, styles)
-    story.append(PageBreak())
     _create_environment_section(report, story, styles)
-    story.append(PageBreak())
     _create_eu_ai_act_section(report, story, styles)
-    story.append(PageBreak())
     _create_nist_section(report, story, styles)
-    story.append(PageBreak())
     _create_appendix(report, story, styles)
 
-    # Build PDF
-    doc.build(story)
+    # Build PDF with multiBuild for dynamic TOC resolution
+    doc.multiBuild(story)
 
     # Add digital signature
     signed_pdf = _add_digital_signature(pdf_buffer, report)
