@@ -110,7 +110,9 @@ def generate_model_card(repo_id: str, metadata: Dict[str, Any]) -> str:
         try:
             resolved_path.relative_to(project_dir)
         except ValueError:
-            raise ValueError(f"Template path escapes the repository: {template_path}")
+            raise ValueError(
+                f"Template path escapes the project directory: {template_path}"
+            ) from None
 
         with open(resolved_path, encoding="utf-8") as f:
             template_content = f.read()

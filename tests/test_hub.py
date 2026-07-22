@@ -1,6 +1,6 @@
-import pytest
 from unittest.mock import MagicMock, patch
 
+import pytest
 import yaml
 
 from nightmarenet.hub.core import pull_model, push_model
@@ -87,6 +87,6 @@ def test_generate_model_card_path_traversal():
             }
         }
     }
-    with pytest.raises(ValueError, match="Template path escapes the repository"):
+    with pytest.raises(ValueError, match="Template path escapes the project directory"):
         generate_model_card(repo_id, metadata)
 
