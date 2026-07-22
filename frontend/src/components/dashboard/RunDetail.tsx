@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel } from "./Panel";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
 import { useToast } from "@/components/ui/Toast";
-import { cancelPipeline, getPipelineReport } from "@/lib/api";
+import { cancelPipeline, getPipelineReport, createPipeline } from "@/lib/api";
 import {
   IconActivity,
   IconClock,
@@ -151,7 +152,9 @@ const PHASE_DATA: Record<
 function ReRunMenu({ config }: { config: RunConfig }) {
   const [open, setOpen] = useState(false);
   const [focusIdx, setFocusIdx] = useState(0);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
@@ -192,21 +195,37 @@ function ReRunMenu({ config }: { config: RunConfig }) {
     buttonRefs.current[focusIdx]?.focus();
   }, [focusIdx, open]);
 
-  const fire = (preset: MutationPreset) => {
+  const fire = async (preset: MutationPreset) => {
+    setLoading(true);
     const next = preset.mutate(config);
-    toast.push({
-      title: `Re-run queued · ${preset.label}`,
-      description:
-        preset.id === "same"
-          ? "Reusing the original configuration."
-          : preset.diff(config),
-      variant: "info",
-      durationMs: 3200,
-    });
-    // TODO: wire to POST /api/v1/pipeline/create with this mutated config.
-    // For now the queue surface lives only client-side so reviewers can
-    // exercise the UX without an active training cluster.
-    setOpen(false);
+    try {
+      const res = await createPipeline({
+        source_type: "text",
+        model_name: next.modelName,
+        nightmare_strength: next.nightmareStrength,
+        dream_strength: next.dreamStrength,
+      });
+
+      toast.push({
+        title: `Re-run queued · ${preset.label}`,
+        description:
+          preset.id === "same"
+            ? "Reusing the original configuration."
+            : preset.diff(config),
+        variant: "info",
+        durationMs: 3200,
+      });
+      setOpen(false);
+      router.push(`/run/${res.run_id}`);
+    } catch (err: any) {
+      toast.push({
+        title: "Re-run failed",
+        description: err.message || "An unexpected error occurred",
+        variant: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -217,8 +236,10 @@ function ReRunMenu({ config }: { config: RunConfig }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        loading={loading}
+        disabled={loading}
       >
-        <IconRunning size={12} /> Re-run
+        <IconRunning size={12} /> {loading ? "Re-running..." : "Re-run"}
       </Button>
       <AnimatePresence>
         {open && (
