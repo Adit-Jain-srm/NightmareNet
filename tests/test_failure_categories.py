@@ -194,7 +194,7 @@ def test_missing_key_failure():
 
 def test_auto_wiring():
     """Test that failure_categories is populated in robustness_score."""
-    from unittest.mock import MagicMock
+    from unittest.mock import MagicMock, patch
 
     from nightmarenet.evaluation.metrics import robustness_score
 
@@ -211,12 +211,19 @@ def test_auto_wiring():
         pad_token_id = 0
 
     mock_model = MagicMock()
-    mock_model.return_value = type("Output", (), {})()
 
-    data = [{"distortion_type": "blur", "is_failure": True, "confidence_delta": 0.5}]
+    with patch("nightmarenet.evaluation.metrics.compute_perplexity") as mock_ppl, \
+         patch("nightmarenet.evaluation.metrics.classification_metrics") as mock_cls:
+        
+        # Mock responses to bypass actual inference
+        mock_ppl.return_value = {"perplexity": 2.0, "per_sample_ppls": [2.0]}
+        # We need a failure, so orig_preds != dist_preds. Since it is called twice (clean, then distorted)
+        # we can just use side_effect to return different predictions.
+        mock_cls.side_effect = [
+            {"per_sample_preds": [0], "per_sample_confs": [0.9]},  # Clean dataset
+            {"per_sample_preds": [1], "per_sample_confs": [0.4]}   # Distorted dataset
+        ]
 
-    # We pass failure_records to trigger the block
-    try:
         results = robustness_score(
             model=mock_model,
             base_dataset=DummyDataset(),
@@ -224,11 +231,8 @@ def test_auto_wiring():
             distortion_fn=lambda x, **kwargs: x,
             strengths=[0.1],
             export_failures=True,
-            failure_records=data,
+            failure_records=None,
         )
         assert "failure_categories" in results
-        assert results["failure_categories"]["blur"]["count"] == 1
-    except Exception:
-        # If model inference fails due to simplistic mocking, at least verify the wiring logic
-        # works by checking if failure_categories was accessed or the test reached this far
-        pass
+        # By default, metrics.py export logic uses "text_distortion" as distortion_type
+        assert results["failure_categories"]["text_distortion"]["count"] == 1

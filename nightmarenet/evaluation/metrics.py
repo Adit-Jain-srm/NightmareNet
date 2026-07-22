@@ -773,6 +773,7 @@ def robustness_score(
                         "distortion_type": "text_distortion",
                         "distortion_strength": float(strength),
                         "seed": 42,
+                        "is_failure": int(orig_preds[i]) != int(dist_preds[i]),
                     }
                 )
 
