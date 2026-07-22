@@ -25,15 +25,15 @@
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@types/node": "^20",
+    "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.2",
+    "eslint": "^10",
+    "eslint-config-next": "16.2.11",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^29.1.1",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^7",
     "vitest": "^4.1.10"
   }
 }
