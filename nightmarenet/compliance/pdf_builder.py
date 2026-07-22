@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import io
 from pathlib import Path
+from typing import Any
 
 try:
     from reportlab.lib.enums import TA_CENTER
@@ -51,9 +52,9 @@ def _get_version() -> str:
 
 
 def _create_cover_page(
-    report: dict,
-    story: list,
-    styles: dict,
+    report: dict[str, Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create cover page with report metadata."""
     title_style = ParagraphStyle(
@@ -100,9 +101,9 @@ def _create_cover_page(
 
 def _create_section(
     title: str,
-    content: list,
-    story: list,
-    styles: dict,
+    content: list[Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create a section with title and content."""
     story.append(Paragraph(title, styles["Heading2"]))
@@ -138,9 +139,9 @@ def _create_section(
 
 
 def _create_robustness_section(
-    report: dict,
-    story: list,
-    styles: dict,
+    report: dict[str, Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create robustness metrics section."""
     robustness = report["robustness"]
@@ -158,9 +159,9 @@ def _create_robustness_section(
 
 
 def _create_artifact_integrity_section(
-    report: dict,
-    story: list,
-    styles: dict,
+    report: dict[str, Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create artifact integrity section."""
     integrity = report["artifact_integrity"]
@@ -176,9 +177,9 @@ def _create_artifact_integrity_section(
 
 
 def _create_environment_section(
-    report: dict,
-    story: list,
-    styles: dict,
+    report: dict[str, Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create runtime environment section."""
     env = report["environment"]
@@ -196,9 +197,9 @@ def _create_environment_section(
 
 
 def _create_eu_ai_act_section(
-    report: dict,
-    story: list,
-    styles: dict,
+    report: dict[str, Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create EU AI Act mapping section."""
     eu_mapping = report["eu_ai_act"]
@@ -214,9 +215,9 @@ def _create_eu_ai_act_section(
 
 
 def _create_nist_section(
-    report: dict,
-    story: list,
-    styles: dict,
+    report: dict[str, Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create NIST AI RMF mapping section."""
     nist_mapping = report["nist_ai_rmf"]
@@ -234,8 +235,8 @@ def _create_nist_section(
 
 
 def _create_table_of_contents(
-    story: list,
-    styles: dict,
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create a manual table of contents."""
     story.append(Paragraph("Table of Contents", styles["Heading2"]))
@@ -264,9 +265,9 @@ def _create_table_of_contents(
 
 
 def _create_appendix(
-    report: dict,
-    story: list,
-    styles: dict,
+    report: dict[str, Any],
+    story: list[Any],
+    styles: dict[str, Any],
 ) -> None:
     """Create appendix with raw metrics."""
     story.append(Paragraph("Appendix: Raw Metrics", styles["Heading2"]))
@@ -286,7 +287,7 @@ def _create_appendix(
 
 def _add_digital_signature(
     pdf_buffer: io.BytesIO,
-    report: dict,
+    report: dict[str, Any],
 ) -> io.BytesIO:
     """Add digital signature metadata to PDF."""
     # For now, return the PDF as-is
@@ -298,7 +299,7 @@ def _add_digital_signature(
 
 
 def generate_pdf(
-    report: dict,
+    report: dict[str, Any],
     output_path: str,
 ) -> str:
     """Generate a PDF compliance report with digital signature.
@@ -345,7 +346,7 @@ def generate_pdf(
         styles["Code"].leading = 10
 
     # Build story
-    story: list = []
+    story: list[Any] = []
 
     # Cover page
     _create_cover_page(report, story, styles)
