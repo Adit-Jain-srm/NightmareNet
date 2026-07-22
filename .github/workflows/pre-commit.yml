@@ -1,0 +1,37 @@
+# Runs .pre-commit-config.yaml on every PR and on pushes to main.
+# Hooks: ruff lint, ruff format, trailing whitespace, end-of-file, YAML, large files.
+# Checks the PR/push diff only so existing repo-wide style debt does not block CI.
+# The duplicate "Lint with ruff" step was removed from ci.yml to avoid double-linting.
+
+name: Pre-commit
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  pre-commit:
+    name: Pre-commit hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run pre-commit on PR diff
+        if: github.event_name == 'pull_request'
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --from-ref ${{ github.event.pull_request.base.sha }} --to-ref ${{ github.event.pull_request.head.sha }}
+
+      - name: Run pre-commit on push range
+        if: github.event_name == 'push'
+        uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --from-ref ${{ github.event.before }} --to-ref ${{ github.sha }}
