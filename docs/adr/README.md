@@ -8,8 +8,8 @@ An **architecture decision record (ADR)** is a document that captures an importa
 
 Ensure all these requirements are met before creating a new ADR
 
-- [] This ADR does not already exist
-- [] It helps future developers understand the `why` of the architecture
+- [ ] This ADR does not already exist
+- [ ] It helps future developers understand the `why` of the architecture
 
 ### Next steps
 
