@@ -16,7 +16,7 @@ export async function GET() {
     
     try {
       content = await fs.readFile(changelogPath, 'utf-8');
-    } catch (err) {
+    } catch {
       // Fallback if deployed and file is not at '..'
       return NextResponse.json({ entries: [] });
     }
@@ -42,7 +42,7 @@ export async function GET() {
 
       const bulletMatch = line.match(/^-\s+(.*)/);
       if (bulletMatch && currentVersion) {
-        let text = bulletMatch[1];
+        const text = bulletMatch[1];
         let link = currentLink;
         
         const prMatch = text.match(/\(#(\d+)\)/);
