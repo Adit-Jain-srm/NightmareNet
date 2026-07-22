@@ -4,7 +4,7 @@
       "Body_upload_text_file_api_v1_upload_text_post": {
         "properties": {
           "file": {
-            "contentMediaType": "application/octet-stream",
+            "format": "binary",
             "title": "File",
             "type": "string"
           }
@@ -1575,13 +1575,6 @@
       },
       "ValidationError": {
         "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
           "loc": {
             "items": {
               "anyOf": [
@@ -1690,6 +1683,27 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/badge/latest.svg": {
+      "get": {
+        "description": "Render dynamic SVG badge reflecting the robustness score of the most recent completed run.",
+        "operationId": "latest_badge_svg_api_v1_badge_latest_svg_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "image/svg+xml": {}
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Render dynamic robustness badge from most recent run",
+        "tags": [
+          "Badge"
+        ]
+      }
+    },
     "/api/v1/badge/{score}.json": {
       "get": {
         "description": "Return JSON describing the badge so clients can render their own.",
