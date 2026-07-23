@@ -560,7 +560,12 @@ class CompressionPhase:
         pruning_method = self.config.get("pruning_method", "magnitude")
         method = self.config.get("method", "pruning")
 
-        logger.info("Compression Phase - Method: %s, Pruning Method: %s, Ratio: %.2f", method, pruning_method, pruning_ratio)
+        logger.info(
+            "Compression Phase - Method: %s, Pruning Method: %s, Ratio: %.2f",
+            method,
+            pruning_method,
+            pruning_ratio,
+        )
 
         # Snapshot teacher BEFORE pruning (for distillation)
         distillation_enabled = (method == "distillation")

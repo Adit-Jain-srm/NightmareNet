@@ -92,7 +92,7 @@ def run_distillation(
             batch = {k: v.to(device) for k, v in batch.items()}
 
             # Generate adversarial inputs (RSLAD: distill on adversarial data)
-            adv_batch = fgsm_perturb(student, batch, epsilon=epsilon)
+            adv_batch = fgsm_perturb(teacher, batch, epsilon=epsilon)
             adv_batch = {k: v.to(device) for k, v in adv_batch.items()}
 
             use_amp = scaler is not None

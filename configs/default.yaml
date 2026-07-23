@@ -75,14 +75,15 @@ distortion:
 
 # Compression configuration
 compression:
+  method: pruning              # "pruning" (existing) or "distillation" (RSLAD)
   pruning_ratio: 0.2
   pruning_method: magnitude             # "magnitude" or "bottleneck"
   bottleneck_rank_ratio: 0.5            # For bottleneck: ratio of reduced hidden dim
   finetune_after_prune: true
   finetune_epochs: 1
-  distillation: false
   distillation_temperature: 4.0
   distillation_alpha: 0.7
+  distillation_beta: 0.5       # Weight for adversarial KL divergence
   distillation_epochs: 1
 
 # Evaluation configuration
