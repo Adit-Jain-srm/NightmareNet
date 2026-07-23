@@ -132,3 +132,17 @@ class DataIngestError(NightmareNetError):
             msg,
             hint=hint or "verify the data source is reachable and correctly formatted",
         )
+
+
+class DSLSyntaxError(ValueError, NightmareNetError):
+    """Raised when a distortion DSL string expression cannot be parsed due to invalid syntax."""
+
+    def __init__(self, message: str, *, hint: Optional[str] = None) -> None:
+        self.message = message
+        self.hint = hint
+        ValueError.__init__(self, message)
+        NightmareNetError.__init__(
+            self,
+            message,
+            hint=hint or "check DSL expression syntax (e.g., 'typo(0.3) -> swap(0.1)')",
+        )

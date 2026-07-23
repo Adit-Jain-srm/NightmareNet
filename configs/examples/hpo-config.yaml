@@ -1,0 +1,52 @@
+# NightmareNet HPO Configuration Example
+# Run: nightmarenet optimize --config configs/examples/hpo-config.yaml
+
+model:
+  name: distilbert-base-uncased
+  type: masked_lm
+  max_length: 128
+  device: auto
+
+dataset:
+  name: wikitext
+  config: wikitext-2-raw-v1
+  text_column: text
+  max_samples: 200
+
+training:
+  wake_epochs: 1
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 1
+  batch_size: 8
+  learning_rate: 5.0e-5
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.75
+
+compression:
+  pruning_ratio: 0.15
+
+seed: 42
+
+hpo:
+  study_name: nightmarenet-robustness-search
+  storage: sqlite:///nightmarenet_hpo.db
+  direction: maximize
+  n_trials: 20
+  pruning: true
+  search_space:
+    training.learning_rate:
+      type: float
+      low: 1.0e-5
+      high: 1.0e-3
+      log: true
+    distortion.nightmare_strength:
+      type: float
+      low: 0.5
+      high: 0.95
+    training.batch_size:
+      type: categorical
+      choices: [4, 8, 16]

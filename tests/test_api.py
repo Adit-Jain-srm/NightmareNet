@@ -29,9 +29,11 @@ class TestHealthEndpoint:
         assert "version" in data
 
     def test_health_includes_version(self):
+        from nightmarenet import __version__
+
         response = client.get("/api/v1/health")
         data = response.json()
-        assert data["version"] == "0.2.0"
+        assert data["version"] == __version__
 
 
 class TestDreamEndpoint:

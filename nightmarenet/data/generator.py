@@ -45,15 +45,15 @@ class DreamDatasetGenerator:
         self,
         strength: float = 0.25,
         text_column: str = "text",
-        config: Optional[dict] = None,
+        config: Optional[dict[str, Any]] = None,
         seed: int = 42,
-    ):
+    ) -> None:
         self.strength = validate_strength(strength, "strength")
         self.text_column = text_column
         self.config = config or {}
         self.seed = seed
 
-    def _distort(self, example: dict) -> dict:
+    def _distort(self, example: dict[str, Any]) -> dict[str, Any]:
         """Apply dream-level distortions to a single example."""
         text = example[self.text_column]
         if not text or not text.strip():
@@ -92,7 +92,7 @@ class DreamDatasetGenerator:
 
         return {**example, self.text_column: result}
 
-    def generate(self, dataset):
+    def generate(self, dataset: Any) -> Any:
         """Generate a dream dataset by applying mild distortions.
 
         Args:
@@ -191,7 +191,7 @@ class NightmareDatasetGenerator:
         self,
         strength: float = 0.8,
         text_column: str = "text",
-        config: Optional[dict] = None,
+        config: Optional[dict[str, Any]] = None,
         seed: int = 42,
         strength_schedule: str = "uniform",
         strength_min: float = 0.3,
@@ -199,7 +199,7 @@ class NightmareDatasetGenerator:
         target_model: Optional[Any] = None,
         target_tokenizer: Optional[Any] = None,
         cycle_id: int = 0,
-    ):
+    ) -> None:
         self.strength = validate_strength(strength, "strength")
         self.text_column = text_column
         self.config = config or {}
@@ -230,7 +230,7 @@ class NightmareDatasetGenerator:
     def uses_gradient_learned(self) -> bool:
         """Return whether model-aware learned distortion is enabled."""
         adversarial = self.config.get("adversarial", {})
-        return (
+        return bool(
             adversarial.get("learned", 0.0) > 0.0
             and adversarial.get("learned_strategy", "attention") == "gradient"
         )
@@ -285,7 +285,7 @@ class NightmareDatasetGenerator:
 
         return strengths
 
-    def _distort(self, example: dict, strength: Optional[float] = None) -> dict:
+    def _distort(self, example: dict[str, Any], strength: Optional[float] = None) -> dict[str, Any]:
         """Apply nightmare-level distortions to a single example.
 
         Args:
@@ -345,7 +345,7 @@ class NightmareDatasetGenerator:
 
         return {**example, self.text_column: result}
 
-    def generate(self, dataset):
+    def generate(self, dataset: Any) -> Any:
         """Generate a nightmare dataset by applying extreme distortions.
 
         Args:
@@ -404,7 +404,7 @@ class NightmareDatasetGenerator:
         else:
             strengths = self._compute_strengths(len(dataset))
 
-            def _distort_with_strength(example, idx):
+            def _distort_with_strength(example: dict[str, Any], idx: int) -> dict[str, Any]:
                 return self._distort(example, strength=strengths[idx])
 
             nightmare_data = dataset.map(
@@ -445,7 +445,7 @@ class NightmareDatasetGenerator:
 
 
 def create_generators_from_config(
-    config: dict,
+    config: dict[str, Any],
 ) -> tuple[DreamDatasetGenerator, NightmareDatasetGenerator]:
     """Create dream and nightmare generators from a config dictionary.
 
@@ -479,18 +479,23 @@ def create_generators_from_config(
     return dream_gen, nightmare_gen
 
 
-class DistortedVisionDataset(torch.utils.data.Dataset):
-    def __init__(self, dataset, generator, phase="dream"):
-        self.dataset = dataset
-        self.generator = generator
-        self.phase = phase
-        self._cached_strengths = None
-        self._cached_strengths_len = None
+class DistortedVisionDataset(torch.utils.data.Dataset):  # type: ignore[misc]
+    def __init__(
+        self,
+        dataset: Any,
+        generator: Any,
+        phase: str = "dream",
+    ) -> None:
+        self.dataset: Any = dataset
+        self.generator: DreamDatasetGenerator | NightmareDatasetGenerator = generator
+        self.phase: str = phase
+        self._cached_strengths: Optional[list[float]] = None
+        self._cached_strengths_len: Optional[int] = None
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.dataset)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         item = self.dataset[idx]
         pixel_values = item["pixel_values"]
         labels = item["labels"]
@@ -500,7 +505,7 @@ class DistortedVisionDataset(torch.utils.data.Dataset):
         registry = get_vision_registry()
 
         # Retrieve engines matching the current phase
-        engines = []
+        engines: list[str] = []
         vision_config = self.generator.config.get("vision", {})
         if vision_config:
             for name, prob in vision_config.items():
@@ -520,7 +525,10 @@ class DistortedVisionDataset(torch.utils.data.Dataset):
         if self.phase == "nightmare" and sched != "uniform":
             ds_len = len(self.dataset)
             if self._cached_strengths is None or self._cached_strengths_len != ds_len:
-                self._cached_strengths = self.generator._compute_strengths(ds_len)
+                if hasattr(self.generator, "_compute_strengths"):
+                    self._cached_strengths = self.generator._compute_strengths(ds_len)
+                else:
+                    self._cached_strengths = [actual_strength] * ds_len
                 self._cached_strengths_len = ds_len
             if idx < len(self._cached_strengths):
                 actual_strength = self._cached_strengths[idx]
@@ -530,7 +538,7 @@ class DistortedVisionDataset(torch.utils.data.Dataset):
             if name in ["vision_fgsm", "vision_pgd"]:
                 fn = registry._engines.get(name)
                 if fn is not None and hasattr(fn, "__self__"):
-                    fn.__self__.model = self.generator.target_model
+                    fn.__self__.model = getattr(self.generator, "target_model", None)
             distorted = registry.apply(
                 name, distorted, strength=actual_strength, seed=self.generator.seed
             )

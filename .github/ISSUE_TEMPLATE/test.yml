@@ -1,0 +1,77 @@
+name: Testing
+description: Propose new tests or improvements to existing test coverage.
+title: "[Test]: "
+labels:
+  - testing
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping strengthen NightmareNet's test coverage. Please identify the behavior that is currently untested or insufficiently tested.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of NightmareNet needs additional test coverage?
+      options:
+        - Pipeline & Training
+        - Distortions
+        - Data & Ingestion
+        - Evaluation & Metrics
+        - API & CLI
+        - Frontend & Dashboard
+        - Documentation
+        - Testing & CI
+        - Infrastructure & Packaging
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: module
+    attributes:
+      label: Module to Test
+      description: Identify the module, component, function, or workflow that needs testing.
+      placeholder: nightmarenet.pipeline, frontend/src/components/..., CLI command, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: coverage-gap
+    attributes:
+      label: Current Coverage Gap
+      description: Explain what behavior, edge case, regression, or failure mode is currently untested.
+      placeholder: Describe the missing coverage and why it matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-test-cases
+    attributes:
+      label: Proposed Test Cases
+      description: List the tests that should be added or updated.
+      placeholder: |
+        - Valid input should ...
+        - Invalid input should ...
+        - Regression case should ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List concrete, checkable conditions that define when this issue is complete.
+      placeholder: |
+        - [ ] New tests cover the identified gap
+        - [ ] Existing tests continue to pass
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        > **Important:** Please read CONTRIBUTING.md in full before requesting assignment. Assignment requests without a technical approach will not be considered. PRs demonstrating thorough research, benchmarks, or creative approaches beyond minimum criteria may earn bonus XP labels.
+
