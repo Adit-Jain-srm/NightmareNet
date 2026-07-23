@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.1](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.3.0...nightmarenet-v0.3.1) (2026-07-23)
+
+
+### Bug Fixes
+
+* add @testing-library/dom peer dependency ([2f89603](https://github.com/Adit-Jain-srm/NightmareNet/commit/2f8960320f60cedb7309412cb79538732e6c4e80))
+* **deps:** add .npmrc with legacy-peer-deps to resolve ESLint 10 + TS 7 conflicts ([f80ee0b](https://github.com/Adit-Jain-srm/NightmareNet/commit/f80ee0b4b6f15fc7703cfbb0f30bb868fba2b165))
+* **deps:** add npm override for eslint-plugin-jsx-a11y ESLint 10 peer dep ([6aa7302](https://github.com/Adit-Jain-srm/NightmareNet/commit/6aa730286c38f6741e638120398d27b7b347f408))
+* **deps:** revert typescript to ^5 and eslint to ^9 (Next.js 16 incompatible with TS7/ESLint10) ([5c1cf7e](https://github.com/Adit-Jain-srm/NightmareNet/commit/5c1cf7eea1e8516ab0969c0b3647e363c29ba1bd))
+* regenerate frontend lockfile to match package.json versions ([0ed9e18](https://github.com/Adit-Jain-srm/NightmareNet/commit/0ed9e186dbb60bd4ac91500fd368414a1c872a4a))
+* remove turbopack.root __dirname from next.config.ts ([961d119](https://github.com/Adit-Jain-srm/NightmareNet/commit/961d119a3fd56f4993c883a18b9b68aa8da82bce))
+* secure model card template loading ([#455](https://github.com/Adit-Jain-srm/NightmareNet/issues/455)) ([e9465e5](https://github.com/Adit-Jain-srm/NightmareNet/commit/e9465e53b7cadb988f890aa51cc6ca711dd7474f))
+
+
+### Documentation
+
+* fix openapi.json to match CI Pydantic output (contentMediaType, ValidationError fields, status descriptions) ([45f53ef](https://github.com/Adit-Jain-srm/NightmareNet/commit/45f53efae399dae8b9c9883dbf9c0990eb2423e9))
+* regenerate openapi.json for v0.3.0 ([5cc3279](https://github.com/Adit-Jain-srm/NightmareNet/commit/5cc3279b03740902cbf7a38f611ba237be3bdd2d)), closes [#457](https://github.com/Adit-Jain-srm/NightmareNet/issues/457)
+
 ## [0.3.0](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.2.1...nightmarenet-v0.3.0) (2026-07-22)
 
 
