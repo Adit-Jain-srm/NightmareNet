@@ -29,13 +29,30 @@ Tags look like `v0.2.1` (leading `v`).
    - updates `CHANGELOG.md`
    - updates `.release-please-manifest.json`
 4. Merge the Release PR.
-5. release-please creates the git tag and a GitHub Release with auto-generated notes.
+5. release-please creates the git tag and a GitHub Release while preserving the
+   curated changelog body.
 6. The tag triggers `.github/workflows/release.yml`, which:
    - builds the wheel and sdist
    - attaches them to the GitHub Release
    - publishes to PyPI (trusted publishing / `pypi` environment)
 
 No manual tagging is required for day-to-day releases after the bootstrap below.
+
+## Release token configuration
+
+Configure a fine-grained personal access token (PAT) in the repository settings
+as the `RELEASE_PLEASE_TOKEN` Actions secret. The token needs:
+
+- `Contents: write`, so release-please can create the release tag
+- `Pull requests: write`, so release-please can open and update the Release PR
+- `Issues: write`, so release-please can apply its Release PR labels
+
+When this secret is configured, release-please uses it to create the tag and the
+tag-triggered release workflow runs automatically. If the secret is unavailable,
+the workflow deliberately falls back to the default `GITHUB_TOKEN` and logs a
+warning. release-please can still open or update the Release PR, but a tag created
+with that fallback token will not trigger the downstream release workflow. In that
+case, a maintainer must push the release tag manually after reviewing the Release PR.
 
 ## Bootstrap: first release (`v0.2.1`)
 
@@ -49,7 +66,7 @@ git tag v0.2.1
 git push origin v0.2.1
 ```
 
-That runs `release.yml`: changelog/notes on the GitHub Release, wheel/sdist
+That runs `release.yml`: the curated changelog/notes on the GitHub Release, wheel/sdist
 assets, and PyPI publish (if the `pypi` environment is configured).
 
 Later releases should go through release-please only (do not hand-edit version

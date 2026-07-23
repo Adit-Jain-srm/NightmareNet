@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import pytest
 import yaml
 
 from nightmarenet.hub.core import pull_model, push_model
@@ -61,3 +62,31 @@ def test_pull_model_execution(mock_snapshot, tmp_path):
     mock_snapshot.assert_called_once_with(
         repo_id="test-org/public-weights", local_dir=str(target_dir), token=None
     )
+
+
+def test_generate_model_card_null_hub_config():
+    """Verify that a null 'hub' config does not crash generate_model_card."""
+    repo_id = "test-org/robust-model"
+    metadata = {
+        "config": {
+            "hub": None
+        }
+    }
+    # Should not raise an exception
+    card_content = generate_model_card(repo_id, metadata)
+    assert "NightmareNet Hardened Model" in card_content
+
+
+def test_generate_model_card_path_traversal():
+    """Verify that generate_model_card rejects templates outside the project directory."""
+    repo_id = "test-org/robust-model"
+    metadata = {
+        "config": {
+            "hub": {
+                "model_card_template": "/etc/passwd"
+            }
+        }
+    }
+    with pytest.raises(ValueError, match="Template path escapes the project directory"):
+        generate_model_card(repo_id, metadata)
+

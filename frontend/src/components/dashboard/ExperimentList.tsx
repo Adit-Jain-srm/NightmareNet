@@ -265,10 +265,17 @@ export function ExperimentList({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [experimentToDelete, setExperimentToDelete] = useState<string | null>(null);
   const toast = useToast();
+  const [localNames, setLocalNames] = useState<Record<string, string>>({});
 
   // `experiments` defaults to the demo sample — callers can pass `[]` to
   // exercise the empty state, or a real dataset once the runs API is wired.
-  const source = experiments ?? SAMPLE;
+  const source = useMemo(() => {
+    const base = experiments ?? SAMPLE;
+    if (Object.keys(localNames).length === 0) return base;
+    return base.map((exp) =>
+      localNames[exp.id] ? { ...exp, name: localNames[exp.id] } : exp
+    );
+  }, [experiments, localNames]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -350,6 +357,27 @@ export function ExperimentList({
       });
     }
   }, [onSectionChange, toast]);
+
+  const handleRename = useCallback(async (id: string, newName: string) => {
+    // Optimistic update
+    setLocalNames(prev => ({ ...prev, [id]: newName }));
+    try {
+      await updateExperiment(id, { name: newName });
+    } catch (error) {
+      // Revert on failure
+      setLocalNames(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      toast.push({
+        title: "Rename failed",
+        description: "Failed to update experiment name.",
+        variant: "error",
+      });
+      throw error; // Let InlineEdit know it failed
+    }
+  }, [toast]);
 
   const handleDelete = useCallback((id: string) => {
     setExperimentToDelete(id);
@@ -481,7 +509,11 @@ export function ExperimentList({
       sortable: true,
       cell: (r) => (
         <div className="min-w-0">
-          <p className="truncate text-sm text-slate-100">{r.name}</p>
+          <InlineEdit
+            value={r.name}
+            onSave={(newName) => handleRename(r.id, newName)}
+            className="truncate text-sm text-slate-100 block"
+          />
           <p className="font-mono text-[10px] text-slate-400">{r.id}</p>
         </div>
       ),

@@ -1,23 +1,16 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "./AppShell";
 import type { DashboardSectionKey } from "./Sidebar";
-import { CommandCenter } from "./CommandCenter";
-import { ExperimentList } from "./ExperimentList";
-import { RunDetail } from "./RunDetail";
-import { PhaseVisualizer } from "./PhaseVisualizer";
-import { LiveMetrics } from "./LiveMetrics";
-import { RobustnessRadar } from "./RobustnessRadar";
-import { ModelComparison } from "./ModelComparison";
-import { DistortionPreview } from "./DistortionPreview";
-import { AuditTrail } from "./AuditTrail";
-import { BenchmarkSuite } from "./BenchmarkSuite";
-import { CIIntegration } from "./CIIntegration";
-import { SettingsPanel } from "./SettingsPanel";
-import { DataQuality } from "./DataQuality";
+import {
+  Skeleton,
+  SkeletonChart,
+  SkeletonRows,
+  SkeletonStatTile,
+} from "@/components/ui/Skeleton";
 import { OnboardingOverlay } from "./OnboardingOverlay";
 import { WhatsNew } from "./WhatsNew";
 import { KeyboardHelp } from "./KeyboardHelp";
@@ -25,6 +18,109 @@ import { AskNightmareDock } from "./AskNightmareDock";
 import { ToastProvider, useToast } from "../ui/Toast";
 import { useGlobalShortcuts } from "./useGlobalShortcuts";
 import { useSounds } from "@/lib/sounds";
+
+
+const CommandCenter = lazy(() =>
+  import("./CommandCenter").then((module) => ({
+    default: module.CommandCenter,
+  })),
+);
+const ExperimentList = lazy(() =>
+  import("./ExperimentList").then((module) => ({
+    default: module.ExperimentList,
+  })),
+);
+const RunDetail = lazy(() =>
+  import("./RunDetail").then((module) => ({ default: module.RunDetail })),
+);
+const PhaseVisualizer = lazy(() =>
+  import("./PhaseVisualizer").then((module) => ({
+    default: module.PhaseVisualizer,
+  })),
+);
+const LiveMetrics = lazy(() =>
+  import("./LiveMetrics").then((module) => ({ default: module.LiveMetrics })),
+);
+const RobustnessRadar = lazy(() =>
+  import("./RobustnessRadar").then((module) => ({
+    default: module.RobustnessRadar,
+  })),
+);
+const ModelComparison = lazy(() =>
+  import("./ModelComparison").then((module) => ({
+    default: module.ModelComparison,
+  })),
+);
+const DistortionPreview = lazy(() =>
+  import("./DistortionPreview").then((module) => ({
+    default: module.DistortionPreview,
+  })),
+);
+const AuditTrail = lazy(() =>
+  import("./AuditTrail").then((module) => ({ default: module.AuditTrail })),
+);
+const BenchmarkSuite = lazy(() =>
+  import("./BenchmarkSuite").then((module) => ({
+    default: module.BenchmarkSuite,
+  })),
+);
+const CIIntegration = lazy(() =>
+  import("./CIIntegration").then((module) => ({
+    default: module.CIIntegration,
+  })),
+);
+const SettingsPanel = lazy(() =>
+  import("./SettingsPanel").then((module) => ({
+    default: module.SettingsPanel,
+  })),
+);
+const DataQuality = lazy(() =>
+  import("./DataQuality").then((module) => ({ default: module.DataQuality })),
+);
+
+type DashboardPanelFallbackProps = {
+  label: string;
+  variant?: "chart" | "rows" | "stats" | "panel";
+};
+
+function DashboardPanelFallback({
+  label,
+  variant = "panel",
+}: DashboardPanelFallbackProps) {
+  return (
+    <section
+      aria-label={`${label} loading`}
+      aria-busy="true"
+      className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4"
+    >
+      <span className="sr-only">Loading {label}</span>
+      {variant === "chart" && <SkeletonChart />}
+      {variant === "rows" && <SkeletonRows rows={5} />}
+      {variant === "stats" && <SkeletonStatTile />}
+      {variant === "panel" && (
+        <div className="space-y-3" aria-hidden="true">
+          <Skeleton height={18} width="35%" />
+          <Skeleton height={12} width="70%" />
+          <Skeleton height={180} width="100%" rounded="lg" />
+        </div>
+      )}
+    </section>
+  );
+}
+
+type PanelSuspenseProps = DashboardPanelFallbackProps & {
+  children: ReactNode;
+};
+
+function PanelSuspense({ children, label, variant }: PanelSuspenseProps) {
+  return (
+    <Suspense
+      fallback={<DashboardPanelFallback label={label} variant={variant} />}
+    >
+      {children}
+    </Suspense>
+  );
+}
 
 type SectionMeta = {
   title: string;
@@ -134,90 +230,114 @@ function DashboardRootInner() {
           {section === "command-center" && (
             <>
               <motion.div variants={fadeIn}>
-                <CommandCenter />
+                <PanelSuspense label="Command Center" variant="stats">
+                  <CommandCenter />
+                </PanelSuspense>
               </motion.div>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <motion.div variants={fadeIn}>
-                  <PhaseVisualizer activePhase={2} />
+                  <PanelSuspense label="Phase Visualizer">
+                    <PhaseVisualizer activePhase={2} />
+                  </PanelSuspense>
                 </motion.div>
                 <motion.div variants={fadeIn}>
-                  <RobustnessRadar />
+                  <PanelSuspense label="Robustness Radar">
+                    <RobustnessRadar />
+                  </PanelSuspense>
                 </motion.div>
               </div>
               <motion.div variants={fadeIn}>
-                <LiveMetrics />
+                <PanelSuspense label="Live Metrics" variant="chart">
+                  <LiveMetrics />
+                </PanelSuspense>
               </motion.div>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <motion.div variants={fadeIn}>
-                  <DistortionPreview />
+                  <PanelSuspense label="Distortion Preview">
+                    <DistortionPreview />
+                  </PanelSuspense>
                 </motion.div>
                 <motion.div variants={fadeIn}>
-                  <AuditTrail />
+                  <PanelSuspense label="Audit Trail" variant="rows">
+                    <AuditTrail />
+                  </PanelSuspense>
                 </motion.div>
               </div>
             </>
           )}
 
           <ErrorBoundary
-  fallbackTitle="Experiments unavailable"
-  fallbackMessage="The experiment list failed to render. Retry this panel or report the issue."
->
-
-          {section === "experiments" && (
-            <motion.div variants={fadeIn}>
-              <ExperimentList onSectionChange={navigate} />
-            </motion.div>
-          )}
-
+            fallbackTitle="Experiments unavailable"
+            fallbackMessage="The experiment list failed to render. Retry this panel or report the issue."
+          >
+            {section === "experiments" && (
+              <motion.div variants={fadeIn}>
+                <PanelSuspense label="Experiments" variant="rows">
+                  <ExperimentList onSectionChange={navigate} />
+                </PanelSuspense>
+              </motion.div>
+            )}
           </ErrorBoundary>
 
           <ErrorBoundary
-  fallbackTitle="Run details unavailable"
-  fallbackMessage="The selected run details failed to render. Retry this panel or report the issue."
->
-          {section === "run-detail" && (
-            <>
-              <motion.div variants={fadeIn}>
-                <RunDetail />
-              </motion.div>
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            fallbackTitle="Run details unavailable"
+            fallbackMessage="The selected run details failed to render. Retry this panel or report the issue."
+          >
+            {section === "run-detail" && (
+              <>
                 <motion.div variants={fadeIn}>
-                  <LiveMetrics />
+                  <PanelSuspense label="Run Detail">
+                    <RunDetail />
+                  </PanelSuspense>
                 </motion.div>
-                <motion.div variants={fadeIn}>
-                  <RobustnessRadar />
-                </motion.div>
-              </div>
-            </>
-          )}
-
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <motion.div variants={fadeIn}>
+                    <PanelSuspense label="Live Metrics" variant="chart">
+                      <LiveMetrics />
+                    </PanelSuspense>
+                  </motion.div>
+                  <motion.div variants={fadeIn}>
+                    <PanelSuspense label="Robustness Radar">
+                      <RobustnessRadar />
+                    </PanelSuspense>
+                  </motion.div>
+                </div>
+              </>
+            )}
           </ErrorBoundary>
 
           {section === "phases" && (
             <motion.div variants={fadeIn}>
-              <PhaseVisualizer activePhase={1} />
+              <PanelSuspense label="Phase Visualizer">
+                <PhaseVisualizer activePhase={1} />
+              </PanelSuspense>
             </motion.div>
           )}
 
           <ErrorBoundary
-  fallbackTitle="Live metrics unavailable"
-  fallbackMessage="Live metrics failed to render. Other dashboard panels remain available."
->
-          {section === "metrics" && (
-            <motion.div variants={fadeIn}>
-              <LiveMetrics />
-            </motion.div>
-          )}
-
+            fallbackTitle="Live metrics unavailable"
+            fallbackMessage="Live metrics failed to render. Other dashboard panels remain available."
+          >
+            {section === "metrics" && (
+              <motion.div variants={fadeIn}>
+                <PanelSuspense label="Live Metrics" variant="chart">
+                  <LiveMetrics />
+                </PanelSuspense>
+              </motion.div>
+            )}
           </ErrorBoundary>
 
           {section === "robustness" && (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
               <motion.div className="lg:col-span-2" variants={fadeIn}>
-                <RobustnessRadar />
+                <PanelSuspense label="Robustness Radar">
+                  <RobustnessRadar />
+                </PanelSuspense>
               </motion.div>
               <motion.div variants={fadeIn}>
-                <ModelComparison />
+                <PanelSuspense label="Model Comparison">
+                  <ModelComparison />
+                </PanelSuspense>
               </motion.div>
             </div>
           )}
@@ -225,47 +345,63 @@ function DashboardRootInner() {
           {section === "compare" && (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <motion.div variants={fadeIn}>
-                <ModelComparison />
+                <PanelSuspense label="Model Comparison">
+                  <ModelComparison />
+                </PanelSuspense>
               </motion.div>
               <motion.div variants={fadeIn}>
-                <RobustnessRadar />
+                <PanelSuspense label="Robustness Radar">
+                  <RobustnessRadar />
+                </PanelSuspense>
               </motion.div>
             </div>
           )}
 
           {section === "distortions" && (
             <motion.div variants={fadeIn}>
-              <DistortionPreview />
+              <PanelSuspense label="Distortion Preview">
+                <DistortionPreview />
+              </PanelSuspense>
             </motion.div>
           )}
 
           {section === "data-quality" && (
             <motion.div variants={fadeIn}>
-              <DataQuality />
+              <PanelSuspense label="Data Quality" variant="rows">
+                <DataQuality />
+              </PanelSuspense>
             </motion.div>
           )}
 
           {section === "audit" && (
             <motion.div variants={fadeIn}>
-              <AuditTrail />
+              <PanelSuspense label="Audit Trail" variant="rows">
+                <AuditTrail />
+              </PanelSuspense>
             </motion.div>
           )}
 
           {section === "benchmarks" && (
             <motion.div variants={fadeIn}>
-              <BenchmarkSuite />
+              <PanelSuspense label="Benchmark Suite" variant="rows">
+                <BenchmarkSuite />
+              </PanelSuspense>
             </motion.div>
           )}
 
           {section === "ci" && (
             <motion.div variants={fadeIn}>
-              <CIIntegration />
+              <PanelSuspense label="CI Integration">
+                <CIIntegration />
+              </PanelSuspense>
             </motion.div>
           )}
 
           {section === "settings" && (
             <motion.div variants={fadeIn}>
-              <SettingsPanel />
+              <PanelSuspense label="Settings">
+                <SettingsPanel />
+              </PanelSuspense>
             </motion.div>
           )}
         </motion.div>
