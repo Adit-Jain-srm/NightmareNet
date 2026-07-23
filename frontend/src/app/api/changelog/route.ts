@@ -32,7 +32,7 @@ export async function GET() {
       if (versionMatch) {
         currentVersion = versionMatch[1];
         currentDate = versionMatch[2] || '';
-        currentLink = `https://github.com/nightmarenet/nightmarenet/releases/tag/v${currentVersion}`;
+        currentLink = `https://github.com/Adit-Jain-srm/NightmareNet/releases/tag/v${currentVersion}`;
         continue;
       }
       
@@ -47,7 +47,7 @@ export async function GET() {
         
         const prMatch = text.match(/\(#(\d+)\)/);
         if (prMatch) {
-          link = `https://github.com/nightmarenet/nightmarenet/pull/${prMatch[1]}`;
+          link = `https://github.com/Adit-Jain-srm/NightmareNet/pull/${prMatch[1]}`;
         }
         
         entries.push({
