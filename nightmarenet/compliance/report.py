@@ -9,6 +9,7 @@ import platform
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -28,7 +29,7 @@ def _sha256_file(path: str) -> str:
     return sha.hexdigest()
 
 
-def _config_hash(config: dict) -> str:
+def _config_hash(config: dict[str, Any]) -> str:
     """Generate deterministic hash of configuration."""
 
     payload = json.dumps(config, sort_keys=True).encode()
@@ -36,7 +37,7 @@ def _config_hash(config: dict) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
-def _environment() -> dict:
+def _environment() -> dict[str, Any]:
     """Collect runtime environment information."""
 
     gpu = None
@@ -52,7 +53,7 @@ def _environment() -> dict:
     }
 
 
-def _eu_ai_mapping() -> dict:
+def _eu_ai_mapping() -> dict[str, Any]:
     """Map generated evidence to EU AI Act Article 15."""
 
     return {
@@ -68,7 +69,7 @@ def _eu_ai_mapping() -> dict:
     }
 
 
-def _nist_mapping() -> dict:
+def _nist_mapping() -> dict[str, Any]:
     """Map outputs to NIST AI RMF."""
 
     return {
@@ -92,11 +93,11 @@ def _nist_mapping() -> dict:
 
 
 def _build_report(
-    config: dict,
-    comparison: dict,
+    config: dict[str, Any],
+    comparison: dict[str, Any],
     model_path: str,
-    tracker=None,
-) -> dict:
+    tracker: Any = None,
+) -> dict[str, Any]:
     """Build the compliance report dictionary."""
 
     config_hash = _config_hash(config)
@@ -169,7 +170,7 @@ def _build_report(
     return report
 
 
-def _generate_markdown(report: dict) -> str:
+def _generate_markdown(report: dict[str, Any]) -> str:
     """Generate a human-readable markdown compliance report."""
 
     lines = [
@@ -218,12 +219,12 @@ def _generate_markdown(report: dict) -> str:
 
 
 def generate_report(
-    config: dict,
-    comparison: dict,
+    config: dict[str, Any],
+    comparison: dict[str, Any],
     model_path: str,
     output_dir: str = "results",
-    tracker=None,
-) -> dict:
+    tracker: Any = None,
+) -> dict[str, Any]:
     """Generate and save a compliance report.
 
     Creates both JSON and Markdown reports and returns the report dictionary.
@@ -253,11 +254,11 @@ def generate_report(
 
 
 def generate_pdf(
-    config: dict,
-    comparison: dict,
+    config: dict[str, Any],
+    comparison: dict[str, Any],
     model_path: str,
     output_dir: str = "results",
-    tracker=None,
+    tracker: Any = None,
 ) -> str:
     """Generate a PDF compliance report with digital signature.
 

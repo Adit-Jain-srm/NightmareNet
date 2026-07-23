@@ -1,4 +1,5 @@
 import os
+import pathlib
 import platform
 from typing import Any, Dict
 
@@ -74,8 +75,9 @@ def generate_model_card(repo_id: str, metadata: Dict[str, Any]) -> str:
     )
 
     # Try to extract template from config
-    config = metadata.get("config", {})
-    template_path = config.get("hub", {}).get("model_card_template", None)
+    config = metadata.get("config") or {}
+    hub_cfg = config.get("hub") or {}
+    template_path = hub_cfg.get("model_card_template")
 
     # System info
     try:
@@ -102,7 +104,17 @@ def generate_model_card(repo_id: str, metadata: Dict[str, Any]) -> str:
     }
 
     if template_path:
-        with open(template_path, encoding="utf-8") as f:
+        resolved_path = pathlib.Path(template_path).resolve()
+        project_dir = pathlib.Path.cwd().resolve()
+
+        try:
+            resolved_path.relative_to(project_dir)
+        except ValueError:
+            raise ValueError(
+                f"Template path escapes the project directory: {template_path}"
+            ) from None
+
+        with open(resolved_path, encoding="utf-8") as f:
             template_content = f.read()
     else:
         template_content = DEFAULT_TEMPLATE

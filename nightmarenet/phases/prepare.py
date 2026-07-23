@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import logging
+from typing import Any, Optional
 
 from nightmarenet.data.generator import create_generators_from_config
 from nightmarenet.distortions.text import apply_text_distortions
@@ -26,7 +27,7 @@ _MIN_EVAL_SAMPLES = 25
 class PreparePhase(Phase):
     name = "prepare"
 
-    def __init__(self, on_training_event=None) -> None:
+    def __init__(self, on_training_event: Optional[Any] = None) -> None:
         # Optional callback wired into the CallbackManager, e.g. for
         # orchestrator-level logging of training events.
         self.on_training_event = on_training_event
@@ -114,8 +115,8 @@ class PreparePhase(Phase):
                     )
                     nightmare_gen.set_cycle(0)
 
-                dream_data = dream_gen.generate(dream_base)
-                nightmare_data = nightmare_gen.generate(nightmare_base)
+                dream_data = dream_gen.generate(dream_base)  # type: ignore[no-untyped-call]
+                nightmare_data = nightmare_gen.generate(nightmare_base)  # type: ignore[no-untyped-call]
 
                 if not uses_gradient_learned:
                     context.callback_manager = CallbackManager()

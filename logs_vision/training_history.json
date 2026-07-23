@@ -1,20 +1,20 @@
 [
   {
     "phase": "wake",
-    "avg_loss": 2.693658638000488,
+    "avg_loss": 2.353093981742859,
     "total_steps": 5,
     "cycle": 0
   },
   {
     "phase": "dream",
-    "avg_loss": 2.301826238632202,
-    "avg_kl_loss": 0.018392960913479327,
+    "avg_loss": 2.392447853088379,
+    "avg_kl_loss": 0.01697369534522295,
     "total_steps": 5,
     "cycle": 0
   },
   {
     "phase": "nightmare",
-    "avg_loss": 2.4951963424682617,
+    "avg_loss": 2.3134936332702636,
     "total_steps": 5,
     "cycle": 0
   },
