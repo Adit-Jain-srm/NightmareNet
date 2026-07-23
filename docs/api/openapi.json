@@ -151,7 +151,6 @@
           "context": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -193,7 +192,6 @@
           "brand_controls": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -203,7 +201,6 @@
             "title": "Brand Controls"
           },
           "column_mapping": {
-            "additionalProperties": true,
             "title": "Column Mapping",
             "type": "object"
           },
@@ -218,7 +215,6 @@
           "recipe_specification": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -252,7 +248,6 @@
           "brand_controls": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -262,7 +257,6 @@
             "title": "Brand Controls"
           },
           "column_mapping": {
-            "additionalProperties": true,
             "title": "Column Mapping",
             "type": "object"
           },
@@ -274,7 +268,6 @@
           "job_specification": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -298,7 +291,6 @@
           "recipe_specification": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -330,7 +322,6 @@
           "after_stats": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -342,7 +333,6 @@
           "before_stats": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -365,7 +355,6 @@
           "estimate": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -388,7 +377,6 @@
           "quality": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -400,7 +388,6 @@
           "quality_delta": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -529,7 +516,6 @@
           "config": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -689,7 +675,6 @@
           "after_stats": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -701,7 +686,6 @@
           "before_stats": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -954,7 +938,6 @@
         "description": "Request body for evaluating a pipeline.",
         "properties": {
           "config": {
-            "additionalProperties": true,
             "description": "Evaluation config",
             "title": "Config",
             "type": "object"
@@ -978,7 +961,6 @@
           "comparison": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -1071,7 +1053,6 @@
           },
           "history": {
             "items": {
-              "additionalProperties": true,
               "type": "object"
             },
             "title": "History",
@@ -1117,7 +1098,6 @@
         "description": "Request body for training a pipeline.",
         "properties": {
           "config": {
-            "additionalProperties": true,
             "description": "Training config",
             "title": "Config",
             "type": "object"
@@ -1185,7 +1165,6 @@
             "type": "string"
           },
           "scores": {
-            "additionalProperties": true,
             "title": "Scores",
             "type": "object"
           },
@@ -1224,7 +1203,6 @@
         "description": "Request body for the config suggestion endpoint.",
         "properties": {
           "current_config": {
-            "additionalProperties": true,
             "description": "Training YAML as a dict",
             "title": "Current Config",
             "type": "object"
@@ -1244,7 +1222,6 @@
           "last_metrics": {
             "anyOf": [
               {
-                "additionalProperties": true,
                 "type": "object"
               },
               {
@@ -1452,7 +1429,6 @@
         "description": "Response for training config validation and preview.",
         "properties": {
           "config_summary": {
-            "additionalProperties": true,
             "title": "Config Summary",
             "type": "object"
           },
@@ -1671,6 +1647,9 @@
         "properties": {
           "status": {
             "const": "ok",
+            "enum": [
+              "ok"
+            ],
             "title": "Status",
             "type": "string"
           }
@@ -1686,7 +1665,7 @@
   "info": {
     "description": "Autonomous AI Self-Improvement Platform \u2014 Dream & Nightmare Distortion Service",
     "title": "NightmareNet API",
-    "version": "0.2.0"
+    "version": "0.2.1"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -2727,7 +2706,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Cancel Pipeline Post Endpoint Api V1 Pipeline Cancel Post",
                   "type": "object"
                 }
@@ -2813,7 +2791,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Evaluate Pipeline Endpoint Api V1 Pipeline Evaluate Post",
                   "type": "object"
                 }
@@ -2918,7 +2895,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Train Pipeline Endpoint Api V1 Pipeline Train Post",
                   "type": "object"
                 }
@@ -3349,7 +3325,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
                   "title": "Response Update Webhooks Endpoint Settings Webhooks Post",
                   "type": "object"
                 }
