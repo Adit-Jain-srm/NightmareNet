@@ -563,9 +563,13 @@ If you use NightmareNet in academic work, please cite:
 
 ## Community
 
-- **GitHub Discussions** - `https://github.com/Adit-Jain-srm/NightmareNet/discussions` for design questions, RFC proposals, paper review threads
-- **Issues** - bug reports and feature requests welcome
-- **Contributing** — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for local dev setup, architecture pointers, plugin authoring, and the PR checklist
+- **[GitHub Discussions](https://github.com/Adit-Jain-srm/NightmareNet/discussions)** — questions, ideas, show-and-tell, and research chat
+  - [Q&A](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/q-a) — how-to questions (prefer this over Issues for usage help)
+  - [Ideas](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/ideas) — RFCs and feature proposals
+  - [Show and tell](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/show-and-tell) — demos, experiments, write-ups
+  - [General](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/general) — welcome thread and community chat
+- **[Issues](https://github.com/Adit-Jain-srm/NightmareNet/issues)** — bug reports and concrete feature work
+- **[Contributing](CONTRIBUTING.md)** — local setup, architecture pointers, plugin authoring, and the PR checklist
 - **Sponsors** — GitHub Sponsors and OpenCollective links go here once the project moves out of pre-release
 
 > [!IMPORTANT]
