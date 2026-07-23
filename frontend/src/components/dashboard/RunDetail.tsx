@@ -20,9 +20,13 @@ import {
 type PhaseTab = "wake" | "dream" | "nightmare" | "compress";
 
 interface RunConfig {
+  sourceType: "urls" | "huggingface" | "text";
   modelName: string;
+  modelType: string;
   nightmareStrength: number;
   dreamStrength: number;
+  numCycles: number;
+  textContent: string;
 }
 
 interface MutationPreset {
@@ -35,9 +39,13 @@ interface MutationPreset {
 }
 
 const BASE_CONFIG: RunConfig = {
+  sourceType: "text",
   modelName: "DistilBERT",
+  modelType: "causal_lm",
   nightmareStrength: 0.5,
   dreamStrength: 0.25,
+  numCycles: 5,
+  textContent: "",
 };
 
 const PRESETS: MutationPreset[] = [
@@ -196,14 +204,18 @@ function ReRunMenu({ config }: { config: RunConfig }) {
   }, [focusIdx, open]);
 
   const fire = async (preset: MutationPreset) => {
+    if (loading) return;
     setLoading(true);
     const next = preset.mutate(config);
     try {
       const res = await createPipeline({
-        source_type: "text",
+        source_type: next.sourceType,
         model_name: next.modelName,
+        model_type: next.modelType,
+        num_cycles: next.numCycles,
         nightmare_strength: next.nightmareStrength,
         dream_strength: next.dreamStrength,
+        ...(next.textContent ? { text_content: next.textContent } : {}),
       });
 
       toast.push({
@@ -217,10 +229,11 @@ function ReRunMenu({ config }: { config: RunConfig }) {
       });
       setOpen(false);
       router.push(`/run/${res.run_id}`);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred";
       toast.push({
         title: "Re-run failed",
-        description: err.message || "An unexpected error occurred",
+        description: message,
         variant: "error",
       });
     } finally {
