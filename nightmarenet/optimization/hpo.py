@@ -24,7 +24,7 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
-def _set_nested(config: dict, dotted_key: str, value: Any) -> None:
+def _set_nested(config: dict[str, Any], dotted_key: str, value: Any) -> None:
     """Set a value in a nested dictionary using dotted key notation."""
     keys = dotted_key.split(".")
     current = config
@@ -38,14 +38,14 @@ def _set_nested(config: dict, dotted_key: str, value: Any) -> None:
 class HyperparameterOptimizer:
     """Manages Optuna hyperparameter optimization for the NightmareNet pipeline."""
 
-    def __init__(self, config_path: str):
+    def __init__(self, config_path: str) -> None:
         if not OPTUNA_AVAILABLE:
             raise ImportError(
                 "Optuna is required for HPO. Install it with: pip install 'nightmarenet[hpo]'"
             )
         self.config_path = config_path
-        self.base_config = load_config(config_path)
-        self.hpo_config = self.base_config.get("hpo", {})
+        self.base_config: dict[str, Any] = load_config(config_path)
+        self.hpo_config: dict[str, Any] = self.base_config.get("hpo", {})
 
         self.study_name = self.hpo_config.get("study_name", "nightmarenet-optimization")
         # Default to a local SQLite database if storage is not configured.
@@ -67,9 +67,9 @@ class HyperparameterOptimizer:
             load_if_exists=True,
         )
 
-    def _suggest_parameters(self, trial: optuna.Trial) -> dict:
+    def _suggest_parameters(self, trial: optuna.Trial) -> dict[str, Any]:
         """Parse search space from config and suggest parameters."""
-        trial_params = {}
+        trial_params: dict[str, Any] = {}
         for param_key, param_def in self.search_space.items():
             param_type = param_def.get("type")
             if param_type == "float":
@@ -104,7 +104,7 @@ class HyperparameterOptimizer:
         pruned_flag = [False]
         pipeline = None
 
-        def on_event(metrics: dict) -> None:
+        def on_event(metrics: dict[str, Any]) -> None:
             if not self.pruning_enabled:
                 return
 

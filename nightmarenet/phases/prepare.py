@@ -115,8 +115,8 @@ class PreparePhase(Phase):
                     )
                     nightmare_gen.set_cycle(0)
 
-                dream_data = dream_gen.generate(dream_base)  # type: ignore[no-untyped-call]
-                nightmare_data = nightmare_gen.generate(nightmare_base)  # type: ignore[no-untyped-call]
+                dream_data = dream_gen.generate(dream_base)
+                nightmare_data = nightmare_gen.generate(nightmare_base)
 
                 if not uses_gradient_learned:
                     context.callback_manager = CallbackManager()

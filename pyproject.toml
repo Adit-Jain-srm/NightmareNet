@@ -172,6 +172,8 @@ module = [
     "nightmarenet.compliance.*",
     "nightmarenet.hub.*",
     "nightmarenet.evaluation.certification",
+    "nightmarenet.optimization.*",
+    "nightmarenet.data.*",
 ]
 disallow_any_generics = true
 disallow_subclassing_any = true
