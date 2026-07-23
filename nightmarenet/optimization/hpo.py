@@ -12,9 +12,12 @@ if TYPE_CHECKING:
 from nightmarenet.pipeline import Pipeline
 from nightmarenet.utils.config import load_config
 
-try:
-    import optuna
+optuna: Any
 
+try:
+    import optuna as _optuna
+
+    optuna = _optuna
     OPTUNA_AVAILABLE = True
 except ImportError:
     optuna = None
