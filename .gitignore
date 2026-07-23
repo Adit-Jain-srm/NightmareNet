@@ -75,8 +75,10 @@ mypy_output.txt
 pyright_output.txt
 
 # Benchmark / experiment outputs
-results/
+results/*
 !results/gpu_benchmark.json
+!results/convergence/
+!results/convergence/**
 checkpoints/
 logs/
 
