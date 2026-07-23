@@ -42,9 +42,10 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Callable, Optional, Tuple
 
 import numpy as np
+import numpy.typing as npt
 import torch
 from scipy.stats import beta as beta_dist
 from scipy.stats import norm
@@ -134,7 +135,10 @@ def clopper_pearson_lower_bound(k: int, n: int, alpha: float) -> float:
     return float(beta_dist.ppf(alpha, k, n - k + 1))
 
 
-def _make_noise_hook(sigma: float) -> Any:
+HookFn = Callable[[Any, Tuple[Any, ...], torch.Tensor], torch.Tensor]
+
+
+def _make_noise_hook(sigma: float) -> HookFn:
     """Build a forward hook that adds i.i.d. Gaussian noise to an embedding layer's output.
 
     Each element of the hooked module's output tensor gets independent noise (torch's RNG
@@ -158,7 +162,7 @@ def _run_noisy_forward_passes(
     num_classes: int,
     batch_size: int,
     device: str,
-) -> Any:
+) -> npt.NDArray[np.int64]:
     """Run n noisy forward passes and return a histogram of predicted classes.
 
     Noise is injected via a forward hook on the model's input embedding layer (see
