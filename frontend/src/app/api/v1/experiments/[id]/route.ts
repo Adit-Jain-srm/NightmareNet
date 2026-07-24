@@ -4,9 +4,21 @@ export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
+  let body: any;
+
+  // 1. Safely attempt to parse JSON body (Catch 400 client errors)
   try {
-    const body = await request.json();
-    const { name } = body;
+    body = await request.json();
+  } catch (parseError) {
+    return NextResponse.json(
+      { error: "Invalid or malformed JSON body" },
+      { status: 400 }
+    );
+  }
+
+  // 2. Validate request body contents
+  try {
+    const { name } = body || {};
 
     if (!name || typeof name !== "string" || name.trim() === "") {
       return NextResponse.json({ error: "Invalid name" }, { status: 400 });
@@ -17,8 +29,16 @@ export async function PATCH(
     }
 
     // In a real app, this would hit the DB. For now, we mock success.
-    return NextResponse.json({ success: true, id: params.id, name: name.trim() });
+    return NextResponse.json({
+      success: true,
+      id: params.id,
+      name: name.trim(),
+    });
   } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    // 3. Any unexpected server/database errors fall back to 500
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

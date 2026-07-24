@@ -45,7 +45,7 @@ export function InlineEdit({ value, onSave, className, inputClassName }: InlineE
     } catch (err) {
       setCurrentValue(value);
       setIsEditing(false);
-      // parent should handle toast on failure
+      // parent handles toast on failure
     } finally {
       setIsSaving(false);
     }
@@ -59,14 +59,26 @@ export function InlineEdit({ value, onSave, className, inputClassName }: InlineE
     }
   };
 
+  const handleTriggerKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsEditing(true);
+    }
+  };
+
   if (!isEditing) {
     return (
       <span
+        role="button"
+        tabIndex={0}
+        aria-label="Edit experiment name"
         onClick={(e) => {
           e.stopPropagation();
           setIsEditing(true);
         }}
-        className={`cursor-text hover:underline ${className || ""}`}
+        onKeyDown={handleTriggerKeyDown}
+        className={`cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neural/50 rounded hover:underline ${className || ""}`}
         title="Click to edit"
       >
         {value}
@@ -83,6 +95,7 @@ export function InlineEdit({ value, onSave, className, inputClassName }: InlineE
       onKeyDown={handleKeyDown}
       disabled={isSaving}
       maxLength={100}
+      aria-label="Edit experiment name"
       className={`h-6 text-sm px-1 py-0 w-full ${inputClassName || ""}`}
       onClick={(e) => e.stopPropagation()}
     />

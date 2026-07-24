@@ -19,7 +19,15 @@ import { Select } from "@/components/ui/Select";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { searchExperiments, deleteExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
+import { InlineEdit } from "@/components/InlineEdit";
+import {
+  searchExperiments,
+  deleteExperiment,
+  exportExperiment,
+  createPipeline,
+  updateExperiment,
+  type PipelineCreateRequest,
+} from "@/lib/api";
 import {
   IconBeaker,
   IconDownload,
@@ -85,14 +93,6 @@ interface MenuItemDef {
   onSelect: () => void;
 }
 
-/**
- * Floating per-row contextual menu. Appears on row hover for pointer devices
- * and is always visible on touch (no `hover:` class — see container below).
- *
- * Keyboard: opens with Enter/Space on the trigger; closes on Escape and on
- * outside click. The trigger acts as a stable anchor so the popover can
- * absolutely-position relative to the cell without measuring DOM.
- */
 function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, loading }: RowActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -162,16 +162,13 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
         },
       },
     ],
-    [row, onCompare, onRerun, onExport, onDelete]
+    [row, onCompare, onRerun, onExport, onDelete, toast]
   );
 
   return (
     <div
       ref={wrapperRef}
       className={[
-        // Visible only when the row is hovered on pointer devices; always
-        // visible on touch (no hover capability). Trigger is also focusable
-        // via keyboard, which forces visibility.
         "relative inline-flex opacity-100",
         "hover:opacity-100 focus-within:opacity-100",
         "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100",
@@ -267,8 +264,6 @@ export function ExperimentList({
   const toast = useToast();
   const [localNames, setLocalNames] = useState<Record<string, string>>({});
 
-  // `experiments` defaults to the demo sample — callers can pass `[]` to
-  // exercise the empty state, or a real dataset once the runs API is wired.
   const source = useMemo(() => {
     const base = experiments ?? SAMPLE;
     if (Object.keys(localNames).length === 0) return base;
@@ -359,23 +354,22 @@ export function ExperimentList({
   }, [onSectionChange, toast]);
 
   const handleRename = useCallback(async (id: string, newName: string) => {
-    // Optimistic update
-    setLocalNames(prev => ({ ...prev, [id]: newName }));
+    if (!newName.trim()) return;
+
     try {
-      await updateExperiment(id, { name: newName });
+      // Reconcile optimistic rename using server response res.name
+      const res = await updateExperiment(id, { name: newName });
+      setLocalNames((prev) => ({
+        ...prev,
+        [id]: res.name,
+      }));
     } catch (error) {
-      // Revert on failure
-      setLocalNames(prev => {
-        const next = { ...prev };
-        delete next[id];
-        return next;
-      });
       toast.push({
         title: "Rename failed",
         description: "Failed to update experiment name.",
         variant: "error",
       });
-      throw error; // Let InlineEdit know it failed
+      throw error;
     }
   }, [toast]);
 
@@ -396,8 +390,6 @@ export function ExperimentList({
         description: "The experiment has been successfully removed.",
         variant: "success",
       });
-      // Note: List refresh requires architectural changes (experiments passed as props)
-      // Consider passing a refresh callback or moving to local state management
     } catch (error) {
       toast.push({
         title: "Delete failed",
@@ -429,7 +421,6 @@ export function ExperimentList({
         nightmare_strength: 0.8,
       };
       
-      // Apply 1.2x strength multiplier for re-run
       const config = {
         ...baseConfig,
         dream_strength: (baseConfig.dream_strength ?? 0.25) * 1.2,
@@ -491,14 +482,11 @@ export function ExperimentList({
   }, [toast]);
 
   const handleCompare = useCallback((id: string) => {
-    // Navigate to compare page with selected experiment ID
-    // For now, we'll show a toast since the compare page doesn't exist yet
     toast.push({
       title: "Comparing to baseline",
       description: `Navigate to /compare?ids=${id} to compare experiments.`,
       variant: "info",
     });
-    // In a real implementation: window.location.href = `/compare?ids=${id}`;
   }, [toast]);
 
   const columns: DataTableColumn<Experiment>[] = [
@@ -697,11 +685,6 @@ export function ExperimentList({
   );
 }
 
-/**
- * Wraps DataTable in a `group/row` context per row so the `RowActionsMenu`
- * can fade in on row hover via Tailwind's group-modifier system without
- * touching the generic DataTable primitive.
- */
 function ExperimentTable({
   columns,
   rows,
