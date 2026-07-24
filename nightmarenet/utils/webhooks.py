@@ -16,6 +16,9 @@ from nightmarenet.utils.message_builders import build_webhook_payload
 
 logger = logging.getLogger(__name__)
 
+_RETRY_SLEEPS = [1.0, 2.0, 4.0]
+_DEFAULT_TIMEOUT = 5.0
+
 
 def validate_webhook_url(url: str) -> bool:
     """Validate a webhook URL against the allowlist and block internal IPs.
@@ -75,6 +78,7 @@ def trigger_webhook(
     event_type: str,
     message: str,
     details: Optional[Dict[str, Any]] = None,
+    timeout: Optional[float] = None,
 ) -> None:
     """Send webhook notifications to configured endpoints based on event_type.
 
@@ -83,6 +87,7 @@ def trigger_webhook(
         event_type: One of 'run_complete', 'regression_detected', 'alert', 'deploy'.
         message: The headline text/message.
         details: A dictionary of key-value details to include.
+        timeout: Request timeout in seconds (default 5.0).
     """
     webhooks = config.get("notifications", {}).get("webhooks", [])
     if not webhooks:
@@ -98,12 +103,18 @@ def trigger_webhook(
             continue
 
         try:
-            _send_webhook_request(url, event_type, message, details or {})
+            _send_webhook_request(url, event_type, message, details or {}, timeout=timeout)
         except Exception as e:
             logger.warning("Failed to send webhook notification to %s: %s", url, e)
 
 
-def _send_webhook_request(url: str, event_type: str, message: str, details: Dict[str, Any]) -> None:
+def _send_webhook_request(
+    url: str,
+    event_type: str,
+    message: str,
+    details: Dict[str, Any],
+    timeout: Optional[float] = None,
+) -> None:
     # Build payload based on URL/destination using rich formatters
     dashboard_url = details.get("dashboard_url") if details else None
     # Remove dashboard_url from details before passing to builder
@@ -119,23 +130,44 @@ def _send_webhook_request(url: str, event_type: str, message: str, details: Dict
         headers={"Content-Type": "application/json", "User-Agent": "NightmareNet-Webhook/0.2.0"},
     )
 
-    max_retries = 1
+    actual_timeout = timeout if timeout is not None else _DEFAULT_TIMEOUT
+
+    max_retries = len(_RETRY_SLEEPS)
     for attempt in range(max_retries + 1):
         try:
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=actual_timeout) as response:
                 response.read()
             return
         except urllib.error.HTTPError as e:
             if e.code == 429 or (500 <= e.code < 600):
                 if attempt < max_retries:
+                    sleep_time = _RETRY_SLEEPS[attempt]
                     logger.warning(
-                        "Webhook request to %s failed with status %d. Retrying in 2 seconds...",
+                        "Webhook request to %s failed with status %d. "
+                        "Retrying in %.1f seconds (attempt %d/%d)...",
                         url,
                         e.code,
+                        sleep_time,
+                        attempt + 1,
+                        max_retries,
                     )
-                    time.sleep(2)
+                    time.sleep(sleep_time)
                     continue
             raise e
+        except urllib.error.URLError:
+            if attempt < max_retries:
+                sleep_time = _RETRY_SLEEPS[attempt]
+                logger.warning(
+                    "Webhook request to %s failed (connection error). "
+                    "Retrying in %.1f seconds (attempt %d/%d)...",
+                    url,
+                    sleep_time,
+                    attempt + 1,
+                    max_retries,
+                )
+                time.sleep(sleep_time)
+                continue
+            raise
 
 
 def check_vram_pressure(device_index: int = 0, threshold: float = 0.85) -> bool:

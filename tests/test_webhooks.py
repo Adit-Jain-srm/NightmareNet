@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
+
+import urllib.error
 
 import pytest
 
@@ -243,3 +245,181 @@ class TestBuildWebhookPayload:
         )
         assert any(block.get("type") == "actions" for block in payload["blocks"])
 
+
+
+from nightmarenet.utils.webhooks import _send_webhook_request, trigger_webhook
+
+
+class TestWebhookRetryLogic:
+    def test_retries_on_429_with_exponential_backoff(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = [
+            urllib.error.HTTPError("http://example.com", 429, "Too Many Requests", {}, None),
+            urllib.error.HTTPError("http://example.com", 429, "Too Many Requests", {}, None),
+            MagicMock(__enter__=MagicMock(return_value=MagicMock(read=MagicMock()))),
+        ]
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep") as mock_sleep:
+                _send_webhook_request(
+                    "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                )
+
+        assert mock_urlopen.call_count == 3
+        assert mock_sleep.call_count == 2
+        assert mock_sleep.call_args_list[0][0][0] == 1.0
+        assert mock_sleep.call_args_list[1][0][0] == 2.0
+
+    def test_retries_on_500_with_exponential_backoff(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = [
+            urllib.error.HTTPError("http://example.com", 500, "Internal Error", {}, None),
+            urllib.error.HTTPError("http://example.com", 500, "Internal Error", {}, None),
+            MagicMock(__enter__=MagicMock(return_value=MagicMock(read=MagicMock()))),
+        ]
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep") as mock_sleep:
+                _send_webhook_request(
+                    "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                )
+
+        assert mock_urlopen.call_count == 3
+        assert mock_sleep.call_count == 2
+
+    def test_succeeds_on_second_attempt_after_429(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = [
+            urllib.error.HTTPError("http://example.com", 429, "Too Many Requests", {}, None),
+            MagicMock(__enter__=MagicMock(return_value=MagicMock(read=MagicMock()))),
+        ]
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep"):
+                _send_webhook_request(
+                    "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                )
+
+        assert mock_urlopen.call_count == 2
+
+    def test_raises_after_all_retries_exhausted(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = urllib.error.HTTPError(
+            "http://example.com", 503, "Service Unavailable", {}, None
+        )
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep"):
+                with pytest.raises(urllib.error.HTTPError):
+                    _send_webhook_request(
+                        "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                    )
+
+        assert mock_urlopen.call_count == 4
+
+    def test_does_not_retry_non_retryable_4xx(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = urllib.error.HTTPError(
+            "http://example.com", 400, "Bad Request", {}, None
+        )
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep") as mock_sleep:
+                with pytest.raises(urllib.error.HTTPError):
+                    _send_webhook_request(
+                        "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                    )
+
+        assert mock_urlopen.call_count == 1
+        mock_sleep.assert_not_called()
+
+    def test_does_not_retry_on_401(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = urllib.error.HTTPError(
+            "http://example.com", 401, "Unauthorized", {}, None
+        )
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep") as mock_sleep:
+                with pytest.raises(urllib.error.HTTPError):
+                    _send_webhook_request(
+                        "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                    )
+
+        assert mock_urlopen.call_count == 1
+        mock_sleep.assert_not_called()
+
+    def test_retries_on_urlerror_connection_error(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = [
+            urllib.error.URLError("Connection refused"),
+            MagicMock(__enter__=MagicMock(return_value=MagicMock(read=MagicMock()))),
+        ]
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep") as mock_sleep:
+                _send_webhook_request(
+                    "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                )
+
+        assert mock_urlopen.call_count == 2
+        assert mock_sleep.call_count == 1
+
+    def test_raises_after_urlerror_retries_exhausted(self):
+        mock_urlopen = MagicMock()
+        mock_urlopen.side_effect = urllib.error.URLError("Connection timeout")
+
+        with patch("urllib.request.urlopen", mock_urlopen):
+            with patch("time.sleep"):
+                with pytest.raises(urllib.error.URLError):
+                    _send_webhook_request(
+                        "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                    )
+
+        assert mock_urlopen.call_count == 4
+
+    def test_successful_request_no_retries(self):
+        mock_urlopen = MagicMock(
+            __enter__=MagicMock(return_value=MagicMock(read=MagicMock()))
+        )
+
+        with patch("urllib.request.urlopen", mock_urlopen) as mock:
+            with patch("time.sleep") as mock_sleep:
+                _send_webhook_request(
+                    "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", {}
+                )
+
+        mock.assert_called_once()
+        mock_sleep.assert_not_called()
+
+    def test_trigger_webhook_passes_timeout_to_send(self):
+        config = {
+            "notifications": {
+                "webhooks": [
+                    {"url": "https://hooks.slack.com/services/T/B/x", "events": ["run_complete"]}
+                ]
+            }
+        }
+
+        with patch("nightmarenet.utils.webhooks._send_webhook_request") as mock_send:
+            trigger_webhook(config, "run_complete", "Test", {"run_id": "123"}, timeout=10.0)
+
+        mock_send.assert_called_once()
+        _, kwargs = mock_send.call_args
+        assert kwargs["timeout"] == 10.0
+
+    def test_trigger_webhook_default_timeout(self):
+        config = {
+            "notifications": {
+                "webhooks": [
+                    {"url": "https://hooks.slack.com/services/T/B/x", "events": ["run_complete"]}
+                ]
+            }
+        }
+
+        with patch("nightmarenet.utils.webhooks._send_webhook_request") as mock_send:
+            trigger_webhook(config, "run_complete", "Test", {"run_id": "123"})
+
+        mock_send.assert_called_once()
+        _, kwargs = mock_send.call_args
+        assert kwargs["timeout"] is None
