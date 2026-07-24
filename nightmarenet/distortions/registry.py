@@ -20,12 +20,15 @@ import importlib.metadata
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
-import torch
+try:
+    import torch
+except ImportError:
+    torch = None  # type: ignore[assignment]
 
 from nightmarenet.distortions.base import BaseDistortion
 
 DistortionFn = Callable[[str, float, Optional[int]], str]
-VisionDistortionFn = Callable[[torch.Tensor, float, Optional[int]], torch.Tensor]
+VisionDistortionFn = Callable[..., Any]
 
 logger = logging.getLogger(__name__)
 
@@ -312,10 +315,10 @@ class VisionDistortionRegistry:
     def apply(
         self,
         name: str,
-        image: torch.Tensor,
+        image: Any,
         strength: float = 0.3,
         seed: Optional[int] = None,
-    ) -> torch.Tensor:
+    ) -> Any:
         """Apply a named vision distortion to an image tensor."""
         if name not in self._engines:
             available = ", ".join(sorted(self._engines.keys()))

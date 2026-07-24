@@ -42,7 +42,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import torch
@@ -83,7 +83,7 @@ class CertificationResult:
     correct: Optional[bool] = None
 
 
-def _empty_certification_result() -> dict:
+def _empty_certification_result() -> dict[str, Any]:
     """Aggregate result returned when there are zero samples to certify.
 
     Shared by both emptiness checks in certify_dataset (before and after subset
@@ -134,7 +134,7 @@ def clopper_pearson_lower_bound(k: int, n: int, alpha: float) -> float:
     return float(beta_dist.ppf(alpha, k, n - k + 1))
 
 
-def _make_noise_hook(sigma: float):
+def _make_noise_hook(sigma: float) -> Any:
     """Build a forward hook that adds i.i.d. Gaussian noise to an embedding layer's output.
 
     Each element of the hooked module's output tensor gets independent noise (torch's RNG
@@ -143,14 +143,14 @@ def _make_noise_hook(sigma: float):
     independent noise sample -- exactly the randomized-smoothing noise model.
     """
 
-    def hook(module, inputs, output):
+    def hook(module: Any, inputs: Any, output: torch.Tensor) -> torch.Tensor:
         return output + torch.randn_like(output) * sigma
 
     return hook
 
 
 def _run_noisy_forward_passes(
-    model,
+    model: Any,
     input_ids: torch.Tensor,
     attention_mask: Optional[torch.Tensor],
     sigma: float,
@@ -158,7 +158,7 @@ def _run_noisy_forward_passes(
     num_classes: int,
     batch_size: int,
     device: str,
-) -> np.ndarray:
+) -> Any:
     """Run n noisy forward passes and return a histogram of predicted classes.
 
     Noise is injected via a forward hook on the model's input embedding layer (see
@@ -234,8 +234,8 @@ def _run_noisy_forward_passes(
 
 
 def certify_sample(
-    model,
-    tokenizer,
+    model: Any,
+    tokenizer: Any,
     text: str,
     label: Optional[int] = None,
     sigma: float = 0.25,
@@ -397,9 +397,9 @@ def certify_sample(
 
 
 def certify_dataset(
-    model,
-    tokenizer,
-    dataset,
+    model: Any,
+    tokenizer: Any,
+    dataset: Any,
     *,
     text_column: str = "text",
     label_column: Optional[str] = "label",
@@ -412,7 +412,7 @@ def certify_dataset(
     max_length: int = 128,
     certification_budget_total: Optional[int] = None,
     device: str = "cpu",
-) -> dict:
+) -> dict[str, Any]:
     """Certify a subset of a dataset and return aggregate certification statistics.
 
     Standalone dataset-level wrapper around certify_sample -- no dependency on

@@ -1,0 +1,11 @@
+# DVC pipeline — data preparation for versioned experiment datasets.
+# Run: dvc repro
+# Requires: pip install dvc  (optional tool; not a package dependency)
+
+stages:
+  prepare_sst2:
+    cmd: python scripts/prepare_sst2_sample.py --output data/processed/sst2_sample.csv
+    deps:
+      - scripts/prepare_sst2_sample.py
+    outs:
+      - data/processed/sst2_sample.csv

@@ -104,9 +104,11 @@ describe("SettingsPanel component", () => {
         fireEvent.click(screen.getByText("Notifications"));
         await waitFor(() => expect(screen.getByText("Add Webhook")).toBeInTheDocument());
         fireEvent.click(screen.getByText("Add Webhook"));
-        expect(
-            screen.getAllByPlaceholderText("https://hooks.slack.com/services/...")
-        ).toHaveLength(2);
+        await waitFor(() =>
+            expect(
+                screen.getAllByPlaceholderText("https://hooks.slack.com/services/...")
+            ).toHaveLength(2)
+        );
     });
 
     it("shows a success toast when the webhook test succeeds", async () => {

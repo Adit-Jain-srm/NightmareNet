@@ -1,0 +1,77 @@
+name: Infrastructure
+description: Propose changes to CI/CD, packaging, tooling, or repository infrastructure.
+title: "[Infra]: "
+labels:
+  - infrastructure
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve NightmareNet's infrastructure. Please describe the current limitation and the proposed operational or tooling change.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which infrastructure area is affected?
+      options:
+        - Pipeline & Training
+        - Distortions
+        - Data & Ingestion
+        - Evaluation & Metrics
+        - API & CLI
+        - Frontend & Dashboard
+        - Documentation
+        - Testing & CI
+        - Infrastructure & Packaging
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: Current State
+      description: Describe the existing CI, packaging, tooling, or configuration behavior.
+      placeholder: Explain the current setup, limitation, or failure mode.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-change
+    attributes:
+      label: Proposed Change
+      description: Describe the infrastructure improvement you are proposing.
+      placeholder: Explain the desired CI, packaging, tooling, or configuration behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-config
+    attributes:
+      label: Affected CI or Configuration
+      description: List the workflows, configuration files, packaging files, or tools likely to change.
+      placeholder: |
+        - .github/workflows/ci.yml
+        - pyproject.toml
+        - docker/...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List concrete, checkable conditions that define when this issue is complete.
+      placeholder: |
+        - [ ] The workflow succeeds on all supported versions
+        - [ ] Existing configuration remains backward compatible
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        > **Important:** Please read CONTRIBUTING.md in full before requesting assignment. Assignment requests without a technical approach will not be considered. PRs demonstrating thorough research, benchmarks, or creative approaches beyond minimum criteria may earn bonus XP labels.
+

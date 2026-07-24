@@ -345,7 +345,10 @@ Mirror the package layout under `tests/`. At minimum:
 - **Line length:** 100 (enforced by ruff).
 - **Ruff rules:** `E, F, W, I, N, UP, B`. We ignore `UP007` and `UP045` to keep `Union[X, Y]` available in 3.9-targeted code.
 - **Imports:** isort via ruff. Order: stdlib, third-party, local; alphabetical within each group.
-- **Type hints:**
+- **Type hints & Mypy:**
+  - NightmareNet uses a **gradual typing** approach.
+  - **Strict Modules:** Specific core modules (including `nightmarenet/phases/`, `nightmarenet/compliance/`, `nightmarenet/hub/`, and `nightmarenet/evaluation/certification.py`) are strictly typed and must pass mypy without errors.
+  - **Legacy Modules:** Older components like `nightmarenet/cli.py` and `nightmarenet/api/app.py` remain in relaxed mode.
   - Use `Union[X, Y]` and `Optional[X]` — **not** `X | Y` — in any code path that runs on Python 3.9.
   - Use `from __future__ import annotations` everywhere **except** modules under `nightmarenet/api/` that use FastAPI `Body(...)`. The future import breaks Pydantic v2 at runtime there. Prefer module-level singletons for `Body(...)` defaults to satisfy `B008`.
 - **Docstrings:** Google style on public APIs only. Internal helpers can be terse.
@@ -585,7 +588,7 @@ These are applied by maintainers at merge time based on quality. **Do not reques
 
 ### Pro Tips (what separates great contributors from average ones)
 
-1. **Resolve CodeRabbitAI suggestions.** Our repo uses automated code review. When CodeRabbit leaves suggestions on your PR, address each one (fix it or explain why you disagree). Unresolved bot comments signal laziness to reviewers.
+1. **Resolve CodeRabbitAI suggestions.** Our repo uses automated code review. When CodeRabbit leaves suggestions on your PR, address each one (fix it or explain why you disagree). **Do NOT click "Resolve conversation" without actually fixing the code or replying with a reason.** Maintainers verify every resolved comment against the diff - silently resolving without a fix will be caught and delays your merge. If a suggestion conflicts with the intended design, reply in that thread explaining *why* rather than dismissing it.
 
 2. **Re-request review after addressing feedback.** After making changes requested by the code owner, click "Re-request review" on GitHub. Don't just push commits silently and wait - signal that you're ready for the next round.
 

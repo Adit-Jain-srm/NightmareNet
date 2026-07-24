@@ -684,6 +684,15 @@ export function saveWebhooks(body: WebhookSettingsRequest): Promise<WebhookSetti
 
 export function deleteExperiment(runId: string): Promise<void> {
   return apiFetch<void>(`/api/v1/pipeline/${runId}`, {
+// --- Experiment Management ---
+
+export interface ExperimentDeleteResponse {
+  run_id: string;
+  deleted: boolean;
+}
+
+export function deleteExperiment(runId: string): Promise<ExperimentDeleteResponse> {
+  return apiFetch<ExperimentDeleteResponse>(`/api/v1/experiments/${runId}`, {
     method: "DELETE",
   });
 }
@@ -697,4 +706,20 @@ export function exportExperiment(runId: string, format: string): Promise<Blob> {
     }
     return res.blob();
   });
+}
+export function updateExperiment(runId: string, data: { name: string }): Promise<{ success: boolean; id: string; name: string }> {
+  return apiFetch(`/api/v1/experiments/${runId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export interface ExperimentExportResponse {
+  run_id: string;
+  format: string;
+  data: string;
+}
+
+export function exportExperiment(runId: string, format: "csv" | "json" = "csv"): Promise<ExperimentExportResponse> {
+  return apiFetch<ExperimentExportResponse>(`/api/v1/experiments/${runId}/export?format=${format}`);
 }

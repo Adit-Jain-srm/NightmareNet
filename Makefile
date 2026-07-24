@@ -1,4 +1,4 @@
-.PHONY: help test lint typecheck format check frontend-build frontend-test all clean
+.PHONY: help test lint typecheck format check frontend-build frontend-test openapi all clean
 
 help:
 	@echo "Available targets:"
@@ -7,6 +7,7 @@ help:
 	@echo "  make lint           - run ruff check"
 	@echo "  make typecheck      - run mypy on nightmarenet/"
 	@echo "  make format         - auto-fix formatting with ruff format"
+	@echo "  make openapi        - regenerate docs/api/openapi.json"
 	@echo "  make frontend-build - build the Next.js frontend"
 	@echo "  make frontend-test  - run frontend tests"
 	@echo "  make all            - check + frontend-build (full CI equivalent)"
@@ -25,6 +26,9 @@ typecheck:
 
 format:
 	ruff format .
+
+openapi:
+	PYTHONPATH=. python scripts/export_openapi.py
 
 check: lint typecheck test
 	@echo "All checks passed."

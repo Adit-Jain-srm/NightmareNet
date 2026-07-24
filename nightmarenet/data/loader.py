@@ -7,7 +7,7 @@ datasets and returning raw, dream, and nightmare splits.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any, Optional, cast
 
 import torch
 from datasets import IterableDataset, load_dataset
@@ -42,7 +42,7 @@ class DatasetWrapper:
         max_samples: Optional[int] = None,
         seed: int = 42,
         streaming: bool = False,
-    ):
+    ) -> None:
         self.dataset_name = dataset_name
         self.subset = subset
         self.text_column = text_column
@@ -156,7 +156,7 @@ class DatasetWrapper:
         )
         return self
 
-    def _load_streaming(self, raw) -> DatasetWrapper:
+    def _load_streaming(self, raw: Any) -> DatasetWrapper:
         """Load dataset in streaming mode, returning IterableDatasets."""
         if "train" in raw:
             self._train_dataset = raw["train"]
@@ -199,14 +199,14 @@ class DatasetWrapper:
         return self
 
     @property
-    def train_data(self):
+    def train_data(self) -> Any:
         """Return the training dataset (Dataset or IterableDataset)."""
         if self._train_dataset is None:
             raise RuntimeError("Dataset not loaded. Call .load() first.")
         return self._train_dataset
 
     @property
-    def test_data(self):
+    def test_data(self) -> Any:
         """Return the test dataset (Dataset or IterableDataset)."""
         if self._test_dataset is None:
             raise RuntimeError("Dataset not loaded. Call .load() first.")
@@ -230,10 +230,10 @@ class DatasetWrapper:
                 "get_texts() is not supported for streaming datasets. "
                 "Iterate over the dataset directly instead."
             )
-        return dataset[self.text_column]
+        return cast(list[str], dataset[self.text_column])
 
 
-def load_from_config(config: dict) -> Any:
+def load_from_config(config: dict[str, Any]) -> Any:
     """Create and load a DatasetWrapper or VisionDatasetWrapper from a config dictionary.
 
     Args:
@@ -322,17 +322,17 @@ def load_from_config(config: dict) -> Any:
     ).load()
 
 
-class VisionItemWrapper(torch.utils.data.Dataset):
-    def __init__(self, dataset):
-        self.dataset = dataset
+class VisionItemWrapper(torch.utils.data.Dataset):  # type: ignore[misc]
+    def __init__(self, dataset: Any) -> None:
+        self.dataset: Any = dataset
         from torchvision.transforms.functional import to_tensor
 
         self._to_tensor = to_tensor
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.dataset)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: Any) -> dict[str, Any]:
         img, label = self.dataset[idx]
         if not isinstance(img, torch.Tensor):
             img = self._to_tensor(img)
@@ -340,14 +340,14 @@ class VisionItemWrapper(torch.utils.data.Dataset):
 
 
 class VisionDatasetWrapper:
-    def __init__(self, train_data, test_data):
+    def __init__(self, train_data: Any, test_data: Any) -> None:
         self._train_data = VisionItemWrapper(train_data)
         self._test_data = VisionItemWrapper(test_data)
 
     @property
-    def train_data(self):
+    def train_data(self) -> VisionItemWrapper:
         return self._train_data
 
     @property
-    def test_data(self):
+    def test_data(self) -> VisionItemWrapper:
         return self._test_data
