@@ -391,6 +391,8 @@ class TestEvaluatorCalibration:
     """Tests for calibration metrics and scaling integration in Evaluator."""
 
     def test_run_calibration_respects_temperature_scaling_false(self):
+        from unittest.mock import patch
+
         # Construct Evaluator with temperature_scaling: false
         config = {
             "evaluation": {
@@ -415,8 +417,13 @@ class TestEvaluatorCalibration:
         }
         dataloader = [batch]
 
-        # Run calibration
-        results = evaluator._run_calibration(dataloader)
+        # Patch TemperatureScaler to verify it isn't fitted
+        with patch("nightmarenet.evaluation.calibration.TemperatureScaler") as MockScaler:
+            # Run calibration
+            results = evaluator._run_calibration(dataloader)
+
+            # Assert fit was never called
+            MockScaler.assert_not_called()
 
         # Verify that temperature is 1.0 (no scaling fit occurred)
         assert results["optimal_temperature"] == 1.0
