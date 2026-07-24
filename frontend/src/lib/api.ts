@@ -681,3 +681,20 @@ export function saveWebhooks(body: WebhookSettingsRequest): Promise<WebhookSetti
     body: JSON.stringify(body),
   });
 }
+
+export function deleteExperiment(runId: string): Promise<void> {
+  return apiFetch<void>(`/api/v1/pipeline/${runId}`, {
+    method: "DELETE",
+  });
+}
+
+export function exportExperiment(runId: string, format: string): Promise<Blob> {
+  return fetch(`${getApiBase()}/api/v1/pipeline/${runId}/export?format=${format}`, {
+    headers: authHeaders(),
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(`Export failed (${res.status})`);
+    }
+    return res.blob();
+  });
+}
