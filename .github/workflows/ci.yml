@@ -10,6 +10,9 @@ jobs:
   test:
     name: Tests & Lint (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
 
     strategy:
       fail-fast: false
@@ -91,6 +94,15 @@ jobs:
         if: matrix.python-version == '3.12'
         working-directory: frontend
         run: npm run build
+
+      - name: Check frontend bundle size
+        if: matrix.python-version == '3.12'
+        uses: andresz1/size-limit-action@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          directory: frontend
+          package_manager: npm
+          skip_step: build
 
       - name: Lint frontend
         if: matrix.python-version == '3.12'

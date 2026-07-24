@@ -695,6 +695,13 @@ export function deleteExperiment(runId: string): Promise<ExperimentDeleteRespons
   });
 }
 
+export function updateExperiment(runId: string, data: { name: string }): Promise<{ success: boolean; id: string; name: string }> {
+  return apiFetch(`/api/v1/experiments/${runId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
 export interface ExperimentExportResponse {
   run_id: string;
   format: string;
