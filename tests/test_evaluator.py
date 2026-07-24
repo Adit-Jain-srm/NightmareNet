@@ -418,12 +418,12 @@ class TestEvaluatorCalibration:
         dataloader = [batch]
 
         # Patch TemperatureScaler to verify it isn't fitted
-        with patch("nightmarenet.evaluation.calibration.TemperatureScaler") as MockScaler:
+        with patch("nightmarenet.evaluation.calibration.TemperatureScaler") as mock_scaler:
             # Run calibration
             results = evaluator._run_calibration(dataloader)
 
             # Assert fit was never called
-            MockScaler.assert_not_called()
+            mock_scaler.assert_not_called()
 
         # Verify that temperature is 1.0 (no scaling fit occurred)
         assert results["optimal_temperature"] == 1.0
