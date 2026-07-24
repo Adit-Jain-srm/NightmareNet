@@ -408,7 +408,7 @@ class Evaluator:
                     all_labels.append(labels.cpu())
         except Exception as e:
             logger.error("Error during calibration metrics forward pass: %s", e)
-            raise e
+            raise RuntimeError("Error during calibration metrics forward pass") from e
 
         if not all_logits:
             raise ValueError("No logits or labels found in dataloader for calibration.")
@@ -427,12 +427,18 @@ class Evaluator:
         test_logits = all_logits[split_idx:]
         test_labels = all_labels[split_idx:]
 
-        # Fit TemperatureScaler
-        scaler = TemperatureScaler()
-        optimal_temp = scaler.fit(calib_logits, calib_labels)
-
         calibration_cfg = self.eval_config.get("calibration", {})
         ece_bins = calibration_cfg.get("ece_bins", 15)
+        use_scaling = calibration_cfg.get("temperature_scaling", True)
+
+        # Fit TemperatureScaler if enabled
+        optimal_temp = 1.0
+        if use_scaling:
+            scaler = TemperatureScaler()
+            optimal_temp = scaler.fit(calib_logits, calib_labels)
+            calib_test_logits = scaler.calibrate(test_logits)
+        else:
+            calib_test_logits = test_logits
 
         # Compute uncalibrated ECE on test split
         probs_before = torch.softmax(test_logits, dim=-1)
@@ -445,8 +451,7 @@ class Evaluator:
             n_bins=ece_bins
         )
 
-        # Compute calibrated ECE and reliability data on test split
-        calib_test_logits = scaler.calibrate(test_logits)
+        # Compute calibrated/final ECE and reliability data on test split
         probs_after = torch.softmax(calib_test_logits, dim=-1)
         conf_after, preds_after = probs_after.max(dim=-1)
 

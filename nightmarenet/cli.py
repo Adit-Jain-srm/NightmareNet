@@ -179,10 +179,10 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
             logger.info("  Optimal Temperature:  %.4f", calib.get("optimal_temperature", 1.0))
 
         if json_only:
-            sys.stdout.write(json.dumps(results))
+            sys.stdout.write(json.dumps(results, default=str))
             sys.stdout.write("\n")
         else:
-            logger.info(json.dumps(results, indent=2))
+            logger.info(json.dumps(results, indent=2, default=str))
         return 0
 
     dataset = getattr(args, "dataset", None) or "sst2"
