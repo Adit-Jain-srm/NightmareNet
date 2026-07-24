@@ -4,10 +4,7 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    import optuna
+from typing import Any
 
 from nightmarenet.pipeline import Pipeline
 from nightmarenet.utils.config import load_config
