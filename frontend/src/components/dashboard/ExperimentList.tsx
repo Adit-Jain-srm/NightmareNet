@@ -20,7 +20,6 @@ import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { InlineEdit } from "@/components/InlineEdit";
- fix/issue-462-reconcile-rename
 import {
   searchExperiments,
   deleteExperiment,
@@ -29,9 +28,6 @@ import {
   updateExperiment,
   type PipelineCreateRequest,
 } from "@/lib/api";
-
-import { searchExperiments, deleteExperiment, updateExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
-main
 import {
   IconBeaker,
   IconDownload,
@@ -278,11 +274,13 @@ export function ExperimentList({
 
   useEffect(() => {
     const trimmed = query.trim();
-    setSemanticIds(null);
     if (trimmed.length < 3) {
-      setSemanticPending(false);
-      setSemanticError(false);
-      return;
+      const timer = window.setTimeout(() => {
+        setSemanticIds(null);
+        setSemanticPending(false);
+        setSemanticError(false);
+      }, 0);
+      return () => window.clearTimeout(timer);
     }
 
     let cancelled = false;
@@ -291,6 +289,7 @@ export function ExperimentList({
         filter === "all"
           ? undefined
           : { status: filter === "complete" ? "completed" : filter };
+      setSemanticIds(null);
       setSemanticPending(true);
       setSemanticError(false);
       searchExperiments(trimmed, 12, statusFilter)
@@ -361,7 +360,6 @@ export function ExperimentList({
     if (!newName.trim()) return;
 
     try {
-      // Reconcile optimistic rename using server response res.name
       const res = await updateExperiment(id, { name: newName });
       setLocalNames((prev) => ({
         ...prev,

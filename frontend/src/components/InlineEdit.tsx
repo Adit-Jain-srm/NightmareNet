@@ -17,9 +17,12 @@ export function InlineEdit({ value, onSave, className, inputClassName }: InlineE
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Sync value when parent passes new value (optimistic update from parent or real fetch)
-  useEffect(() => {
+useEffect(() => {
     if (!isEditing) {
-      setCurrentValue(value);
+      const timer = setTimeout(() => {
+        setCurrentValue(value);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [value, isEditing]);
 
@@ -42,7 +45,7 @@ export function InlineEdit({ value, onSave, className, inputClassName }: InlineE
     try {
       await onSave(currentValue);
       setIsEditing(false);
-    } catch (err) {
+    } catch {
       setCurrentValue(value);
       setIsEditing(false);
       // parent handles toast on failure
