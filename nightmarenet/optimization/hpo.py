@@ -4,24 +4,19 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import TYPE_CHECKING, Any
-
-if TYPE_CHECKING:
-    optuna: Any
-else:
-    optuna = None
-
-from nightmarenet.pipeline import Pipeline
-from nightmarenet.utils.config import load_config
+from typing import Any
 
 try:
-    import optuna
+    import optuna as _optuna
 
+    optuna: Any = _optuna
     OPTUNA_AVAILABLE = True
 except ImportError:
     optuna = None
     OPTUNA_AVAILABLE = False
 
+from nightmarenet.pipeline import Pipeline
+from nightmarenet.utils.config import load_config
 
 logger = logging.getLogger(__name__)
 
