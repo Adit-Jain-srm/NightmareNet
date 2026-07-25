@@ -590,9 +590,7 @@ class CompressionPhase:
                 stats = {"pruned_params": 0, "total_params": 0}
                 pruning_succeeded = False
         else:
-            logger.warning("Unknown pruning method '%s'; skipping.", pruning_method)
-            stats = {"pruned_params": 0, "total_params": 0}
-            pruning_succeeded = False
+            raise ValueError(f"Unknown pruning method '{pruning_method}'")
 
         # Distillation step (RSLAD-style): pruned student learns from teacher
         distillation_stats = {}
