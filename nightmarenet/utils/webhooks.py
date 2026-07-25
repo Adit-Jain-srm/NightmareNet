@@ -75,6 +75,8 @@ def trigger_webhook(
     event_type: str,
     message: str,
     details: Optional[Dict[str, Any]] = None,
+    timeout: float = 5.0,
+    max_retries: int = 3,
 ) -> None:
     """Send webhook notifications to configured endpoints based on event_type.
 
@@ -83,6 +85,8 @@ def trigger_webhook(
         event_type: One of 'run_complete', 'regression_detected', 'alert', 'deploy'.
         message: The headline text/message.
         details: A dictionary of key-value details to include.
+        timeout: HTTP request timeout in seconds (default 5.0).
+        max_retries: Maximum attempt count (default 3).
     """
     webhooks = config.get("notifications", {}).get("webhooks", [])
     if not webhooks:
@@ -98,12 +102,26 @@ def trigger_webhook(
             continue
 
         try:
-            _send_webhook_request(url, event_type, message, details or {})
+            _send_webhook_request(
+                url,
+                event_type,
+                message,
+                details or {},
+                max_retries=max_retries,
+                timeout=timeout,
+            )
         except Exception as e:
             logger.warning("Failed to send webhook notification to %s: %s", url, e)
 
 
-def _send_webhook_request(url: str, event_type: str, message: str, details: Dict[str, Any]) -> None:
+def _send_webhook_request(
+    url: str,
+    event_type: str,
+    message: str,
+    details: Dict[str, Any],
+    max_retries: int = 3,
+    timeout: float = 5.0,
+) -> None:
     # Build payload based on URL/destination using rich formatters
     dashboard_url = details.get("dashboard_url") if details else None
     # Remove dashboard_url from details before passing to builder
@@ -119,22 +137,38 @@ def _send_webhook_request(url: str, event_type: str, message: str, details: Dict
         headers={"Content-Type": "application/json", "User-Agent": "NightmareNet-Webhook/0.2.0"},
     )
 
-    max_retries = 1
-    for attempt in range(max_retries + 1):
+    for attempt in range(max_retries):
         try:
-            with urllib.request.urlopen(req, timeout=5) as response:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
                 response.read()
             return
         except urllib.error.HTTPError as e:
-            if e.code == 429 or (500 <= e.code < 600):
-                if attempt < max_retries:
-                    logger.warning(
-                        "Webhook request to %s failed with status %d. Retrying in 2 seconds...",
-                        url,
-                        e.code,
-                    )
-                    time.sleep(2)
-                    continue
+            if (e.code == 429 or 500 <= e.code < 600) and attempt < max_retries - 1:
+                backoff = 2 ** attempt
+                logger.warning(
+                    "Webhook request to %s failed with status %d. Retrying in %ds (attempt %d/%d)...",
+                    url,
+                    e.code,
+                    backoff,
+                    attempt + 1,
+                    max_retries,
+                )
+                time.sleep(backoff)
+                continue
+            raise e
+        except (urllib.error.URLError, TimeoutError) as e:
+            if attempt < max_retries - 1:
+                backoff = 2 ** attempt
+                logger.warning(
+                    "Webhook request to %s failed: %s. Retrying in %ds (attempt %d/%d)...",
+                    url,
+                    e,
+                    backoff,
+                    attempt + 1,
+                    max_retries,
+                )
+                time.sleep(backoff)
+                continue
             raise e
 
 

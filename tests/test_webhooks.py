@@ -243,3 +243,57 @@ class TestBuildWebhookPayload:
         )
         assert any(block.get("type") == "actions" for block in payload["blocks"])
 
+
+class TestTriggerWebhookRetry:
+    def test_retry_on_500_success_eventually(self):
+        from unittest.mock import MagicMock
+        import urllib.error
+        from nightmarenet.utils.webhooks import trigger_webhook
+
+        config = {
+            "notifications": {
+                "webhooks": [
+                    {"url": "https://hooks.slack.com/services/T/B/x", "events": ["run_complete"]}
+                ]
+            }
+        }
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = b"ok"
+        mock_resp.__enter__.return_value = mock_resp
+
+        http_err = urllib.error.HTTPError(
+            "https://hooks.slack.com/services/T/B/x", 500, "Internal Error", {}, None
+        )
+
+        with patch("urllib.request.urlopen", side_effect=[http_err, mock_resp]) as mock_url:
+            with patch("time.sleep") as mock_sleep:
+                trigger_webhook(config, "run_complete", "Test message", max_retries=3)
+
+        assert mock_url.call_count == 2
+        mock_sleep.assert_called_once_with(1)
+
+    def test_max_retries_exceeded(self):
+        import urllib.error
+        from nightmarenet.utils.webhooks import trigger_webhook
+
+        config = {
+            "notifications": {
+                "webhooks": [
+                    {"url": "https://hooks.slack.com/services/T/B/x", "events": ["run_complete"]}
+                ]
+            }
+        }
+
+        http_err = urllib.error.HTTPError(
+            "https://hooks.slack.com/services/T/B/x", 503, "Service Unavailable", {}, None
+        )
+
+        with patch("urllib.request.urlopen", side_effect=http_err) as mock_url:
+            with patch("time.sleep") as mock_sleep:
+                trigger_webhook(config, "run_complete", "Test message", max_retries=3)
+
+        assert mock_url.call_count == 3
+        assert mock_sleep.call_args_list == [((1,),), ((2,),)]
+
+
