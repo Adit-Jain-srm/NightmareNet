@@ -20,7 +20,6 @@ import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
-import { searchExperiments, deleteExperiment, exportExperiment, createPipeline } from "@/lib/api";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { InlineEdit } from "@/components/InlineEdit";
 import { searchExperiments, deleteExperiment, updateExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
@@ -43,11 +42,6 @@ interface Experiment {
   robustness: number;
   duration: string;
   createdAt: string;
-  config?: {
-    dream_strength?: number;
-    nightmare_strength?: number;
-    source_type?: "urls" | "huggingface" | "text";
-  };
   config?: PipelineCreateRequest;
 }
 
@@ -175,8 +169,6 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
           } finally {
             setIsLoading(false);
           }
-        onSelect: () => {
-          onRerun(row);
         },
       },
       {
@@ -201,8 +193,6 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
           } finally {
             setIsLoading(false);
           }
-        onSelect: () => {
-          onExport(row.id);
         },
       },
       {
@@ -226,11 +216,6 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
       },
     ],
     [row, toast, router]
-          onDelete(row.id);
-        },
-      },
-    ],
-    [row, onCompare, onRerun, onExport, onDelete]
   );
 
   return (
@@ -574,8 +559,7 @@ export function ExperimentList({
     
     try {
       const response = await exportExperiment(id, "csv");
-      const blob = new Blob([response.data], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(response);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${id}.csv`;

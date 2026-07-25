@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import math
 import os
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import torch
 from datasets import Dataset, IterableDataset
@@ -92,7 +92,7 @@ class DreamDatasetGenerator:
 
         return {**example, self.text_column: result}
 
-    def generate(self, dataset: Any) -> Any:
+    def generate(self, dataset: Any) -> Union[Dataset, IterableDataset, DistortedVisionDataset]:
         """Generate a dream dataset by applying mild distortions.
 
         Args:
@@ -345,7 +345,7 @@ class NightmareDatasetGenerator:
 
         return {**example, self.text_column: result}
 
-    def generate(self, dataset: Any) -> Any:
+    def generate(self, dataset: Any) -> Union[Dataset, IterableDataset, DistortedVisionDataset]:
         """Generate a nightmare dataset by applying extreme distortions.
 
         Args:
