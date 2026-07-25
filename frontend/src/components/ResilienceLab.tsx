@@ -197,7 +197,7 @@ export default function ResilienceLab() {
                 key={t}
                 onClick={() => setTab(t)}
                 className={`relative flex items-center gap-2 px-5 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
-                  tab === t ? "text-white" : "text-muted hover:text-text-dim"
+                  tab === t ? "text-white" : "text-slate-400 hover:text-text-dim"
                 }`}
               >
                 {tab === t && (
@@ -216,19 +216,16 @@ export default function ResilienceLab() {
 
         {/* Shared input */}
         <div className="glass-card p-5 mb-6">
-          <label className="text-xs font-mono text-muted uppercase tracking-wider block mb-2">
-            Test Text
-          </label>
-          <textarea
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              setCompareResult(null);
-              setSpectrumResult(null);
-            }}
-            rows={2}
-            className="w-full bg-void/60 border border-white/[0.06] rounded-xl px-4 py-3 text-sm font-mono text-text placeholder:text-muted/40 focus:outline-none focus:border-neural/30 resize-none transition-colors"
-          />
+          <label htmlFor="resilience-test-text" className="sr-only">
+  Test text for resilience comparison
+</label>
+
+<textarea
+  id="resilience-test-text"
+  aria-label="Test text for resilience comparison"
+  rows={2}
+  className="w-full bg-void/60 border border-white/[0.06] rounded-xl px-4 py-3 text-sm font-mono text-text placeholder:text-slate-400 focus:outline-none focus:border-neural/30 resize-none transition-colors"
+/>
 
           <AnimatePresence mode="wait">
             {tab === "compare" ? (
@@ -244,14 +241,14 @@ export default function ResilienceLab() {
                     <label className="text-xs font-mono text-success">Baseline</label>
                     <span className="text-xs font-mono font-bold text-success">{baselineStr.toFixed(2)}</span>
                   </div>
-                  <input type="range" min="0" max="1" step="0.05" value={baselineStr} onChange={(e) => { setBaselineStr(parseFloat(e.target.value)); setCompareResult(null); }} className="slider-neural" />
+                  <input type="range" min="0" max="1" step="0.05" aria-label="Baseline distortion strength" value={baselineStr} onChange={(e) => { setBaselineStr(parseFloat(e.target.value)); setCompareResult(null); }} className="slider-neural" />
                 </div>
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="text-xs font-mono text-nightmare">Challenge</label>
                     <span className="text-xs font-mono font-bold text-nightmare">{challengeStr.toFixed(2)}</span>
                   </div>
-                  <input type="range" min="0" max="1" step="0.05" value={challengeStr} onChange={(e) => { setChallengeStr(parseFloat(e.target.value)); setCompareResult(null); }} className="slider-nightmare" />
+                  <input type="range" min="0" max="1" step="0.05" aria-label="Challenge distortion strength" value={challengeStr} onChange={(e) => { setChallengeStr(parseFloat(e.target.value)); setCompareResult(null); }} className="slider-nightmare" />
                 </div>
               </motion.div>
             ) : (
@@ -260,7 +257,7 @@ export default function ResilienceLab() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="mt-3 flex items-center gap-2 text-[10px] text-muted font-mono"
+                className="mt-3 flex items-center gap-2 text-[10px] text-slate-400 font-mono"
               >
                 <Shield className="w-3 h-3" />
                 Testing at {DEFAULT_STRENGTHS.length} strength levels: {DEFAULT_STRENGTHS.join(", ")}
@@ -301,7 +298,7 @@ export default function ResilienceLab() {
               exit={{ opacity: 0 }}
             >
               <div className="glass-card p-6 mb-4 text-center">
-                <p className="text-xs font-mono text-muted uppercase tracking-wider mb-2">Resilience Score</p>
+                <p className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-2">Resilience Score</p>
                 <div className="relative inline-flex items-center justify-center">
                   <svg width="120" height="120" viewBox="0 0 120 120">
                     <circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="6" />
@@ -340,7 +337,7 @@ export default function ResilienceLab() {
                         return (
                           <div key={level} className="mb-3">
                             <div className="flex items-center justify-between mb-1">
-                              <span className="text-[10px] font-mono text-muted capitalize">{level}</span>
+                              <span className="text-[10px] font-mono text-slate-400 capitalize">{level}</span>
                               <span className={`text-[10px] font-mono font-bold text-${color}`}>{(item.similarity * 100).toFixed(1)}%</span>
                             </div>
                             <div className="h-1.5 rounded-full bg-void/60 overflow-hidden">
@@ -354,7 +351,7 @@ export default function ResilienceLab() {
                           </div>
                         );
                       })}
-                      <div className="flex items-center gap-1.5 mt-2 text-[10px] font-mono text-muted">
+                      <div className="flex items-center gap-1.5 mt-2 text-[10px] font-mono text-slate-400">
                         <TrendingDown className="w-3 h-3" />
                         Δ = {((d.baseline.similarity - d.challenge.similarity) * 100).toFixed(1)}% drop
                       </div>
@@ -366,7 +363,7 @@ export default function ResilienceLab() {
               <div className="glass-card p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 className="w-4 h-4 text-neural" />
-                  <span className="text-xs font-mono text-muted uppercase tracking-wider">Analysis</span>
+                  <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Analysis</span>
                 </div>
                 <p className="text-xs text-text-dim leading-relaxed">{compareResult.analysis}</p>
               </div>
@@ -388,7 +385,7 @@ export default function ResilienceLab() {
                   { label: "Levels Tested", value: String(DEFAULT_STRENGTHS.length), color: "neural" },
                 ].map((m) => (
                   <div key={m.label} className="glass-card p-4 text-center">
-                    <p className="text-xs font-mono text-muted mb-1">{m.label}</p>
+                    <p className="text-xs font-mono text-slate-400 mb-1">{m.label}</p>
                     <p className={`text-xl font-black font-mono text-${m.color}`}>{m.value}</p>
                   </div>
                 ))}
@@ -397,15 +394,15 @@ export default function ResilienceLab() {
               <div className="glass-card p-5">
                 <div className="flex items-center gap-2 mb-4">
                   <BarChart3 className="w-4 h-4 text-neural" />
-                  <span className="text-xs font-mono text-muted uppercase tracking-wider">Resilience Curve</span>
+                  <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Resilience Curve</span>
                   <div className="ml-auto flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
                       <div className="w-2.5 h-2.5 rounded-full bg-dream" />
-                      <span className="text-[10px] font-mono text-muted">Dream</span>
+                      <span className="text-[10px] font-mono text-slate-400">Dream</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <div className="w-2.5 h-2.5 rounded-full bg-nightmare" />
-                      <span className="text-[10px] font-mono text-muted">Nightmare</span>
+                      <span className="text-[10px] font-mono text-slate-400">Nightmare</span>
                     </div>
                   </div>
                 </div>
@@ -414,8 +411,8 @@ export default function ResilienceLab() {
 
               <div className="glass-card p-4 mt-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <TrendingDown className="w-4 h-4 text-muted" />
-                  <span className="text-xs font-mono text-muted uppercase tracking-wider">Summary</span>
+                  <TrendingDown className="w-4 h-4 text-slate-400" />
+                  <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">Summary</span>
                 </div>
                 <p className="text-xs text-text-dim leading-relaxed">{spectrumResult.summary}</p>
               </div>

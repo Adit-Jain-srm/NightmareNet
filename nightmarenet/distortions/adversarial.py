@@ -9,24 +9,46 @@ from __future__ import annotations
 
 import logging
 import random
+from typing import Any, Optional
 
+from nightmarenet.distortions.learned import LearnedAdversarialGenerator
 from nightmarenet.utils.validation import validate_strength
 
 logger = logging.getLogger(__name__)
 
-# Cache LearnedAdversarialGenerator across calls so we don't reload DistilBERT every distortion.
-_LEARNED_CACHE: dict = {}
+# Cache generators so the fallback MLM and per-cycle examples are reused.
+_LEARNED_CACHE: dict[tuple[str, str, bool, int], LearnedAdversarialGenerator] = {}
 
 
-def _get_learned_generator(model_name: str, strength: float):
-    """Return a cached LearnedAdversarialGenerator instance for ``model_name``."""
-    if model_name in _LEARNED_CACHE:
-        return _LEARNED_CACHE[model_name]
-    from nightmarenet.distortions.learned import LearnedAdversarialGenerator
+def _get_learned_generator(
+    model_name: str,
+    strength: float,
+    *,
+    strategy: str = "attention",
+    cache_enabled: bool = True,
+    seed: int = 42,
+    target_model: Optional[Any] = None,
+    target_tokenizer: Optional[Any] = None,
+) -> LearnedAdversarialGenerator:
+    """Return a cached learned generator for one model/strategy combination."""
 
-    gen = LearnedAdversarialGenerator(model_name=model_name, strength=strength)
-    _LEARNED_CACHE[model_name] = gen
-    return gen
+    key = (model_name, strategy, cache_enabled, seed)
+    generator = _LEARNED_CACHE.get(key)
+    if generator is None:
+        generator = LearnedAdversarialGenerator(
+            model_name=model_name,
+            strength=strength,
+            target_model=target_model,
+            target_tokenizer=target_tokenizer,
+            strategy=strategy,
+            cache_enabled=cache_enabled,
+            seed=seed,
+        )
+        _LEARNED_CACHE[key] = generator
+    else:
+        generator.strength = strength
+        generator.set_target_model(target_model, target_tokenizer)
+    return generator
 
 
 # Templates for contradictory premises
@@ -118,8 +140,16 @@ def inject_contradiction(text, strength=0.3) -> str:
 
             # Simple negation: insert "not" or flip key words
             negation_targets = {
-                "is", "are", "was", "were",
-                "will", "can", "has", "have", "does", "do",
+                "is",
+                "are",
+                "was",
+                "were",
+                "will",
+                "can",
+                "has",
+                "have",
+                "does",
+                "do",
             }
             inserted = False
             for i, w in enumerate(negated_words):
@@ -289,13 +319,24 @@ def construct_adversarial_prompt(text, strength=0.3) -> str:
     return " ".join(components)
 
 
-def apply_adversarial_distortions(text, strength=0.3, config=None) -> str:
+def apply_adversarial_distortions(
+    text,
+    strength=0.3,
+    config=None,
+    *,
+    target_model=None,
+    target_tokenizer=None,
+    cycle_id: int = 0,
+) -> str:
     """Apply a combination of adversarial distortions based on config weights.
 
     Args:
         text: Input text string.
         strength: Float 0–1 controlling overall adversarial intensity.
         config: Optional dict mapping distortion names to their application probabilities.
+        target_model: Optional model being trained for gradient-based attacks.
+        target_tokenizer: Tokenizer paired with ``target_model``.
+        cycle_id: Training cycle used to partition learned-example cache entries.
 
     Returns:
         Adversarially distorted text.
@@ -326,15 +367,25 @@ def apply_adversarial_distortions(text, strength=0.3, config=None) -> str:
             if name in distortion_funcs and random.random() < prob:
                 result = distortion_funcs[name](result, strength=strength)
 
-        # Apply learned adversarial distortion if configured
+        # Apply learned adversarial distortion if configured.
         learned_weight = config.get("learned", 0.0)
         if learned_weight > 0 and random.random() < learned_weight:
             try:
-                gen = _get_learned_generator(
+                generator = _get_learned_generator(
                     config.get("learned_model", "distilbert-base-uncased"),
                     strength,
+                    strategy=config.get("learned_strategy", "attention"),
+                    cache_enabled=config.get("learned_cache", True),
+                    seed=config.get("learned_seed", 42),
+                    target_model=target_model,
+                    target_tokenizer=target_tokenizer,
                 )
-                result = gen.generate(result, strength=strength)
+                generator.set_cycle(cycle_id)
+                result = generator.generate(
+                    result,
+                    strength=strength,
+                    cycle_id=cycle_id,
+                )
             except Exception:
                 logger.warning(
                     "Learned adversarial distortion failed; continuing with other distortions",

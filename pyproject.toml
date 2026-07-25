@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nightmarenet"
-version = "0.2.0"
+version = "0.3.1"
 description = "Autonomous AI Self-Improvement Platform — Sleep-Inspired Training Paradigm"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -28,6 +28,7 @@ keywords = ["ai", "training", "robustness", "distortion", "machine-learning", "s
 
 dependencies = [
     "torch>=2.0.0",
+    "torchvision>=0.15.0",
     "transformers>=4.30.0",
     "datasets>=2.14.0",
     "numpy>=1.24.0",
@@ -55,11 +56,15 @@ api = [
     "httpx>=0.25.0",
     "python-multipart>=0.0.7",
     "slowapi>=0.1.9",
+    "python-dotenv>=1.0",
 ]
 tracking = [
     "wandb>=0.16.0",
     "tensorboard>=2.14.0",
 ]
+mlflow = ["mlflow>=2.0"]
+attacks = ["textattack>=0.3.8"]
+hpo = ["optuna>=3.0.0"]
 distributed = [
     "accelerate>=0.25.0",
 ]
@@ -78,11 +83,30 @@ hosted = [
     "pyjwt>=2.8.0",
     "psycopg[binary]>=3.1.0",
 ]
+search = [
+    "sentence-transformers>=2.2.0",
+    "faiss-cpu>=1.7.0",
+]
 adaption = [
     "adaption>=0.1.0",
 ]
 ai = [
     "openai>=1.30.0",
+]
+hub = [
+    "huggingface_hub>=0.20.0"
+]
+compliance-pdf = [
+    "reportlab>=4.0.0",
+    "pyhanko>=0.23.0",
+    "markdown>=3.5.0",
+]
+export = [
+    "onnx>=1.14.0",
+    "onnxruntime>=1.16.0"
+]
+art = [
+    "adversarial-robustness-toolbox>=1.15.0",
 ]
 
 [project.urls]
@@ -95,10 +119,11 @@ nightmarenet = "nightmarenet.cli:main"
 nightmarenet-train = "scripts.train:main"
 nightmarenet-generate = "scripts.generate_data:main"
 nightmarenet-evaluate = "scripts.evaluate:main"
+nightmarenet-reindex-search = "nightmarenet_server.search.reindex:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short -m 'not slow'"
+addopts = "-v --tb=short -m 'not slow' --ignore=tests/test_distortion_vision.py"
 markers = [
     "slow: marks tests as slow (deselect with '-m not slow')",
 ]
@@ -141,5 +166,26 @@ module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]
 follow_imports = "skip"
 follow_imports_for_stubs = false
 
+[[tool.mypy.overrides]]
+module = [
+    "nightmarenet.phases.*",
+    "nightmarenet.compliance.*",
+    "nightmarenet.hub.*",
+    "nightmarenet.evaluation.certification",
+    "nightmarenet.optimization.*",
+    "nightmarenet.data.*",
+]
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+strict_concatenate = true
+
 [tool.setuptools.packages.find]
-include = ["nightmarenet*", "scripts"]
+include = ["nightmarenet*", "nightmarenet_server*", "scripts"]

@@ -144,9 +144,7 @@ class TestAPISchemaValidation:
         assert resp.status_code == 422
 
     def test_dream_null_text(self):
-        resp = client.post(
-            "/api/v1/generate/dream", json={"text": None, "strength": 0.5}
-        )
+        resp = client.post("/api/v1/generate/dream", json={"text": None, "strength": 0.5})
         assert resp.status_code == 422
 
     def test_dream_missing_strength(self):
@@ -161,15 +159,11 @@ class TestAPISchemaValidation:
         assert resp.status_code == 422
 
     def test_nightmare_null_text(self):
-        resp = client.post(
-            "/api/v1/generate/nightmare", json={"text": None, "strength": 0.5}
-        )
+        resp = client.post("/api/v1/generate/nightmare", json={"text": None, "strength": 0.5})
         assert resp.status_code == 422
 
     def test_robustness_missing_text(self):
-        resp = client.post(
-            "/api/v1/evaluate/robustness", json={"strengths": [0.2, 0.5]}
-        )
+        resp = client.post("/api/v1/evaluate/robustness", json={"strengths": [0.2, 0.5]})
         assert resp.status_code == 422
 
     def test_robustness_null_strengths(self):
@@ -196,15 +190,11 @@ class TestAPISchemaValidation:
         assert resp.status_code == 422
 
     def test_dream_strength_out_of_range(self):
-        resp = client.post(
-            "/api/v1/generate/dream", json={"text": "test", "strength": 5.0}
-        )
+        resp = client.post("/api/v1/generate/dream", json={"text": "test", "strength": 5.0})
         assert resp.status_code == 422
 
     def test_nightmare_strength_negative(self):
-        resp = client.post(
-            "/api/v1/generate/nightmare", json={"text": "test", "strength": -1.0}
-        )
+        resp = client.post("/api/v1/generate/nightmare", json={"text": "test", "strength": -1.0})
         assert resp.status_code == 422
 
     def test_dream_empty_body(self):

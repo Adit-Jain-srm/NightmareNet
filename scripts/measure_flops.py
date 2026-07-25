@@ -111,6 +111,14 @@ def parse_args():
 
 def main():
     args = parse_args()
+
+    if args.batch_size <= 0:
+        raise SystemExit("error: --batch-size must be positive")
+    if args.wake_epochs < 0 or args.dream_epochs < 0 or args.nightmare_epochs < 0:
+        raise SystemExit("error: --*-epochs must be non-negative")
+    if not (0.0 <= args.pruning_ratio <= 1.0):
+        raise SystemExit("error: --pruning-ratio must be between 0.0 and 1.0")
+
     has_cuda = torch.cuda.is_available()
     device = torch.device(
         args.device if has_cuda or args.device == "cpu" else "cpu"
@@ -139,8 +147,9 @@ def main():
     wrapper = HFModelWrapper(model)
 
     # Generate dummy input
+    vocab_size = getattr(model.config, "vocab_size", 30522)
     dummy_input_ids = torch.randint(
-        0, 1000, (args.batch_size, args.seq_len), dtype=torch.long, device=device
+        0, vocab_size, (args.batch_size, args.seq_len), dtype=torch.long, device=device
     )
     dummy_attention_mask = torch.ones(
         (args.batch_size, args.seq_len), dtype=torch.long, device=device

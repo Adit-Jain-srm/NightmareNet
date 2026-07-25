@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   IconCommand,
@@ -19,6 +19,7 @@ import {
   IconTrend,
 } from "./icons";
 import type { DashboardSectionKey } from "./Sidebar";
+import { useDialogFocus } from "../a11y/useDialogFocus";
 import {
   loadRecentPaletteIds,
   pushRecentPaletteId,
@@ -50,6 +51,8 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const getInitialFocus = useCallback(() => inputRef.current, []);
+  const dialogRef = useDialogFocus(open, onClose, getInitialFocus);
 
   const items: PaletteItem[] = useMemo(
     () => [
@@ -96,7 +99,6 @@ export function CommandPalette({
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIdx((i) => Math.min(i + 1, filtered.length - 1));
@@ -152,16 +154,19 @@ export function CommandPalette({
           exit={{ opacity: 0 }}
           transition={{ duration: 0.12 }}
           className="fixed inset-0 z-[55] flex items-start justify-center px-4 pt-24"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Command palette"
         >
-          <div
-            className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-void/80 backdrop-blur-sm"
             onClick={onClose}
-            aria-hidden="true"
+            aria-label="Close command palette"
           />
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Command palette"
+            tabIndex={-1}
             initial={{ opacity: 0, y: -8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.98 }}
@@ -175,7 +180,7 @@ export function CommandPalette({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Type a command or search…"
-                className="flex-1 bg-transparent text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none"
+                className="flex-1 bg-transparent text-sm text-slate-100 placeholder:text-slate-300 focus:outline-none"
                 aria-label="Command palette search"
               />
               <kbd className="rounded bg-white/[0.06] px-1.5 py-0.5 font-mono text-[10px] text-slate-400">
@@ -190,7 +195,7 @@ export function CommandPalette({
               ) : (
                 grouped.map(([group, list]) => (
                   <div key={group} className="px-2">
-                    <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                    <p className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-slate-300">
                       {group}
                     </p>
                     {list.map((it) => {

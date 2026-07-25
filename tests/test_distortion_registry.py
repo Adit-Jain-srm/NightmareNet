@@ -92,11 +92,15 @@ def test_base_distortion_plugin() -> None:
     assert plugin.validate() is True
 
     # Register manually
-    registry.register(plugin.name, plugin.distort, metadata={
-        'phase': plugin.phase,
-        'description': plugin.description,
-        'source': 'custom',
-    })
+    registry.register(
+        plugin.name,
+        plugin.distort,
+        metadata={
+            "phase": plugin.phase,
+            "description": plugin.description,
+            "source": "custom",
+        },
+    )
 
     assert "test_plugin" in registry
     assert registry.apply("test_plugin", "hello", strength=0.5) == "hello [distorted]"

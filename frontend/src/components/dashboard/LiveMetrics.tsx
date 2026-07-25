@@ -65,7 +65,7 @@ function LossChart({ series, width = 600, height = 220 }: LineChartProps) {
   });
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Loss curve">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="group" aria-label="Loss curve">
       {yTicks.map((t, i) => (
         <g key={i}>
           <line x1={pad.l} x2={width - pad.r} y1={t.y} y2={t.y} stroke="rgba(255,255,255,0.04)" />
@@ -119,7 +119,7 @@ function RobustnessChart() {
   };
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="img" aria-label="Robustness chart">
+    <svg viewBox={`0 0 ${width} ${height}`} className="w-full" role="group" aria-label="Robustness chart">
       <defs>
         <linearGradient id="rob-hardened" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0%" stopColor="var(--color-success)" stopOpacity="0.35" />

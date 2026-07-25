@@ -26,4 +26,3 @@ parallel-cli research poll "<RUN_ID>" -o "nightmarenet-research-landscape" --tim
 - Keep **CORS** and **Next rewrites** aligned so the UI can use same-origin `/api/...` in production.
 - Treat **App Insights** / telemetry as a separate **azure-prepare** pass when you pick Azure hosting.
 - For GTM list enrichment, **parallel-data-enrichment** is optional and unrelated to the training core.
-

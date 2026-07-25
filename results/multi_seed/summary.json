@@ -1,0 +1,242 @@
+{
+  "headline": {
+    "baseline_clean": {
+      "mean": 0.7210000000000001,
+      "std": 0.12881187833425922,
+      "ci": 0.15991543095023694
+    },
+    "nightmarenet_clean": {
+      "mean": 0.784,
+      "std": 0.010839741694339409,
+      "ci": 0.013457159284187739
+    },
+    "baseline_avg_dist": {
+      "mean": 0.5857,
+      "std": 0.056617797555185756,
+      "ci": 0.07028901070750673
+    },
+    "nightmarenet_avg_dist": {
+      "mean": 0.6489,
+      "std": 0.015891821796131488,
+      "ci": 0.01972913961023135
+    },
+    "baseline_robustness_drop": {
+      "mean": 0.1353,
+      "std": 0.07569560753438735,
+      "ci": 0.09397344294980362
+    },
+    "nightmarenet_robustness_drop": {
+      "mean": 0.1351,
+      "std": 0.01881621641032012,
+      "ci": 0.02335967299771125
+    },
+    "relative_improvement": {
+      "mean": 11.836,
+      "std": 13.693966919778944,
+      "ci": 17.000579835596664
+    }
+  },
+  "per_strength": {
+    "dream": {
+      "0.1": {
+        "baseline": {
+          "mean": 0.647,
+          "std": 0.09189668111526117,
+          "ci": 0.11408650780876763
+        },
+        "nightmarenet": {
+          "mean": 0.733,
+          "std": 0.019235384061671364,
+          "ci": 0.023880054941310354
+        }
+      },
+      "0.3": {
+        "baseline": {
+          "mean": 0.634,
+          "std": 0.09126883367283707,
+          "ci": 0.11330705722063386
+        },
+        "nightmarenet": {
+          "mean": 0.722,
+          "std": 0.027748873851023193,
+          "ci": 0.03444925404127058
+        }
+      },
+      "0.5": {
+        "baseline": {
+          "mean": 0.583,
+          "std": 0.050818303789087645,
+          "ci": 0.0630891425207222
+        },
+        "nightmarenet": {
+          "mean": 0.635,
+          "std": 0.023979157616563617,
+          "ci": 0.029769283498263795
+        }
+      },
+      "0.7": {
+        "baseline": {
+          "mean": 0.529,
+          "std": 0.034892692644735795,
+          "ci": 0.04331805461929239
+        },
+        "nightmarenet": {
+          "mean": 0.5660000000000001,
+          "std": 0.01635542723379609,
+          "ci": 0.02030468950759893
+        }
+      },
+      "0.9": {
+        "baseline": {
+          "mean": 0.537,
+          "std": 0.029283100928692643,
+          "ci": 0.03635394316989561
+        },
+        "nightmarenet": {
+          "mean": 0.5820000000000001,
+          "std": 0.02138924963620743,
+          "ci": 0.026554003539956066
+        }
+      }
+    },
+    "nightmare": {
+      "0.1": {
+        "baseline": {
+          "mean": 0.647,
+          "std": 0.09196466712819656,
+          "ci": 0.11417091006031263
+        },
+        "nightmarenet": {
+          "mean": 0.735,
+          "std": 0.020916500663351906,
+          "ci": 0.025967102264211173
+        }
+      },
+      "0.3": {
+        "baseline": {
+          "mean": 0.63,
+          "std": 0.08944271909999157,
+          "ci": 0.11103999999999997
+        },
+        "nightmarenet": {
+          "mean": 0.725,
+          "std": 0.029999999999999978,
+          "ci": 0.037243948233236464
+        }
+      },
+      "0.5": {
+        "baseline": {
+          "mean": 0.577,
+          "std": 0.04658325879540846,
+          "ci": 0.05783148263705504
+        },
+        "nightmarenet": {
+          "mean": 0.634,
+          "std": 0.02631539473388156,
+          "ci": 0.032669639973528966
+        }
+      },
+      "0.7": {
+        "baseline": {
+          "mean": 0.524,
+          "std": 0.032672618505409076,
+          "ci": 0.04056191040865801
+        },
+        "nightmarenet": {
+          "mean": 0.5660000000000001,
+          "std": 0.021621748310439625,
+          "ci": 0.026842642492869398
+        }
+      },
+      "0.9": {
+        "baseline": {
+          "mean": 0.5489999999999999,
+          "std": 0.031104662029991563,
+          "ci": 0.03861534741524408
+        },
+        "nightmarenet": {
+          "mean": 0.591,
+          "std": 0.010839741694339409,
+          "ci": 0.013457159284187739
+        }
+      }
+    }
+  },
+  "statistical_tests": {
+    "clean_accuracy": {
+      "t_statistic": 1.059384753251635,
+      "p_value": 0.3491562682566569
+    },
+    "avg_distorted_accuracy": {
+      "t_statistic": 2.0836819315617956,
+      "p_value": 0.1055822411847903
+    }
+  },
+  "raw_runs": [
+    {
+      "seed": 42,
+      "baseline": {
+        "clean_accuracy": 0.755,
+        "avg_distorted_accuracy": 0.5815,
+        "robustness_drop": 0.1735
+      },
+      "nightmarenet": {
+        "clean_accuracy": 0.775,
+        "avg_distorted_accuracy": 0.642,
+        "robustness_drop": 0.133
+      }
+    },
+    {
+      "seed": 1,
+      "baseline": {
+        "clean_accuracy": 0.805,
+        "avg_distorted_accuracy": 0.6355,
+        "robustness_drop": 0.1695
+      },
+      "nightmarenet": {
+        "clean_accuracy": 0.79,
+        "avg_distorted_accuracy": 0.6245,
+        "robustness_drop": 0.1655
+      }
+    },
+    {
+      "seed": 7,
+      "baseline": {
+        "clean_accuracy": 0.495,
+        "avg_distorted_accuracy": 0.495,
+        "robustness_drop": 0.0
+      },
+      "nightmarenet": {
+        "clean_accuracy": 0.79,
+        "avg_distorted_accuracy": 0.664,
+        "robustness_drop": 0.126
+      }
+    },
+    {
+      "seed": 99,
+      "baseline": {
+        "clean_accuracy": 0.8,
+        "avg_distorted_accuracy": 0.6315,
+        "robustness_drop": 0.1685
+      },
+      "nightmarenet": {
+        "clean_accuracy": 0.77,
+        "avg_distorted_accuracy": 0.655,
+        "robustness_drop": 0.115
+      }
+    },
+    {
+      "seed": 123,
+      "baseline": {
+        "clean_accuracy": 0.75,
+        "avg_distorted_accuracy": 0.585,
+        "robustness_drop": 0.165
+      },
+      "nightmarenet": {
+        "clean_accuracy": 0.795,
+        "avg_distorted_accuracy": 0.659,
+        "robustness_drop": 0.136
+      }
+    }
+  ]
+}

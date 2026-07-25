@@ -54,3 +54,22 @@ body:
         - Nice to have
         - Important
         - Critical
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List concrete, checkable conditions that define when this issue is complete.
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        > **Important:** Please read [CONTRIBUTING.md](https://github.com/Adit-Jain-srm/NightmareNet/blob/main/CONTRIBUTING.md) in full before requesting assignment. Assignment requests without a technical approach will not be considered. PRs demonstrating thorough research, benchmarks, or creative approaches beyond minimum criteria may earn bonus XP labels.
+
+        > **ECSoC'26 participants:** This repo is part of [Elite Coders Summer of Code 2026](https://github.com/Adit-Jain-srm/NightmareNet/blob/main/CONTRIBUTING.md#ecsoc26-contributors). Review the scoring rubric and bonus XP labels before starting work.

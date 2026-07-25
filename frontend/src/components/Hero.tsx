@@ -79,6 +79,7 @@ export default function Hero() {
   return (
     <section
       ref={containerRef}
+      aria-labelledby="hero-heading"
       className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden"
     >
       {/* Ambient gradient orbs */}
@@ -101,6 +102,7 @@ export default function Hero() {
 
       {/* Title */}
       <motion.h1
+        id="hero-heading"
         initial={{ y: 40, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.15, ease: [0.16, 1, 0.3, 1] }}
@@ -120,11 +122,12 @@ export default function Hero() {
         <p className="text-lg md:text-xl text-text-dim max-w-2xl leading-relaxed">
           Autonomous AI Self-Improvement through
         </p>
-        <p className="text-2xl md:text-3xl font-bold mt-2 h-10">
+        <p className="text-2xl md:text-3xl font-bold mt-2 h-10" aria-hidden="true">
           <span className="text-gradient-neural">{typedWord}</span>
           <span className="text-neural animate-cursor-blink ml-0.5">|</span>
         </p>
-        <p className="text-sm text-muted mt-3 max-w-lg mx-auto">
+        <span className="sr-only">Dream, Nightmare, Compress, and Evolve.</span>
+        <p className="text-sm text-slate-400 mt-3 max-w-lg mx-auto">
           Force neural networks to learn invariant structures — not memorize patterns.
         </p>
       </motion.div>
@@ -137,16 +140,16 @@ export default function Hero() {
         className="relative z-10 mt-10 flex flex-wrap items-center justify-center gap-4"
       >
         <a href="/dashboard" className="btn-primary">
-          <LayoutDashboard className="w-4 h-4 relative z-10" />
+          <LayoutDashboard aria-hidden="true" className="w-4 h-4 relative z-10" />
           <span className="relative z-10">Launch Dashboard</span>
         </a>
         <a href="#playground" className="btn-ghost">
-          <Zap className="w-4 h-4" />
+          <Zap aria-hidden="true" className="w-4 h-4" />
           Try Playground
         </a>
         <a href="#architecture" className="btn-ghost">
           How It Works
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight aria-hidden="true" className="w-4 h-4" />
         </a>
       </motion.div>
 
@@ -185,7 +188,7 @@ export default function Hero() {
             <p className="text-lg font-bold font-mono text-gradient-neural">
               {stat.value}
             </p>
-            <p className="text-[10px] text-muted uppercase tracking-wider mt-0.5">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">
               {stat.label}
             </p>
           </div>
@@ -197,12 +200,12 @@ export default function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.6 }}
-        className="absolute bottom-8 z-10 flex flex-col items-center gap-2 animate-smooth-bounce"
+        aria-hidden="true" className="absolute bottom-8 z-10 flex flex-col items-center gap-2 animate-smooth-bounce"
       >
-        <span className="text-[10px] font-mono text-muted uppercase tracking-widest">
+        <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">
           Scroll
         </span>
-        <ChevronDown className="w-4 h-4 text-muted" />
+        <ChevronDown aria-hidden="true" className="w-4 h-4 text-slate-400" />
       </motion.div>
     </section>
   );

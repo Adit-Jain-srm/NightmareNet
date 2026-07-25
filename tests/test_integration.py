@@ -26,6 +26,7 @@ from nightmarenet.training.scheduler import CyclicScheduler
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_tiny_dataset(n: int = 20) -> Dataset:
     texts = [
         "The quick brown fox jumps over the lazy dog.",
@@ -61,6 +62,7 @@ def _make_dataloader(dataset: Dataset, tokenizer, batch_size: int = 4):
 # ---------------------------------------------------------------------------
 # Data pipeline integration
 # ---------------------------------------------------------------------------
+
 
 class TestDataPipelineIntegration:
     """Dream/Nightmare generators → DataLoader → phase runner."""
@@ -115,6 +117,7 @@ class TestDataPipelineIntegration:
 # Full training cycle integration (phases only — no Trainer overhead)
 # ---------------------------------------------------------------------------
 
+
 class TestFullCycleIntegration:
     """Wake → Dream → Nightmare → Compress in sequence."""
 
@@ -139,22 +142,29 @@ class TestFullCycleIntegration:
 
         # Wake
         wake = WakePhase(
-            model=model, optimizer=optimizer,
-            config=cfg, device="cpu",
+            model=model,
+            optimizer=optimizer,
+            config=cfg,
+            device="cpu",
         )
         results.append(wake.run(train_loader, num_epochs=1))
 
         # Dream
         dream = DreamPhase(
-            model=model, optimizer=optimizer,
-            config=cfg, device="cpu",
+            model=model,
+            optimizer=optimizer,
+            config=cfg,
+            device="cpu",
         )
         results.append(dream.run(dream_loader, num_epochs=1))
 
         # Nightmare
         nightmare = NightmarePhase(
-            model=model, optimizer=optimizer,
-            config=cfg, device="cpu", lr_multiplier=2.0,
+            model=model,
+            optimizer=optimizer,
+            config=cfg,
+            device="cpu",
+            lr_multiplier=2.0,
         )
         results.append(nightmare.run(nightmare_loader, num_epochs=1))
 
@@ -182,11 +192,9 @@ class TestFullCycleIntegration:
             compression_rounds=1,
         )
         phases = [(phase, epochs) for _, phase, epochs in scheduler]
-        assert phases == [
-            ("wake", 1), ("dream", 1), ("nightmare", 1), ("compress", 1)
-        ]
+        assert phases == [("wake", 1), ("dream", 1), ("nightmare", 1), ("compress", 1)]
 
-    def test_trainer_loop_reproducibility(self):
+    def test_trainer_loop_reproducibility(self, tmp_path):
         """Verify that two independent trainer runs with identical seeds
         produce identical losses.
         """
@@ -210,7 +218,10 @@ class TestFullCycleIntegration:
                 "learning_rate": 1e-4,
                 "max_grad_norm": 1.0,
                 "gradient_accumulation_steps": 1,
-            }
+                "save_every_phase": False,
+                "checkpoint_dir": str(tmp_path / "ckpt"),
+                "log_dir": str(tmp_path / "logs"),
+            },
         }
 
         # --- RUN 1 ---
@@ -260,6 +271,7 @@ class TestFullCycleIntegration:
 # Evaluator integration
 # ---------------------------------------------------------------------------
 
+
 class TestEvaluatorIntegration:
     """Evaluator with real model and data."""
 
@@ -278,8 +290,10 @@ class TestEvaluatorIntegration:
             "training": {"batch_size": 4},
         }
         evaluator = Evaluator(
-            model=model, tokenizer=tokenizer,
-            config=config, device="cpu",
+            model=model,
+            tokenizer=tokenizer,
+            config=config,
+            device="cpu",
         )
         results = evaluator.evaluate(clean_dataloader=loader, label="test")
         assert "recall" in results
@@ -375,8 +389,7 @@ class TestAPIRateLimitEnforcement:
     def test_slowapi_middleware_is_registered(self):
         """Verify SlowAPIMiddleware is in the app middleware stack."""
         middleware_classes = [
-            m.cls.__name__ if hasattr(m, "cls") else type(m).__name__
-            for m in app.user_middleware
+            m.cls.__name__ if hasattr(m, "cls") else type(m).__name__ for m in app.user_middleware
         ]
         assert "SlowAPIMiddleware" in middleware_classes
 
@@ -394,3 +407,10 @@ class TestAPICORSConfig:
         raw = os.environ.get("NIGHTMARENET_CORS_ORIGINS", "*")
         origins = [o.strip() for o in raw.split(",") if o.strip()]
         assert origins == ["http://a.com", "http://b.com"]
+
+    def test_cors_default_empty(self, monkeypatch):
+        """CORS defaults to empty (blocked) when env var is unset."""
+        monkeypatch.delenv("NIGHTMARENET_CORS_ORIGINS", raising=False)
+        raw = os.environ.get("NIGHTMARENET_CORS_ORIGINS", "")
+        origins = [o.strip() for o in raw.split(",") if o.strip()]
+        assert origins == []

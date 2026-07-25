@@ -1,13 +1,15 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
-import { IconBell, IconCommand, IconCpu, IconSearch } from "./icons";
+import { IconBell, IconCommand, IconCpu, IconSearch, IconMenu } from "./icons";
 
 export interface TopbarProps {
   title: string;
   breadcrumb?: { label: string; onClick?: () => void }[];
   onOpenCommandPalette: () => void;
   apiStatus?: "online" | "degraded" | "offline";
+  onOpenMobileMenu?: () => void;
+  mobileMenuOpen?: boolean;
 }
 
 const statusMap = {
@@ -21,11 +23,22 @@ export function Topbar({
   breadcrumb = [],
   onOpenCommandPalette,
   apiStatus = "online",
+  onOpenMobileMenu,
+  mobileMenuOpen = false,
 }: TopbarProps) {
   const status = statusMap[apiStatus];
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b border-white/[0.05] bg-void/80 px-4 backdrop-blur-xl sm:px-6">
       <div className="flex min-w-0 items-center gap-2">
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          className="mr-1 inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-slate-400 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50 md:hidden"
+          aria-label="Open sidebar"
+          aria-expanded={mobileMenuOpen}
+        >
+          <IconMenu size={20} />
+        </button>
         <h1 className="truncate text-sm font-semibold text-slate-100">{title}</h1>
         {breadcrumb.length > 0 && (
           <nav className="hidden items-center gap-1 text-xs text-slate-400 md:flex" aria-label="Breadcrumb">

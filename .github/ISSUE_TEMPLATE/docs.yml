@@ -1,0 +1,77 @@
+name: Documentation
+description: Report missing, incorrect, or unclear documentation.
+title: "[Docs]: "
+labels:
+  - documentation
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve NightmareNet's documentation. Please provide enough context for the requested change to be reviewed and implemented.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of NightmareNet does this documentation request affect?
+      options:
+        - Pipeline & Training
+        - Distortions
+        - Data & Ingestion
+        - Evaluation & Metrics
+        - API & CLI
+        - Frontend & Dashboard
+        - Documentation
+        - Testing & CI
+        - Infrastructure & Packaging
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-state
+    attributes:
+      label: Current State
+      description: Describe what is currently missing, incorrect, outdated, or unclear.
+      placeholder: Explain the current documentation and why it is insufficient.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-improvement
+    attributes:
+      label: Proposed Improvement
+      description: Describe the documentation change you would like to see.
+      placeholder: Explain the desired wording, examples, structure, or additional guidance.
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-files
+    attributes:
+      label: Affected Files
+      description: List the documentation or source files that may need to be updated.
+      placeholder: |
+        - README.md
+        - docs/...
+        - example/path.py
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: List concrete, checkable conditions that define when this issue is complete.
+      placeholder: |
+        - [ ] The outdated section is corrected
+        - [ ] A working example is included
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        > **Important:** Please read CONTRIBUTING.md in full before requesting assignment. Assignment requests without a technical approach will not be considered. PRs demonstrating thorough research, benchmarks, or creative approaches beyond minimum criteria may earn bonus XP labels.
+

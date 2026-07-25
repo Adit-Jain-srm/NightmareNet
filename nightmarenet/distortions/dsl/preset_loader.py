@@ -65,13 +65,15 @@ def list_presets(preset_dirs: Optional[List[Path]] = None) -> List[dict]:
     for preset_path in preset_files:
         try:
             config = parse_chain_config(preset_path, validate_engines=False)
-            presets_info.append({
-                "name": config.name,
-                "description": config.description or "",
-                "path": str(preset_path),
-                "version": config.version,
-                "num_steps": len(config.chain),
-            })
+            presets_info.append(
+                {
+                    "name": config.name,
+                    "description": config.description or "",
+                    "path": str(preset_path),
+                    "version": config.version,
+                    "num_steps": len(config.chain),
+                }
+            )
         except Exception:
             # Skip invalid presets when listing
             continue
@@ -113,9 +115,7 @@ def load_preset(name: str, preset_dirs: Optional[List[Path]] = None) -> ChainCon
 
     # Not found
     available = [p.stem for p in discover_presets(preset_dirs)]
-    raise FileNotFoundError(
-        f"Preset '{name}' not found. Available presets: {', '.join(available)}"
-    )
+    raise FileNotFoundError(f"Preset '{name}' not found. Available presets: {', '.join(available)}")
 
 
 def load_preset_from_path(path: str) -> ChainConfig:

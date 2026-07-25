@@ -1,0 +1,15 @@
+schema: '2.0'
+stages:
+  prepare_sst2:
+    cmd: python scripts/prepare_sst2_sample.py --output 
+      data/processed/sst2_sample.csv
+    deps:
+    - path: scripts/prepare_sst2_sample.py
+      hash: md5
+      md5: 11d10b17ac520bfbfd09c117d19bf1b2
+      size: 2204
+    outs:
+    - path: data/processed/sst2_sample.csv
+      hash: md5
+      md5: 615e0aa7d38423a505ec0c65438118a0
+      size: 829

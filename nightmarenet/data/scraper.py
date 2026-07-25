@@ -21,9 +21,21 @@ logger = logging.getLogger(__name__)
 
 # Elements whose content is typically non-article text
 _STRIP_TAGS = {
-    "script", "style", "nav", "footer", "header", "aside",
-    "form", "button", "iframe", "noscript", "svg", "figure",
-    "figcaption", "menu", "menuitem",
+    "script",
+    "style",
+    "nav",
+    "footer",
+    "header",
+    "aside",
+    "form",
+    "button",
+    "iframe",
+    "noscript",
+    "svg",
+    "figure",
+    "figcaption",
+    "menu",
+    "menuitem",
 }
 
 # Minimum text length for a scraped page to be considered valid
@@ -137,16 +149,22 @@ class WebScraper:
                 if len(text) < self.min_text_length:
                     logger.warning(
                         "Page %s yielded only %d chars (min=%d); skipping.",
-                        url, len(text), self.min_text_length,
+                        url,
+                        len(text),
+                        self.min_text_length,
                     )
                     return None
                 return text
             except requests.RequestException as exc:
                 last_exc = exc
-                wait = 2 ** attempt
+                wait = 2**attempt
                 logger.debug(
                     "Attempt %d/%d failed for %s: %s — retrying in %ds",
-                    attempt, self.max_retries, url, exc, wait,
+                    attempt,
+                    self.max_retries,
+                    url,
+                    exc,
+                    wait,
                 )
                 time.sleep(wait)
 
@@ -210,6 +228,8 @@ class WebScraper:
             )
 
         logger.info(
-            "Scraping complete: %d URLs → %d text chunks.", len(urls), len(all_chunks),
+            "Scraping complete: %d URLs → %d text chunks.",
+            len(urls),
+            len(all_chunks),
         )
         return Dataset.from_dict({"text": all_chunks})

@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "../ui/Button";
-import { IconCommand, IconSparkle, IconWand } from "./icons";
+import { IconSparkle } from "./icons";
 
 const STORAGE_KEY = "nightmarenet.whatsnew.seen.v1";
 const ONBOARDING_KEY = "nightmarenet.onboarding.dismissed.v1";
@@ -12,25 +12,12 @@ const ONBOARDING_KEY = "nightmarenet.onboarding.dismissed.v1";
 // users see the card again exactly once.
 const FALLBACK_BUILD = "2026-05-26";
 
-interface Bullet {
-  icon: React.ReactNode;
+interface ChangelogEntry {
   text: string;
+  version: string;
+  date: string;
+  link: string | null;
 }
-
-const BULLETS: Bullet[] = [
-  {
-    icon: <IconSparkle size={12} />,
-    text: "AI copilot is here — press the dock button to ask anything",
-  },
-  {
-    icon: <IconCommand size={12} />,
-    text: "Cmd+K now ranks by recency and fuzzy-matches",
-  },
-  {
-    icon: <IconWand size={12} />,
-    text: "Press ? to see every keyboard shortcut",
-  },
-];
 
 function getCurrentBuild(): string {
   // process.env values are inlined at build time by Next.js, so this is
@@ -45,6 +32,7 @@ function getCurrentBuild(): string {
 export function WhatsNew() {
   const [open, setOpen] = useState(false);
   const [build, setBuild] = useState<string>("");
+  const [entries, setEntries] = useState<ChangelogEntry[]>([]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -56,12 +44,26 @@ export function WhatsNew() {
     const current = getCurrentBuild();
     setBuild(current);
     const seen = window.localStorage.getItem(STORAGE_KEY);
-    if (seen !== current) {
-      // Defer a beat so the dashboard finishes its entrance animation
-      // before the card slides in — feels less aggressive.
-      const t = setTimeout(() => setOpen(true), 650);
-      return () => clearTimeout(t);
-    }
+    
+    let t: ReturnType<typeof setTimeout>;
+    
+    fetch("/api/changelog")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.entries) setEntries(data.entries);
+      })
+      .catch((err) => console.error("Failed to fetch changelog", err))
+      .finally(() => {
+        if (seen !== current) {
+          // Defer a beat so the dashboard finishes its entrance animation
+          // before the card slides in — feels less aggressive.
+          t = setTimeout(() => setOpen(true), 650);
+        }
+      });
+      
+    return () => {
+      if (t) clearTimeout(t);
+    };
   }, []);
 
   const dismiss = () => {
@@ -110,23 +112,40 @@ export function WhatsNew() {
             </button>
           </div>
 
-          <ul className="divide-y divide-white/[0.04] px-4 py-1">
-            {BULLETS.map((b, i) => (
-              <motion.li
-                key={i}
-                initial={{ opacity: 0, x: 12 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.18, delay: 0.05 * i + 0.05 }}
-                className="flex items-start gap-2.5 py-2.5"
-              >
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-slate-300">
-                  {b.icon}
-                </span>
-                <span className="text-[12.5px] leading-relaxed text-slate-300">
-                  {b.text}
-                </span>
-              </motion.li>
-            ))}
+          <ul className="divide-y divide-white/[0.04] px-4 py-1 max-h-64 overflow-y-auto">
+            {entries.length > 0 ? (
+              entries.map((entry, i) => (
+                <motion.li
+                  key={i}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.18, delay: 0.05 * i + 0.05 }}
+                  className="flex flex-col gap-1 py-2.5"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono bg-neural/10 text-neural px-1.5 py-0.5 rounded">v{entry.version}</span>
+                    {entry.date && <span className="text-[10px] text-slate-500">{entry.date}</span>}
+                  </div>
+                  <div className="text-[12.5px] leading-relaxed text-slate-300 flex items-start gap-1">
+                    <span className="mt-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-slate-400">
+                      <IconSparkle size={10} />
+                    </span>
+                    <span>
+                      {entry.text}
+                      {entry.link && (
+                        <a href={entry.link} target="_blank" rel="noopener noreferrer" className="text-dream hover:underline ml-1">
+                          (link)
+                        </a>
+                      )}
+                    </span>
+                  </div>
+                </motion.li>
+              ))
+            ) : (
+              <li className="py-4 text-center text-[12.5px] text-slate-400">
+                Check GitHub for the latest updates!
+              </li>
+            )}
           </ul>
 
           <div className="flex items-center justify-between border-t border-white/[0.06] px-4 py-2.5">

@@ -42,14 +42,16 @@ class WakePhase:
         config: dict,
         device: Union[str, torch.device] = "cpu",
         scaler: Optional[torch.amp.GradScaler] = None,
+        model_type: str = "causal_lm",
         callback_manager: Optional[CallbackManager] = None,
         lr_scheduler=None,
     ) -> None:
         self.model = model
         self.optimizer = optimizer
         self.config = config
-        self.device = device
+        self.device = device if isinstance(device, torch.device) else torch.device(device)
         self.scaler = scaler
+        self.model_type = model_type
         self.callback_manager = callback_manager
         self.lr_scheduler = lr_scheduler
         self.max_grad_norm: float = config.get("max_grad_norm", 1.0)
@@ -93,9 +95,14 @@ class WakePhase:
             progress = tqdm(dataloader, desc=f"Wake Phase - Epoch {epoch + 1}/{num_epochs}")
             for step, batch in enumerate(progress):
                 batch = {k: v.to(self.device) for k, v in batch.items()}
-
+                # Only causal LM needs labels=input_ids.
+                # Sequence classification and image classification already have batch["labels"].
+                if self.model_type not in ("seq_classification", "image_classification"):
+                    batch["labels"] = batch["input_ids"]
                 with torch.amp.autocast("cuda", enabled=use_amp):
-                    outputs = self.model(**batch, labels=batch.get("input_ids"))
+                    outputs = self.model(
+                        **batch,
+                    )
                     loss = outputs.loss / self.gradient_accumulation_steps
 
                 if math.isnan(loss.item()) or math.isinf(loss.item()):
@@ -177,6 +184,7 @@ class DreamPhase:
         reference_model: Optional[torch.nn.Module] = None,
         kl_weight: float = 0.1,
         scaler: Optional[torch.amp.GradScaler] = None,
+        model_type: str = "causal_lm",
         callback_manager: Optional[CallbackManager] = None,
         lr_scheduler=None,
     ) -> None:
@@ -190,6 +198,7 @@ class DreamPhase:
         self.lr_scheduler = lr_scheduler
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+        self.model_type = model_type
         self.callback_manager = callback_manager
 
     def _compute_kl_loss(
@@ -260,8 +269,10 @@ class DreamPhase:
             for step, batch in enumerate(progress):
                 batch = {k: v.to(self.device) for k, v in batch.items()}
 
+                if self.model_type not in ("seq_classification", "image_classification"):
+                    batch["labels"] = batch["input_ids"]
                 with torch.amp.autocast("cuda", enabled=use_amp):
-                    outputs = self.model(**batch, labels=batch.get("input_ids"))
+                    outputs = self.model(**batch)
                     loss = outputs.loss / self.gradient_accumulation_steps
 
                 if math.isnan(loss.item()) or math.isinf(loss.item()):
@@ -355,6 +366,7 @@ class NightmarePhase:
         device: Union[str, torch.device] = "cpu",
         lr_multiplier: float = 2.0,
         scaler: Optional[torch.amp.GradScaler] = None,
+        model_type: str = "causal_lm",
         lr_scheduler=None,
         callback_manager: Optional[CallbackManager] = None,
     ) -> None:
@@ -370,26 +382,29 @@ class NightmarePhase:
         self.scaler = scaler
         self.max_grad_norm = config.get("max_grad_norm", 1.0)
         self.gradient_accumulation_steps = config.get("gradient_accumulation_steps", 1)
+        self.model_type = model_type
 
-    def _save_lr(self) -> list[float]:
+    def _save_lr(self) -> dict:
         """Save current learning rates and scheduler base_lrs."""
-        return [pg["lr"] for pg in self.optimizer.param_groups]
+        state = {"optimizer_lrs": [pg["lr"] for pg in self.optimizer.param_groups]}
+        if self.lr_scheduler is not None and hasattr(self.lr_scheduler, "base_lrs"):
+            state["scheduler_base_lrs"] = list(self.lr_scheduler.base_lrs)
+        return state
 
-    def _restore_lr(self, saved_lrs: list[float]) -> None:
-        """Restore learning rates from saved values."""
-        if len(saved_lrs) != len(self.optimizer.param_groups):
+    def _restore_lr(self, saved_state: dict) -> None:
+        """Restore learning rates and scheduler base_lrs from saved state."""
+        opt_lrs = saved_state["optimizer_lrs"]
+        if len(opt_lrs) != len(self.optimizer.param_groups):
             logger.warning(
                 "LR restore mismatch: %d saved vs %d param groups",
-                len(saved_lrs),
+                len(opt_lrs),
                 len(self.optimizer.param_groups),
             )
-        for pg, lr in zip(self.optimizer.param_groups, saved_lrs):
+        for pg, lr in zip(self.optimizer.param_groups, opt_lrs):
             pg["lr"] = lr
-        # Restore scheduler base_lrs if scheduler exists
-        if self.lr_scheduler is not None and hasattr(self.lr_scheduler, "base_lrs"):
-            for i, lr in enumerate(saved_lrs):
-                if i < len(self.lr_scheduler.base_lrs):
-                    self.lr_scheduler.base_lrs[i] = lr
+
+        if self.lr_scheduler is not None and "scheduler_base_lrs" in saved_state:
+            self.lr_scheduler.base_lrs = list(saved_state["scheduler_base_lrs"])
 
     def _adjust_lr(self, multiplier: float) -> None:
         """Temporarily adjust learning rate (composes with scheduler)."""
@@ -397,9 +412,7 @@ class NightmarePhase:
             param_group["lr"] *= multiplier
         # Also scale scheduler base_lrs so step() doesn't override
         if self.lr_scheduler is not None and hasattr(self.lr_scheduler, "base_lrs"):
-            self.lr_scheduler.base_lrs = [
-                lr * multiplier for lr in self.lr_scheduler.base_lrs
-            ]
+            self.lr_scheduler.base_lrs = [lr * multiplier for lr in self.lr_scheduler.base_lrs]
 
     def run(self, dataloader: DataLoader, num_epochs: int = 1) -> dict:
         """Run the nightmare phase (adversarial training).
@@ -422,7 +435,7 @@ class NightmarePhase:
         self.model.train()
 
         # Save and increase learning rate for nightmare phase
-        saved_lrs = self._save_lr()
+        saved_lr_state = self._save_lr()
         self._adjust_lr(self.lr_multiplier)
 
         total_loss = 0.0
@@ -449,8 +462,10 @@ class NightmarePhase:
                 for step, batch in enumerate(progress):
                     batch = {k: v.to(self.device) for k, v in batch.items()}
 
+                    if self.model_type not in ("seq_classification", "image_classification"):
+                        batch["labels"] = batch["input_ids"]
                     with torch.amp.autocast("cuda", enabled=use_amp):
-                        outputs = self.model(**batch, labels=batch.get("input_ids"))
+                        outputs = self.model(**batch)
                         loss = outputs.loss / self.gradient_accumulation_steps
 
                     if math.isnan(loss.item()) or math.isinf(loss.item()):
@@ -501,7 +516,7 @@ class NightmarePhase:
                 total_loss += avg_epoch_loss
         finally:
             # Restore original learning rate from saved values
-            self._restore_lr(saved_lrs)
+            self._restore_lr(saved_lr_state)
 
         return {
             "phase": "nightmare",
@@ -528,13 +543,17 @@ class CompressionPhase:
         config: dict,
         device: Union[str, torch.device] = "cpu",
         scaler: Optional[torch.amp.GradScaler] = None,
+        model_type: str = "causal_lm",
         callback_manager: Optional[CallbackManager] = None,
+        lr_scheduler=None,
     ) -> None:
         self.model = model
         self.config = config
         self.device = device
         self.scaler = scaler
+        self.model_type = model_type
         self.callback_manager = callback_manager
+        self.lr_scheduler = lr_scheduler
 
     def run(
         self,
@@ -555,19 +574,54 @@ class CompressionPhase:
 
         logger.info("Compression Phase - Method: %s, Ratio: %.2f", method, pruning_ratio)
 
+        # Snapshot teacher BEFORE pruning (for distillation)
+        distillation_enabled = self.config.get("distillation", False)
+        teacher_model = None
+        if distillation_enabled and dataloader is not None and optimizer is not None:
+            import copy
+
+            teacher_model = copy.deepcopy(self.model)
+            teacher_model.eval()
+            for param in teacher_model.parameters():
+                param.requires_grad = False
+            logger.info("Compression Phase - Teacher snapshot taken for distillation.")
+
         if method == "magnitude":
             try:
                 from nightmarenet.compression.pruning import MagnitudePruner
 
                 pruner = MagnitudePruner(pruning_ratio=pruning_ratio)
                 stats = pruner.apply(self.model)
+                pruning_succeeded = True
             except Exception as exc:
                 logger.error("Compression Phase - Failed to apply pruning: %s", exc)
                 stats = {"pruned_params": 0, "total_params": 0}
+                pruning_succeeded = False
         else:
             logger.warning("Unknown pruning method '%s'; skipping.", method)
             stats = {"pruned_params": 0, "total_params": 0}
+            pruning_succeeded = False
 
+        # Distillation step (RSLAD-style): pruned student learns from teacher
+        distillation_stats = {}
+        if teacher_model is not None and pruning_succeeded:
+            from nightmarenet.compression.distillation import run_distillation
+
+            temperature = self.config.get("distillation_temperature", 4.0)
+            alpha = self.config.get("distillation_alpha", 0.7)
+            distillation_epochs = self.config.get("distillation_epochs", 1)
+            logger.info("Compression Phase - Running RSLAD-style distillation...")
+            distillation_stats = run_distillation(
+                teacher=teacher_model,
+                student=self.model,
+                dataloader=dataloader,
+                optimizer=optimizer,
+                device=self.device,
+                epochs=distillation_epochs,
+                temperature=temperature,
+                alpha=alpha,
+                scaler=self.scaler,
+            )
         # Optional fine-tuning after pruning
         if (
             self.config.get("finetune_after_prune", True)
@@ -592,7 +646,9 @@ class CompressionPhase:
                     batch = {k: v.to(self.device) for k, v in batch.items()}
                     use_amp = self.scaler is not None
                     with torch.amp.autocast("cuda", enabled=use_amp):
-                        outputs = self.model(**batch, labels=batch.get("input_ids"))
+                        if self.model_type not in ("seq_classification", "image_classification"):
+                            batch["labels"] = batch["input_ids"]
+                        outputs = self.model(**batch)
                         loss = outputs.loss
 
                     if math.isnan(loss.item()) or math.isinf(loss.item()):
@@ -608,6 +664,8 @@ class CompressionPhase:
                     else:
                         loss.backward()
                         optimizer.step()
+                    if self.lr_scheduler is not None:
+                        self.lr_scheduler.step()
                     optimizer.zero_grad()
 
                 if self.callback_manager is not None:
@@ -624,4 +682,5 @@ class CompressionPhase:
             "method": method,
             "pruning_ratio": pruning_ratio,
             **stats,
+            **distillation_stats,
         }

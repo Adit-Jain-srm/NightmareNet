@@ -40,8 +40,8 @@ def main():
         "--tracker",
         type=str,
         default=None,
-        choices=["none", "wandb", "tensorboard"],
-        help="Override tracking backend (none, wandb, tensorboard).",
+        choices=["none", "wandb", "tensorboard", "mlflow"],
+        help="Override tracking backend (none, wandb, tensorboard, mlflow).",
     )
     args = parser.parse_args()
 
@@ -84,14 +84,22 @@ def main():
         logger.info("Loading dataset...")
         dataset_wrapper = load_from_config(config)
 
-        # Create generators and generate dream/nightmare data
+        # Create generators and generate dream/nightmare data. The gradient
+        # strategy needs the current model before cycle-zero data generation;
+        # disabled and attention strategies preserve the original ordering.
         logger.info("Generating dream and nightmare data...")
         dream_gen, nightmare_gen = create_generators_from_config(config)
+        trainer = None
+        if nightmare_gen.uses_gradient_learned:
+            trainer = Trainer(config=config)
+            nightmare_gen.set_target_model(trainer.model, trainer.tokenizer)
+            nightmare_gen.set_cycle(0)
+
         dream_data = dream_gen.generate(dataset_wrapper.train_data)
         nightmare_data = nightmare_gen.generate(dataset_wrapper.train_data)
 
-        # Create trainer
-        trainer = Trainer(config=config)
+        if trainer is None:
+            trainer = Trainer(config=config)
 
         # Tokenize datasets
         from nightmarenet.training.trainer import _tokenize_dataset
@@ -99,15 +107,20 @@ def main():
         text_column = config.get("dataset", {}).get("text_column", "text")
         max_length = config.get("model", {}).get("max_length", 128)
         batch_size = config.get("training", {}).get("batch_size", 8)
-
+        label_column = config["dataset"].get("label_column")
         train_dataloader = _tokenize_dataset(
-            dataset_wrapper.train_data, trainer.tokenizer, text_column, max_length, batch_size
+            dataset_wrapper.train_data,
+            trainer.tokenizer,
+            text_column,
+            max_length,
+            batch_size,
+            label_column,
         )
         dream_dataloader = _tokenize_dataset(
-            dream_data, trainer.tokenizer, text_column, max_length, batch_size
+            dream_data, trainer.tokenizer, text_column, max_length, batch_size, label_column
         )
         nightmare_dataloader = _tokenize_dataset(
-            nightmare_data, trainer.tokenizer, text_column, max_length, batch_size
+            nightmare_data, trainer.tokenizer, text_column, max_length, batch_size, label_column
         )
 
         # Run training
@@ -116,6 +129,10 @@ def main():
             train_dataloader=train_dataloader,
             dream_dataloader=dream_dataloader,
             nightmare_dataloader=nightmare_dataloader,
+            dream_generator=dream_gen,
+            nightmare_generator=nightmare_gen,
+            dream_base_dataset=dataset_wrapper.train_data,
+            nightmare_base_dataset=dataset_wrapper.train_data,
         )
 
         logger.info("Training complete. %d phase results recorded.", len(history))

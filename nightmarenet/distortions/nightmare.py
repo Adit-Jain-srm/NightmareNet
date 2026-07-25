@@ -31,9 +31,5 @@ def distort(
         }
 
     result = apply_text_distortions(text, strength=strength, config=text_config)
-    result = apply_semantic_distortions(
-        result, strength=strength, config=semantic_config
-    )
-    return apply_adversarial_distortions(
-        result, strength=strength, config=adversarial_config
-    )
+    result = apply_semantic_distortions(result, strength=strength, config=semantic_config)
+    return apply_adversarial_distortions(result, strength=strength, config=adversarial_config)

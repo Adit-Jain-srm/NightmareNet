@@ -21,13 +21,16 @@ def main():
             reason = "Evaluation timed out or failed"
 
         with open("delta_results.json", "w") as f:
-            json.dump({
-                "skipped": True,
-                "reason": reason,
-                "threshold": threshold,
-                "results": [],
-                "exceeds_threshold": False
-            }, f)
+            json.dump(
+                {
+                    "skipped": True,
+                    "reason": reason,
+                    "threshold": threshold,
+                    "results": [],
+                    "exceeds_threshold": False,
+                },
+                f,
+            )
 
         # Export variables to GITHUB_ENV
         github_env = os.environ.get("GITHUB_ENV")
@@ -67,13 +70,15 @@ def main():
             if delta < threshold:
                 exceeds_threshold = True
 
-        results.append({
-            "metric": metric,
-            "main": main_val,
-            "pr": pr_val,
-            "delta": delta,
-            "status": "Fail" if delta < threshold else ("Warning" if delta < 0 else "Pass")
-        })
+        results.append(
+            {
+                "metric": metric,
+                "main": main_val,
+                "pr": pr_val,
+                "delta": delta,
+                "status": "Fail" if delta < threshold else ("Warning" if delta < 0 else "Pass"),
+            }
+        )
 
     with open("delta_results.json", "w") as f:
         json.dump(
@@ -85,6 +90,7 @@ def main():
     with open(os.environ["GITHUB_ENV"], "a") as f:
         f.write(f"EXCEEDS_THRESHOLD={'true' if exceeds_threshold else 'false'}\n")
         f.write(f"HAS_REGRESSION={'true' if has_regression else 'false'}\n")
+
 
 if __name__ == "__main__":
     main()

@@ -17,12 +17,14 @@ except ImportError as e:
     ) from e
 
 # Paths that bypass authentication
-_PUBLIC_PATHS = frozenset({
-    "/api/v1/health",
-    "/docs",
-    "/redoc",
-    "/openapi.json",
-})
+_PUBLIC_PATHS = frozenset(
+    {
+        "/api/v1/health",
+        "/docs",
+        "/redoc",
+        "/openapi.json",
+    }
+)
 
 # Public path prefixes (everything starting with one of these is exempt).
 # Badges are intentionally public so they can be embedded in READMEs and
@@ -65,10 +67,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         # Allow same-origin requests from the dev frontend proxy
         origin = request.headers.get("origin", "")
         referer = request.headers.get("referer", "")
-        if any(
-            origin.startswith(r) or referer.startswith(r)
-            for r in _EXEMPT_REFERERS
-        ):
+        if any(origin.startswith(r) or referer.startswith(r) for r in _EXEMPT_REFERERS):
             return await call_next(request)
 
         active_key = os.environ.get("NIGHTMARENET_API_KEY") or self.api_key

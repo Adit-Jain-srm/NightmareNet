@@ -143,9 +143,7 @@ def build_realtime_router() -> Optional[Any]:
     async def stream_run_events(websocket: WebSocket, run_id: str) -> None:
         await websocket.accept()
         sub = _BROKER.subscribe(run_id)
-        await websocket.send_text(
-            json.dumps({"type": "subscribed", "run_id": run_id})
-        )
+        await websocket.send_text(json.dumps({"type": "subscribed", "run_id": run_id}))
         try:
             while True:
                 event = await sub.queue.get()

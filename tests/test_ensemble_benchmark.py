@@ -16,9 +16,9 @@ def test_pareto_frontier_correctness():
     """Test that the Pareto frontier correctly identifies non-dominated models."""
     results = [
         {"model": "A", "robustness": 0.9, "latency": 10.0, "params": 100},  # dominated by B
-        {"model": "B", "robustness": 0.95, "latency": 5.0, "params": 50},   # pareto optimal
-        {"model": "C", "robustness": 0.8, "latency": 2.0, "params": 20},    # pareto optimal
-        {"model": "D", "robustness": 0.7, "latency": 8.0, "params": 80},    # dominated by C
+        {"model": "B", "robustness": 0.95, "latency": 5.0, "params": 50},  # pareto optimal
+        {"model": "C", "robustness": 0.8, "latency": 2.0, "params": 20},  # pareto optimal
+        {"model": "D", "robustness": 0.7, "latency": 8.0, "params": 80},  # dominated by C
     ]
 
     pareto_front = get_pareto_frontier(results)
@@ -33,18 +33,8 @@ def test_pareto_frontier_correctness():
 def test_degradation_curve_aggregation():
     """Test aggregation of robustness scores into degradation curves."""
     raw_results = {
-        "model_A": {
-            "dream": {
-                "strengths": [0.1, 0.5, 0.9],
-                "accuracies": [10.0, 50.0, 100.0]
-            }
-        },
-        "model_B": {
-            "dream": {
-                "strengths": [0.1, 0.5],
-                "accuracies": [5.0, 20.0]
-            }
-        }
+        "model_A": {"dream": {"strengths": [0.1, 0.5, 0.9], "accuracies": [10.0, 50.0, 100.0]}},
+        "model_B": {"dream": {"strengths": [0.1, 0.5], "accuracies": [5.0, 20.0]}},
     }
 
     curves = calculate_degradation_curves(raw_results)
@@ -91,12 +81,7 @@ def test_ensemble_orchestrator_logic(mock_executor_class):
         "robustness": 0.99,
         "latency": 1.5,
         "params": 1000,
-        "results_by_distortion": {
-            "dream": {
-                "strengths": [0.1, 0.5],
-                "accuracies": [5.0, 10.0]
-            }
-        }
+        "results_by_distortion": {"dream": {"strengths": [0.1, 0.5], "accuracies": [5.0, 10.0]}},
     }
 
     mock_executor = mock.MagicMock()
@@ -107,7 +92,7 @@ def test_ensemble_orchestrator_logic(mock_executor_class):
     config = {
         "models": ["dummy"],
         "dataset": {"name": "test", "split": "val"},
-        "distortions": [{"type": "dream", "strengths": [0.1, 0.5]}]
+        "distortions": [{"type": "dream", "strengths": [0.1, 0.5]}],
     }
 
     with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
@@ -144,10 +129,7 @@ def test_ensemble_orchestrator_timeout(mock_executor_class):
 
     mock_executor_class.return_value = mock_executor
 
-    config = {
-        "models": ["slow_model"],
-        "dataset": {"name": "test"}
-    }
+    config = {"models": ["slow_model"], "dataset": {"name": "test"}}
 
     with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as f:
         yaml.dump(config, f)
@@ -167,18 +149,17 @@ def test_ensemble_orchestrator_timeout(mock_executor_class):
 
 def test_cache_key_uniqueness():
     """Test that cache keys are unique for different strength values."""
+
     # Test the cache key generation logic directly
     def _get_cache_key(model, dataset, split, distortion_type, strength):
-        safe_model = model.replace('/', '_').replace('-', '_')
+        safe_model = model.replace("/", "_").replace("-", "_")
         return f"{safe_model}_{dataset}_{split}_{distortion_type}_{strength:g}.json"
 
     # Test that 0.15 and 0.1 produce different cache keys
     key_0_15 = _get_cache_key("model", "dataset", "split", "dream", 0.15)
     key_0_1 = _get_cache_key("model", "dataset", "split", "dream", 0.1)
 
-    assert key_0_15 != key_0_1, (
-        f"Cache keys should be unique: {key_0_15} vs {key_0_1}"
-    )
+    assert key_0_15 != key_0_1, f"Cache keys should be unique: {key_0_15} vs {key_0_1}"
 
     # Test that 0.10 and 0.1 produce the same cache key (g format removes trailing zeros)
     key_0_10 = _get_cache_key("model", "dataset", "split", "dream", 0.10)
@@ -194,7 +175,7 @@ def test_cache_hit_scenario():
 
     # Test cache key generation and file I/O logic directly
     def _get_cache_key(model, dataset, split, distortion_type, strength):
-        safe_model = model.replace('/', '_').replace('-', '_')
+        safe_model = model.replace("/", "_").replace("-", "_")
         return f"{safe_model}_{dataset}_{split}_{distortion_type}_{strength:g}.json"
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -203,14 +184,14 @@ def test_cache_hit_scenario():
 
         # Create a cache file with pre-computed results
         cache_file = cache_dir / _get_cache_key("dummy", "test", "val", "dream", 0.1)
-        with open(cache_file, 'w', encoding='utf-8') as f:
-            json.dump({'accuracy': 0.95}, f)
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump({"accuracy": 0.95}, f)
 
         # Verify cache file exists and can be read
         assert cache_file.exists()
-        with open(cache_file, encoding='utf-8') as f:
+        with open(cache_file, encoding="utf-8") as f:
             cached_result = json.load(f)
-            assert cached_result['accuracy'] == 0.95
+            assert cached_result["accuracy"] == 0.95
 
 
 def test_cache_miss_scenario():
@@ -220,7 +201,7 @@ def test_cache_miss_scenario():
 
     # Test cache key generation and file I/O logic directly
     def _get_cache_key(model, dataset, split, distortion_type, strength):
-        safe_model = model.replace('/', '_').replace('-', '_')
+        safe_model = model.replace("/", "_").replace("-", "_")
         return f"{safe_model}_{dataset}_{split}_{distortion_type}_{strength:g}.json"
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -233,14 +214,14 @@ def test_cache_miss_scenario():
         assert not cache_file.exists()
 
         # Simulate writing cache file after evaluation
-        with open(cache_file, 'w', encoding='utf-8') as f:
-            json.dump({'accuracy': 0.85}, f)
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump({"accuracy": 0.85}, f)
 
         # Verify cache file was created
         assert cache_file.exists()
-        with open(cache_file, encoding='utf-8') as f:
+        with open(cache_file, encoding="utf-8") as f:
             cached_result = json.load(f)
-            assert cached_result['accuracy'] == 0.85
+            assert cached_result["accuracy"] == 0.85
 
 
 def test_cache_corrupt_scenario():
@@ -250,7 +231,7 @@ def test_cache_corrupt_scenario():
 
     # Test cache key generation and file I/O logic directly
     def _get_cache_key(model, dataset, split, distortion_type, strength):
-        safe_model = model.replace('/', '_').replace('-', '_')
+        safe_model = model.replace("/", "_").replace("-", "_")
         return f"{safe_model}_{dataset}_{split}_{distortion_type}_{strength:g}.json"
 
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -260,7 +241,7 @@ def test_cache_corrupt_scenario():
         cache_file = cache_dir / _get_cache_key("dummy", "test", "val", "dream", 0.1)
 
         # Create a corrupted cache file
-        with open(cache_file, 'w', encoding='utf-8') as f:
+        with open(cache_file, "w", encoding="utf-8") as f:
             f.write("{ invalid json content")
 
         # Verify corrupted cache file exists
@@ -268,7 +249,7 @@ def test_cache_corrupt_scenario():
 
         # Simulate handling corrupted cache - should raise JSONDecodeError
         try:
-            with open(cache_file, encoding='utf-8') as f:
+            with open(cache_file, encoding="utf-8") as f:
                 json.load(f)
             raise AssertionError("Should have raised JSONDecodeError")
         except json.JSONDecodeError:
@@ -276,10 +257,10 @@ def test_cache_corrupt_scenario():
             pass
 
         # Simulate re-evaluation by overwriting with valid data
-        with open(cache_file, 'w', encoding='utf-8') as f:
-            json.dump({'accuracy': 0.90}, f)
+        with open(cache_file, "w", encoding="utf-8") as f:
+            json.dump({"accuracy": 0.90}, f)
 
         # Verify cache file now has valid data
-        with open(cache_file, encoding='utf-8') as f:
+        with open(cache_file, encoding="utf-8") as f:
             cached_result = json.load(f)
-            assert cached_result['accuracy'] == 0.90
+            assert cached_result["accuracy"] == 0.90

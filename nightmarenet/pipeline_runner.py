@@ -14,11 +14,32 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
-from nightmarenet.pipeline import Pipeline
+from nightmarenet.exceptions import PipelinePhaseError
+
+if TYPE_CHECKING:
+    from nightmarenet.pipeline import Pipeline
+
+try:
+    from opentelemetry import context as otel_context
+except ImportError:
+    otel_context = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
+
+_GPU_SAMPLE_INTERVAL = 30  # seconds
+
+
+def _gpu_sample_loop(stop_event: threading.Event, interval: float = _GPU_SAMPLE_INTERVAL) -> None:
+    """Periodically record GPU utilization until stop_event is set."""
+    from nightmarenet.utils.telemetry import _sample_gpu_utilization, record_metric
+
+    while not stop_event.is_set():
+        util = _sample_gpu_utilization()
+        if util is not None:
+            record_metric("gpu_utilization", util)
+        stop_event.wait(interval)
 
 
 class PipelineRunner:
@@ -69,8 +90,23 @@ class PipelineRunner:
 
         # Persist initial run state
         _persist_run_state(self.id, self.pipeline.config, "running", self._start_time)
+        parent_context = otel_context.get_current() if otel_context is not None else None
 
         def _run() -> None:
+            token = None
+            stop_gpu = threading.Event()
+
+            if otel_context is not None and parent_context is not None:
+                token = otel_context.attach(parent_context)
+
+            gpu_thread = threading.Thread(
+                target=_gpu_sample_loop,
+                args=(stop_gpu,),
+                daemon=True,
+                name=f"gpu-sampler-{self.id}",
+            )
+            gpu_thread.start()
+
             try:
                 self._last_heartbeat = time.time()
                 _update_run_state(self.id, "ingesting", self._last_heartbeat)
@@ -93,10 +129,41 @@ class PipelineRunner:
                 self._last_heartbeat = time.time()
                 _update_run_state(self.id, "evaluating", self._last_heartbeat)
                 self.pipeline.evaluate()
-                _update_run_state(self.id, "complete", time.time(), self.pipeline.metrics.to_dict())
+                _update_run_state(
+                    self.id,
+                    "complete",
+                    time.time(),
+                    self.pipeline.metrics.to_dict(),
+                )
+
+            except PipelinePhaseError as e:
+                logger.error(
+                    "Pipeline run %s failed in phase '%s': %s",
+                    self.id,
+                    e.phase,
+                    e,
+                )
+                _update_run_state(
+                    self.id,
+                    "failed",
+                    time.time(),
+                    self.pipeline.metrics.to_dict(),
+                )
+
             except Exception:
-                logger.exception("Pipeline run %s failed", self.id)
-                _update_run_state(self.id, "failed", time.time(), self.pipeline.metrics.to_dict())
+                logger.exception("Pipeline run %s failed unexpectedly", self.id)
+                _update_run_state(
+                    self.id,
+                    "failed",
+                    time.time(),
+                    self.pipeline.metrics.to_dict(),
+                )
+
+            finally:
+                stop_gpu.set()
+                gpu_thread.join(timeout=2)
+                if token is not None:
+                    otel_context.detach(token)
 
         self._thread = threading.Thread(target=_run, daemon=True, name=f"pipeline-{self.id}")
         self._thread.start()
@@ -316,7 +383,13 @@ def load_persisted_runs() -> None:
                 continue
 
             # Detect stale running runs
-            active_statuses = {"running", "ingesting", "preparing", "training", "evaluating"}
+            active_statuses = {
+                "running",
+                "ingesting",
+                "preparing",
+                "training",
+                "evaluating",
+            }
             if status in active_statuses and (now - last_heartbeat > stale_threshold):
                 state["status"] = "interrupted"
                 _atomic_write_json(run_file, state)

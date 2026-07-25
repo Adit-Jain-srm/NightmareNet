@@ -105,11 +105,15 @@ def load_custom_engine(
     # Use a hash of the file path to keep the name manageable
     file_hash = hashlib.md5(file_path.encode(), usedforsecurity=False).hexdigest()[:8]
     engine_name = f"custom_{file_hash}_{function_name}"
-    registry.register(engine_name, fn, metadata={
-        'phase': 'custom',
-        'description': f'Custom distortion from {file_path}',
-        'source': 'custom',
-        'file_path': file_path,
-    })
+    registry.register(
+        engine_name,
+        fn,
+        metadata={
+            "phase": "custom",
+            "description": f"Custom distortion from {file_path}",
+            "source": "custom",
+            "file_path": file_path,
+        },
+    )
 
     return engine_name

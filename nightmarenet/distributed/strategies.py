@@ -20,10 +20,7 @@ def unwrap_model(model: nn.Module) -> nn.Module:
 
 
 def apply_phase_strategy(
-    phase: str,
-    model: nn.Module,
-    device_pool: DevicePool,
-    ddp_wrapper: DDPWrapper
+    phase: str, model: nn.Module, device_pool: DevicePool, ddp_wrapper: DDPWrapper
 ) -> nn.Module:
     """Applies the correct distributed strategy based on the phase.
 

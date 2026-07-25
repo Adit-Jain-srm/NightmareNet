@@ -37,7 +37,7 @@ def main():
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json",
-        "X-GitHub-Api-Version": "2022-11-28"
+        "X-GitHub-Api-Version": "2022-11-28",
     }
 
     # Fetch existing comments
@@ -69,6 +69,7 @@ def main():
             print(f"Successfully posted comment. Status: {response.status}")
     except urllib.error.URLError as e:
         print(f"Failed to post comment: {e}")
+
 
 if __name__ == "__main__":
     main()

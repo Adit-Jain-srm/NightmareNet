@@ -60,7 +60,7 @@ class ChainExecutor:
             ValueError: If condition contains disallowed constructs
         """
         # Parse the condition into an AST
-        tree = ast.parse(condition, mode='eval')
+        tree = ast.parse(condition, mode="eval")
 
         # Validate the AST structure
         self._validate_condition_ast(tree.body)
@@ -101,9 +101,7 @@ class ChainExecutor:
                 ast.NotEq: "!=",
             }
             if len(node.ops) != 1 or type(node.ops[0]) not in allowed_ops:
-                raise ValueError(
-                    f"Condition must use one of: {', '.join(allowed_ops.values())}"
-                )
+                raise ValueError(f"Condition must use one of: {', '.join(allowed_ops.values())}")
         else:
             raise ValueError("Condition must be a comparison")
 

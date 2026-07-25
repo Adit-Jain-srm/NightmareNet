@@ -128,7 +128,7 @@ export default function Logo({
       {showText && (
         <span className={`font-mono font-bold ${text} tracking-tight`}>
           <span className="text-gradient-neural">Nightmare</span>
-          <span className="text-text-dim">Net</span>
+          <span className="text-text-dim logo-net">Net</span>
         </span>
       )}
     </div>

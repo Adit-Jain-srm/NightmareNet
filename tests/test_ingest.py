@@ -23,12 +23,17 @@ def ingestor():
 class TestTxtIngestion:
     def test_load_txt_paragraphs(self, ingestor):
         """Paragraphs separated by blank lines become samples."""
-        content = "\n\n".join([
-            f"This is paragraph number {i} with enough text to pass the filter threshold."
-            for i in range(20)
-        ])
+        content = "\n\n".join(
+            [
+                f"This is paragraph number {i} with enough text to pass the filter threshold."
+                for i in range(20)
+            ]
+        )
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".txt",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write(content)
             path = f.name
@@ -42,12 +47,17 @@ class TestTxtIngestion:
 
     def test_load_txt_fallback_to_lines(self, ingestor):
         """When no blank-line paragraphs, fall back to single-line splitting."""
-        content = "\n".join([
-            f"Line {i}: This contains enough text to be a valid training sample."
-            for i in range(20)
-        ])
+        content = "\n".join(
+            [
+                f"Line {i}: This contains enough text to be a valid training sample."
+                for i in range(20)
+            ]
+        )
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".txt",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write(content)
             path = f.name
@@ -66,11 +76,14 @@ class TestCsvIngestion:
     def test_load_csv(self, ingestor):
         """CSV with a text column should be loaded."""
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".csv",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write("text,label\n")
             for i in range(20):
-                f.write(f"\"This is sample {i} with meaningful content for training.\",{i}\n")
+                f.write(f'"This is sample {i} with meaningful content for training.",{i}\n')
             path = f.name
 
         try:
@@ -83,7 +96,10 @@ class TestCsvIngestion:
     def test_csv_missing_column_raises(self, ingestor):
         """CSV without the expected text column should raise."""
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".csv", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".csv",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write("content,label\n")
             f.write("hello,1\n")
@@ -103,7 +119,10 @@ class TestJsonlIngestion:
     def test_load_jsonl(self, ingestor):
         """JSONL with a text key should be loaded."""
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             for i in range(20):
                 f.write(json.dumps({"text": f"Sample {i}: enough text for training."}) + "\n")
@@ -118,7 +137,10 @@ class TestJsonlIngestion:
     def test_jsonl_skips_malformed(self, ingestor):
         """Malformed JSONL lines should be skipped without crashing."""
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, encoding="utf-8",
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             for i in range(15):
                 f.write(json.dumps({"text": f"Valid sample {i} with real content."}) + "\n")
@@ -139,10 +161,12 @@ class TestJsonlIngestion:
 class TestTextContent:
     def test_from_text_content(self, ingestor):
         """Raw text should be split into paragraphs."""
-        content = "\n\n".join([
-            f"Paragraph {i}: This is a valid paragraph with substantial training text."
-            for i in range(15)
-        ])
+        content = "\n\n".join(
+            [
+                f"Paragraph {i}: This is a valid paragraph with substantial training text."
+                for i in range(15)
+            ]
+        )
         ds = ingestor.from_text_content(content)
         assert len(ds) >= 10
 
@@ -159,7 +183,9 @@ class TestEdgeCases:
     def test_unsupported_extension_raises(self, ingestor):
         """Unsupported file types should raise ValueError."""
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".xml", delete=False,
+            mode="w",
+            suffix=".xml",
+            delete=False,
         ) as f:
             f.write("<root>hello</root>")
             path = f.name
@@ -178,29 +204,32 @@ class TestEdgeCases:
     def test_max_samples_caps_output(self):
         """max_samples should limit the output dataset size."""
         ingestor = DataIngestor(max_samples=15)
-        content = "\n\n".join([
-            f"Paragraph {i}: This paragraph has plenty of content for model training purposes."
-            for i in range(50)
-        ])
+        content = "\n\n".join(
+            [
+                f"Paragraph {i}: This paragraph has plenty of content for model training purposes."
+                for i in range(50)
+            ]
+        )
         ds = ingestor.from_text_content(content)
         assert len(ds) <= 15
 
     def test_minimum_samples_threshold_raises(self, ingestor):
         """_finalise should raise ValueError if resulting dataset has fewer than _MIN_SAMPLES."""
         # We provide only 5 samples (less than 10)
-        content = "\n\n".join([
-            f"Paragraph {i}: This is valid but not enough samples."
-            for i in range(5)
-        ])
+        content = "\n\n".join(
+            [f"Paragraph {i}: This is valid but not enough samples." for i in range(5)]
+        )
         with pytest.raises(ValueError, match="produced only 5 usable samples"):
             ingestor.from_text_content(content)
 
     def test_minimum_samples_threshold_exact(self, ingestor):
         """_finalise should NOT raise ValueError if resulting dataset has exactly _MIN_SAMPLES."""
-        content = "\n\n".join([
-            f"Paragraph {i}: This is valid and exactly enough samples to pass the threshold."
-            for i in range(10)
-        ])
+        content = "\n\n".join(
+            [
+                f"Paragraph {i}: This is valid and exactly enough samples to pass the threshold."
+                for i in range(10)
+            ]
+        )
         ds = ingestor.from_text_content(content)
         assert len(ds) == 10
 
@@ -214,6 +243,7 @@ class TestUrlIngestion:
         """WebScraper should be instantiated and used to process URLs."""
         mock_scraper_instance = mock_scraper_class.return_value
         from datasets import Dataset
+
         mock_ds = Dataset.from_dict({"text": [f"Valid sample {i} content" for i in range(15)]})
         mock_scraper_instance.scrape.return_value = mock_ds
 
@@ -230,6 +260,7 @@ class TestUrlIngestion:
         """from_urls should raise ValueError if scraper returns < 10 samples."""
         mock_scraper_instance = mock_scraper_class.return_value
         from datasets import Dataset
+
         mock_ds = Dataset.from_dict({"text": [f"Valid sample {i} content" for i in range(5)]})
         mock_scraper_instance.scrape.return_value = mock_ds
 
@@ -247,6 +278,7 @@ class TestHuggingFaceIngestion:
         """DatasetWrapper should be used to load HuggingFace datasets."""
         mock_wrapper_instance = mock_wrapper_class.return_value
         from datasets import Dataset
+
         mock_ds = Dataset.from_dict({"text": [f"HF sample {i} content" for i in range(15)]})
         mock_wrapper_instance.train_data = mock_ds
         mock_wrapper_instance.load.return_value = mock_wrapper_instance
@@ -270,6 +302,7 @@ class TestHuggingFaceIngestion:
         """from_huggingface should raise ValueError if dataset has < 10 samples."""
         mock_wrapper_instance = mock_wrapper_class.return_value
         from datasets import Dataset
+
         mock_ds = Dataset.from_dict({"text": [f"HF sample {i} content" for i in range(5)]})
         mock_wrapper_instance.train_data = mock_ds
         mock_wrapper_instance.load.return_value = mock_wrapper_instance
@@ -282,23 +315,26 @@ class TestHuggingFaceIngestion:
         """from_huggingface should filter empty/whitespace-only texts."""
         mock_wrapper_instance = mock_wrapper_class.return_value
         from datasets import Dataset
-        mock_ds = Dataset.from_dict({
-            "text": [
-                "Valid sample 1",
-                "   ",
-                "",
-                "Valid sample 2",
-                "\t\n",
-                "Valid sample 3",
-                "Valid sample 4",
-                "Valid sample 5",
-                "Valid sample 6",
-                "Valid sample 7",
-                "Valid sample 8",
-                "Valid sample 9",
-                "Valid sample 10",
-            ]
-        })
+
+        mock_ds = Dataset.from_dict(
+            {
+                "text": [
+                    "Valid sample 1",
+                    "   ",
+                    "",
+                    "Valid sample 2",
+                    "\t\n",
+                    "Valid sample 3",
+                    "Valid sample 4",
+                    "Valid sample 5",
+                    "Valid sample 6",
+                    "Valid sample 7",
+                    "Valid sample 8",
+                    "Valid sample 9",
+                    "Valid sample 10",
+                ]
+            }
+        )
         mock_wrapper_instance.train_data = mock_ds
         mock_wrapper_instance.load.return_value = mock_wrapper_instance
 
@@ -311,10 +347,10 @@ class TestHuggingFaceIngestion:
         """streaming=True should bypass _finalise() and return wrapper.train_data directly."""
         mock_wrapper_instance = mock_wrapper_class.return_value
         from datasets import Dataset
+
         mock_ds = Dataset.from_dict({"text": [f"HF sample {i}" for i in range(3)]})
         mock_wrapper_instance.train_data = mock_ds
         mock_wrapper_instance.load.return_value = mock_wrapper_instance
 
         ds = ingestor.from_huggingface("glue", subset="sst2", streaming=True)
         assert ds == mock_ds
-

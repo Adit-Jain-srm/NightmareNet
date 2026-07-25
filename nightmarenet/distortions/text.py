@@ -17,13 +17,32 @@ logger = logging.getLogger(__name__)
 
 # Keyboard adjacency map for simulating typos
 KEYBOARD_ADJACENT = {
-    "a": "sqwz", "b": "vngh", "c": "xdfv", "d": "sfcxer",
-    "e": "rdsw", "f": "dgcvrt", "g": "fhbvty", "h": "gjbnyu",
-    "i": "ujko", "j": "hknmui", "k": "jlmio", "l": "kop",
-    "m": "njk", "n": "bmhj", "o": "iklp", "p": "ol",
-    "q": "wa", "r": "etdf", "s": "adwxez", "t": "rfgy",
-    "u": "yhji", "v": "cfgb", "w": "qase", "x": "zsdc",
-    "y": "tghu", "z": "xsa",
+    "a": "sqwz",
+    "b": "vngh",
+    "c": "xdfv",
+    "d": "sfcxer",
+    "e": "rdsw",
+    "f": "dgcvrt",
+    "g": "fhbvty",
+    "h": "gjbnyu",
+    "i": "ujko",
+    "j": "hknmui",
+    "k": "jlmio",
+    "l": "kop",
+    "m": "njk",
+    "n": "bmhj",
+    "o": "iklp",
+    "p": "ol",
+    "q": "wa",
+    "r": "etdf",
+    "s": "adwxez",
+    "t": "rfgy",
+    "u": "yhji",
+    "v": "cfgb",
+    "w": "qase",
+    "x": "zsdc",
+    "y": "tghu",
+    "z": "xsa",
 }
 
 
@@ -151,9 +170,7 @@ def token_mask(text, strength=0.3, mask_token="[MASK]") -> str:
     words = text.split()
     if not words:
         return text
-    return " ".join(
-        mask_token if random.random() < strength * 0.3 else w for w in words
-    )
+    return " ".join(mask_token if random.random() < strength * 0.3 else w for w in words)
 
 
 def token_replace(text, strength=0.3, vocabulary=None) -> str:
@@ -169,22 +186,86 @@ def token_replace(text, strength=0.3, vocabulary=None) -> str:
     """
     if vocabulary is None:
         vocabulary = [
-            "the", "of", "and", "to", "in", "is", "it", "that", "was", "for",
-            "on", "are", "with", "as", "his", "they", "be", "at", "one", "have",
-            "this", "from", "by", "hot", "word", "but", "what", "some", "we",
-            "can", "out", "other", "were", "all", "there", "when", "up", "use",
-            "your", "how", "each", "she", "which", "do", "their", "time", "if",
-            "will", "way", "about", "many", "then", "them", "would", "write",
-            "like", "so", "these", "her", "long", "make", "thing", "see", "him",
-            "two", "has", "look", "more", "day", "could", "go", "come", "did",
+            "the",
+            "of",
+            "and",
+            "to",
+            "in",
+            "is",
+            "it",
+            "that",
+            "was",
+            "for",
+            "on",
+            "are",
+            "with",
+            "as",
+            "his",
+            "they",
+            "be",
+            "at",
+            "one",
+            "have",
+            "this",
+            "from",
+            "by",
+            "hot",
+            "word",
+            "but",
+            "what",
+            "some",
+            "we",
+            "can",
+            "out",
+            "other",
+            "were",
+            "all",
+            "there",
+            "when",
+            "up",
+            "use",
+            "your",
+            "how",
+            "each",
+            "she",
+            "which",
+            "do",
+            "their",
+            "time",
+            "if",
+            "will",
+            "way",
+            "about",
+            "many",
+            "then",
+            "them",
+            "would",
+            "write",
+            "like",
+            "so",
+            "these",
+            "her",
+            "long",
+            "make",
+            "thing",
+            "see",
+            "him",
+            "two",
+            "has",
+            "look",
+            "more",
+            "day",
+            "could",
+            "go",
+            "come",
+            "did",
         ]
 
     words = text.split()
     if not words:
         return text
     return " ".join(
-        random.choice(vocabulary) if random.random() < strength * 0.2 else w
-        for w in words
+        random.choice(vocabulary) if random.random() < strength * 0.2 else w for w in words
     )
 
 

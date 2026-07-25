@@ -52,17 +52,13 @@ def test_4_phase_training_cycle_e2e():
             },
             "tracking": {
                 "backend": "none",
-            }
+            },
         }
 
         pipeline = Pipeline(config)
 
         # Run the full pipeline
-        comparison = pipeline.run(
-            hf_dataset="glue",
-            hf_subset="sst2",
-            export_dir=temp_dir
-        )
+        comparison = pipeline.run(hf_dataset="glue", hf_subset="sst2", export_dir=temp_dir)
 
         # 1. Assert evaluation comparison dict has expected keys
         assert comparison is not None, "Evaluation comparison should not be None"
@@ -82,11 +78,12 @@ def test_4_phase_training_cycle_e2e():
 
         # 3. Assert model checkpoint saved at expected path
         # Pipeline.export() saves to export_dir which is temp_dir
-        assert os.path.exists(os.path.join(temp_dir, "model.safetensors")) or \
-               os.path.exists(os.path.join(temp_dir, "pytorch_model.bin")), \
-               "Model weights file not found in export directory"
-        assert os.path.exists(os.path.join(temp_dir, "config.json")), \
-               "Model config.json not found in export directory"
+        assert os.path.exists(os.path.join(temp_dir, "model.safetensors")) or os.path.exists(
+            os.path.join(temp_dir, "pytorch_model.bin")
+        ), "Model weights file not found in export directory"
+        assert os.path.exists(os.path.join(temp_dir, "config.json")), (
+            "Model config.json not found in export directory"
+        )
 
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)

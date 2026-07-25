@@ -1,0 +1,181 @@
+sample_id,original_text,engine,strength
+a955fd22,The scientific discovery process relies heavily on robust data validation.,dream,0.3
+7e9e6acd,The scientific discovery process relies heavily on robust data validation.,dream,0.5
+888f78fd,The scientific discovery process relies heavily on robust data validation.,dream,0.8
+8d1eb531,The scientific discovery process relies heavily on robust data validation.,nightmare,0.3
+e527e4e1,The scientific discovery process relies heavily on robust data validation.,nightmare,0.5
+c566003e,The scientific discovery process relies heavily on robust data validation.,nightmare,0.8
+bcc973f9,The scientific discovery process relies heavily on robust data validation.,learned,0.3
+81e513f5,The scientific discovery process relies heavily on robust data validation.,learned,0.5
+f463abe6,The scientific discovery process relies heavily on robust data validation.,learned,0.8
+f9ddf3b8,Machine learning models are highly vulnerable to adversarial manipulation.,dream,0.3
+3b582558,Machine learning models are highly vulnerable to adversarial manipulation.,dream,0.5
+43c6ec48,Machine learning models are highly vulnerable to adversarial manipulation.,dream,0.8
+b3369a71,Machine learning models are highly vulnerable to adversarial manipulation.,nightmare,0.3
+832dac29,Machine learning models are highly vulnerable to adversarial manipulation.,nightmare,0.5
+15c917b3,Machine learning models are highly vulnerable to adversarial manipulation.,nightmare,0.8
+97cd2326,Machine learning models are highly vulnerable to adversarial manipulation.,learned,0.3
+408d9315,Machine learning models are highly vulnerable to adversarial manipulation.,learned,0.5
+b2600e75,Machine learning models are highly vulnerable to adversarial manipulation.,learned,0.8
+f8852668,Secure multi-agent systems require distributed consensus mechanics.,dream,0.3
+c3670fa7,Secure multi-agent systems require distributed consensus mechanics.,dream,0.5
+86ab8b92,Secure multi-agent systems require distributed consensus mechanics.,dream,0.8
+c1d32ae6,Secure multi-agent systems require distributed consensus mechanics.,nightmare,0.3
+76dde9db,Secure multi-agent systems require distributed consensus mechanics.,nightmare,0.5
+4e3359fe,Secure multi-agent systems require distributed consensus mechanics.,nightmare,0.8
+3739289d,Secure multi-agent systems require distributed consensus mechanics.,learned,0.3
+414b8318,Secure multi-agent systems require distributed consensus mechanics.,learned,0.5
+8530d9ee,Secure multi-agent systems require distributed consensus mechanics.,learned,0.8
+77efa565,Data privacy must be protected against malicious reconstruction attacks.,dream,0.3
+a3923749,Data privacy must be protected against malicious reconstruction attacks.,dream,0.5
+57cd7b3f,Data privacy must be protected against malicious reconstruction attacks.,dream,0.8
+44f5ca5e,Data privacy must be protected against malicious reconstruction attacks.,nightmare,0.3
+f76cfa1e,Data privacy must be protected against malicious reconstruction attacks.,nightmare,0.5
+814ae194,Data privacy must be protected against malicious reconstruction attacks.,nightmare,0.8
+d559ed18,Data privacy must be protected against malicious reconstruction attacks.,learned,0.3
+1644737c,Data privacy must be protected against malicious reconstruction attacks.,learned,0.5
+261afb4d,Data privacy must be protected against malicious reconstruction attacks.,learned,0.8
+d0efd51a,Deep learning architectures exhibit varying degrees of robustness.,dream,0.3
+2d04e015,Deep learning architectures exhibit varying degrees of robustness.,dream,0.5
+994288bc,Deep learning architectures exhibit varying degrees of robustness.,dream,0.8
+62947ccb,Deep learning architectures exhibit varying degrees of robustness.,nightmare,0.3
+dcff37c2,Deep learning architectures exhibit varying degrees of robustness.,nightmare,0.5
+c6faaa97,Deep learning architectures exhibit varying degrees of robustness.,nightmare,0.8
+b65dc469,Deep learning architectures exhibit varying degrees of robustness.,learned,0.3
+f103d9f6,Deep learning architectures exhibit varying degrees of robustness.,learned,0.5
+9fd36fcd,Deep learning architectures exhibit varying degrees of robustness.,learned,0.8
+9c98b2d7,Automated evaluation metrics often fail to capture semantic preservation.,dream,0.3
+36e271e4,Automated evaluation metrics often fail to capture semantic preservation.,dream,0.5
+286be496,Automated evaluation metrics often fail to capture semantic preservation.,dream,0.8
+07bb35fc,Automated evaluation metrics often fail to capture semantic preservation.,nightmare,0.3
+912b8920,Automated evaluation metrics often fail to capture semantic preservation.,nightmare,0.5
+03fcb588,Automated evaluation metrics often fail to capture semantic preservation.,nightmare,0.8
+bc5df8f1,Automated evaluation metrics often fail to capture semantic preservation.,learned,0.3
+1c69b352,Automated evaluation metrics often fail to capture semantic preservation.,learned,0.5
+f062c8a1,Automated evaluation metrics often fail to capture semantic preservation.,learned,0.8
+bbfc7931,Adversarial training helps mitigate the risk of model exploitation.,dream,0.3
+230113e0,Adversarial training helps mitigate the risk of model exploitation.,dream,0.5
+e33644db,Adversarial training helps mitigate the risk of model exploitation.,dream,0.8
+be5b0042,Adversarial training helps mitigate the risk of model exploitation.,nightmare,0.3
+5d85fdd3,Adversarial training helps mitigate the risk of model exploitation.,nightmare,0.5
+c94d9c8d,Adversarial training helps mitigate the risk of model exploitation.,nightmare,0.8
+dd2ea043,Adversarial training helps mitigate the risk of model exploitation.,learned,0.3
+c3c316c9,Adversarial training helps mitigate the risk of model exploitation.,learned,0.5
+bae2c3c0,Adversarial training helps mitigate the risk of model exploitation.,learned,0.8
+ac2f8f7e,Data leakage can compromise the integrity of the entire validation cycle.,dream,0.3
+19097158,Data leakage can compromise the integrity of the entire validation cycle.,dream,0.5
+10e09941,Data leakage can compromise the integrity of the entire validation cycle.,dream,0.8
+348899f2,Data leakage can compromise the integrity of the entire validation cycle.,nightmare,0.3
+bac257d5,Data leakage can compromise the integrity of the entire validation cycle.,nightmare,0.5
+e085bad4,Data leakage can compromise the integrity of the entire validation cycle.,nightmare,0.8
+3ef9a08a,Data leakage can compromise the integrity of the entire validation cycle.,learned,0.3
+5f5cee47,Data leakage can compromise the integrity of the entire validation cycle.,learned,0.5
+b2f9124a,Data leakage can compromise the integrity of the entire validation cycle.,learned,0.8
+92766e55,Gradient descent optimization strategies influence convergence stability.,dream,0.3
+1e028780,Gradient descent optimization strategies influence convergence stability.,dream,0.5
+4973032e,Gradient descent optimization strategies influence convergence stability.,dream,0.8
+8d0f796d,Gradient descent optimization strategies influence convergence stability.,nightmare,0.3
+65fb8813,Gradient descent optimization strategies influence convergence stability.,nightmare,0.5
+8ae4333f,Gradient descent optimization strategies influence convergence stability.,nightmare,0.8
+c87f9fea,Gradient descent optimization strategies influence convergence stability.,learned,0.3
+9aa511f8,Gradient descent optimization strategies influence convergence stability.,learned,0.5
+8f0114d6,Gradient descent optimization strategies influence convergence stability.,learned,0.8
+b6dd2a00,Distributed ledger systems provide decentralized trust frameworks.,dream,0.3
+c775af43,Distributed ledger systems provide decentralized trust frameworks.,dream,0.5
+c3cc4668,Distributed ledger systems provide decentralized trust frameworks.,dream,0.8
+5901b6c8,Distributed ledger systems provide decentralized trust frameworks.,nightmare,0.3
+b230944f,Distributed ledger systems provide decentralized trust frameworks.,nightmare,0.5
+8fefb27e,Distributed ledger systems provide decentralized trust frameworks.,nightmare,0.8
+cc83d5a0,Distributed ledger systems provide decentralized trust frameworks.,learned,0.3
+5185c7ee,Distributed ledger systems provide decentralized trust frameworks.,learned,0.5
+b6008718,Distributed ledger systems provide decentralized trust frameworks.,learned,0.8
+6933df1e,Differential privacy mechanisms inject calibrated noise into data distributions.,dream,0.3
+c3f9ac23,Differential privacy mechanisms inject calibrated noise into data distributions.,dream,0.5
+63c710a1,Differential privacy mechanisms inject calibrated noise into data distributions.,dream,0.8
+e1960e0c,Differential privacy mechanisms inject calibrated noise into data distributions.,nightmare,0.3
+a486831e,Differential privacy mechanisms inject calibrated noise into data distributions.,nightmare,0.5
+970e085d,Differential privacy mechanisms inject calibrated noise into data distributions.,nightmare,0.8
+c6d8c942,Differential privacy mechanisms inject calibrated noise into data distributions.,learned,0.3
+585d2282,Differential privacy mechanisms inject calibrated noise into data distributions.,learned,0.5
+8a0e043d,Differential privacy mechanisms inject calibrated noise into data distributions.,learned,0.8
+8dfd99cc,Natural language processing systems struggle with high-dimensional variance.,dream,0.3
+3137e5ac,Natural language processing systems struggle with high-dimensional variance.,dream,0.5
+c5f989d8,Natural language processing systems struggle with high-dimensional variance.,dream,0.8
+33bcf1af,Natural language processing systems struggle with high-dimensional variance.,nightmare,0.3
+e5a41d49,Natural language processing systems struggle with high-dimensional variance.,nightmare,0.5
+89d44d8f,Natural language processing systems struggle with high-dimensional variance.,nightmare,0.8
+34f44f9b,Natural language processing systems struggle with high-dimensional variance.,learned,0.3
+827dd6f8,Natural language processing systems struggle with high-dimensional variance.,learned,0.5
+ea3b43b1,Natural language processing systems struggle with high-dimensional variance.,learned,0.8
+e5c173f3,Robust statistics provide reliable inferences despite anomalous outliers.,dream,0.3
+43eef155,Robust statistics provide reliable inferences despite anomalous outliers.,dream,0.5
+50215a09,Robust statistics provide reliable inferences despite anomalous outliers.,dream,0.8
+65556f03,Robust statistics provide reliable inferences despite anomalous outliers.,nightmare,0.3
+6a92ebf8,Robust statistics provide reliable inferences despite anomalous outliers.,nightmare,0.5
+78767648,Robust statistics provide reliable inferences despite anomalous outliers.,nightmare,0.8
+220ff0ad,Robust statistics provide reliable inferences despite anomalous outliers.,learned,0.3
+f6a413ec,Robust statistics provide reliable inferences despite anomalous outliers.,learned,0.5
+60d99ed5,Robust statistics provide reliable inferences despite anomalous outliers.,learned,0.8
+06cb9654,Model distillation compresses large neural frameworks into lightweight agents.,dream,0.3
+3aaa0067,Model distillation compresses large neural frameworks into lightweight agents.,dream,0.5
+a5028992,Model distillation compresses large neural frameworks into lightweight agents.,dream,0.8
+3e01491e,Model distillation compresses large neural frameworks into lightweight agents.,nightmare,0.3
+a770b288,Model distillation compresses large neural frameworks into lightweight agents.,nightmare,0.5
+710e8f0e,Model distillation compresses large neural frameworks into lightweight agents.,nightmare,0.8
+b23d6203,Model distillation compresses large neural frameworks into lightweight agents.,learned,0.3
+06e8af96,Model distillation compresses large neural frameworks into lightweight agents.,learned,0.5
+1d575086,Model distillation compresses large neural frameworks into lightweight agents.,learned,0.8
+71c553b6,Neural networks frequently rely on spurious correlations within features.,dream,0.3
+4faa8819,Neural networks frequently rely on spurious correlations within features.,dream,0.5
+b45ee7df,Neural networks frequently rely on spurious correlations within features.,dream,0.8
+745bb341,Neural networks frequently rely on spurious correlations within features.,nightmare,0.3
+db208a32,Neural networks frequently rely on spurious correlations within features.,nightmare,0.5
+2abe0943,Neural networks frequently rely on spurious correlations within features.,nightmare,0.8
+dc648e0f,Neural networks frequently rely on spurious correlations within features.,learned,0.3
+e0326e3e,Neural networks frequently rely on spurious correlations within features.,learned,0.5
+834de4b1,Neural networks frequently rely on spurious correlations within features.,learned,0.8
+c2626053,Explainable artificial intelligence provides transparency for complex models.,dream,0.3
+8ac1f9c2,Explainable artificial intelligence provides transparency for complex models.,dream,0.5
+81614490,Explainable artificial intelligence provides transparency for complex models.,dream,0.8
+0ebe7f65,Explainable artificial intelligence provides transparency for complex models.,nightmare,0.3
+d6994b05,Explainable artificial intelligence provides transparency for complex models.,nightmare,0.5
+308f09b8,Explainable artificial intelligence provides transparency for complex models.,nightmare,0.8
+df769ec3,Explainable artificial intelligence provides transparency for complex models.,learned,0.3
+973b2fc6,Explainable artificial intelligence provides transparency for complex models.,learned,0.5
+82c38b71,Explainable artificial intelligence provides transparency for complex models.,learned,0.8
+72756653,Cross-validation prevents predictive over-fitting on skewed distributions.,dream,0.3
+ebbbfa6e,Cross-validation prevents predictive over-fitting on skewed distributions.,dream,0.5
+6eb80436,Cross-validation prevents predictive over-fitting on skewed distributions.,dream,0.8
+b5aa5f33,Cross-validation prevents predictive over-fitting on skewed distributions.,nightmare,0.3
+69cc549d,Cross-validation prevents predictive over-fitting on skewed distributions.,nightmare,0.5
+9d451301,Cross-validation prevents predictive over-fitting on skewed distributions.,nightmare,0.8
+93e6b1f5,Cross-validation prevents predictive over-fitting on skewed distributions.,learned,0.3
+87a22bea,Cross-validation prevents predictive over-fitting on skewed distributions.,learned,0.5
+7f47de6f,Cross-validation prevents predictive over-fitting on skewed distributions.,learned,0.8
+e40a82b9,Stochastic processes model empirical fluctuations within dynamic inputs.,dream,0.3
+f298628e,Stochastic processes model empirical fluctuations within dynamic inputs.,dream,0.5
+120893bf,Stochastic processes model empirical fluctuations within dynamic inputs.,dream,0.8
+fc9d759b,Stochastic processes model empirical fluctuations within dynamic inputs.,nightmare,0.3
+17957c6f,Stochastic processes model empirical fluctuations within dynamic inputs.,nightmare,0.5
+a195700d,Stochastic processes model empirical fluctuations within dynamic inputs.,nightmare,0.8
+5ca68cad,Stochastic processes model empirical fluctuations within dynamic inputs.,learned,0.3
+d69ff76c,Stochastic processes model empirical fluctuations within dynamic inputs.,learned,0.5
+b512eb8d,Stochastic processes model empirical fluctuations within dynamic inputs.,learned,0.8
+33619f2e,Continuous integration pipelines ensure systematic compilation reliability.,dream,0.3
+5005bd1c,Continuous integration pipelines ensure systematic compilation reliability.,dream,0.5
+dd7f5278,Continuous integration pipelines ensure systematic compilation reliability.,dream,0.8
+8d390339,Continuous integration pipelines ensure systematic compilation reliability.,nightmare,0.3
+040fee06,Continuous integration pipelines ensure systematic compilation reliability.,nightmare,0.5
+c386a428,Continuous integration pipelines ensure systematic compilation reliability.,nightmare,0.8
+d40f17f9,Continuous integration pipelines ensure systematic compilation reliability.,learned,0.3
+fe081e0f,Continuous integration pipelines ensure systematic compilation reliability.,learned,0.5
+76b50784,Continuous integration pipelines ensure systematic compilation reliability.,learned,0.8
+c8ea81db,Zero-knowledge proofs validate assertions without exposing source metadata.,dream,0.3
+cb3d97bb,Zero-knowledge proofs validate assertions without exposing source metadata.,dream,0.5
+901da034,Zero-knowledge proofs validate assertions without exposing source metadata.,dream,0.8
+99422f94,Zero-knowledge proofs validate assertions without exposing source metadata.,nightmare,0.3
+75c216fa,Zero-knowledge proofs validate assertions without exposing source metadata.,nightmare,0.5
+fe7eebfd,Zero-knowledge proofs validate assertions without exposing source metadata.,nightmare,0.8
+39537933,Zero-knowledge proofs validate assertions without exposing source metadata.,learned,0.3
+805b20ab,Zero-knowledge proofs validate assertions without exposing source metadata.,learned,0.5
+bd60952a,Zero-knowledge proofs validate assertions without exposing source metadata.,learned,0.8
