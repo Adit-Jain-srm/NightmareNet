@@ -40,6 +40,12 @@ frontend-build:
 frontend-test:
 	cd frontend && npm run test
 
+data:
+	dvc repro
+
+pull-data:
+	dvc pull
+
 all: check frontend-build
 	@echo "Full check complete."
 

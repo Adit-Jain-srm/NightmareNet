@@ -17,8 +17,11 @@ pip install dvc
 ```
 
 This repo is already initialized (`.dvc/`, `dvc.yaml`, `dvc.lock`). The default
-remote is a **local filesystem** store at `.dvc/local-remote` (for testing). You
-can later point it at S3/GCS:
+remote is a **local filesystem** store at `.dvc/local-remote` (for testing).
+
+> **Note:** `.dvc/config` uses a relative path convention for local remotes (e.g., `url = local-remote`), which DVC resolves relative to the `.dvc/` folder (i.e., `.dvc/local-remote`).
+
+You can later point it at S3/GCS:
 
 ```bash
 dvc remote add -d s3remote s3://your-bucket/nightmarenet

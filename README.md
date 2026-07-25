@@ -174,6 +174,12 @@ To run both the FastAPI backend and Next.js frontend concurrently in your local 
 make dev
 ```
 
+If you are working with datasets or experiments, pull and reproduce the tracked data with:
+
+```bash
+make data
+```
+
 > **Note for macOS Users:** The development script uses `wait -n`, which requires **Bash 4.3+**. Since macOS ships with Bash 3.2 by default, you may need to upgrade your bash using Homebrew (`brew install bash`) if the script fails.
 
 ### Default (functional) setup
