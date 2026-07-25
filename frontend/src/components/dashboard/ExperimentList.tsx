@@ -360,10 +360,15 @@ export function ExperimentList({
   }, [onSectionChange, toast]);
 
   const handleRename = useCallback(async (id: string, newName: string) => {
-    // Optimistic update
+    if (!newName.trim()) return;
+
+    // Optimistic: show new name immediately
     setLocalNames(prev => ({ ...prev, [id]: newName }));
+
     try {
-      await updateExperiment(id, { name: newName });
+      // Reconcile: replace optimistic value with server's trimmed response
+      const res = await updateExperiment(id, { name: newName });
+      setLocalNames(prev => ({ ...prev, [id]: res.name }));
     } catch (error) {
       // Revert on failure
       setLocalNames(prev => {
