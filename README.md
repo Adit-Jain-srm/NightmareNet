@@ -610,4 +610,3 @@ cd frontend && npm run build         # production build
 ## License
 
 [Apache License 2.0](LICENSE). The OSS core is and will remain Apache 2.0. The hosted platform is a separate commercial offering — see [`docs/architecture/`](docs/architecture/) for the OSS / hosted boundary.
-| Evaluate | `nightmarenet evaluate --model ./output/model` |
