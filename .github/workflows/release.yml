@@ -33,6 +33,14 @@ jobs:
             exit 1
           fi
 
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          format: cyclonedx-json
+          file: dist/sbom.cdx.json
+
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
