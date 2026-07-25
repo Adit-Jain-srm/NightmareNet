@@ -56,17 +56,13 @@ try:
         DistortionResponse,
         ErrorResponse,
         HealthResponse,
-        PipelineCancelRequest,
         PipelineCreateRequest,
-        PipelineEvaluateRequest,
         PipelineReportResponse,
         PipelineRunsListResponse,
         PipelineStatusResponse,
-        # Adding the missing schemas for validation
-        PipelineTrainRequest,
         RobustnessRequest,
         RobustnessResponse,
-        SettingsWebhooksRequest,
+        TestWebhookRequest,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
@@ -913,44 +909,6 @@ async def upload_text_file(request: Request, file: UploadFile) -> UploadResponse
 _PIPELINE_BODY = Body(...)
 
 
-# ADDED MISSING ENDPOINTS TO SATISFY PR REQUIREMENTS
-@app.post("/api/v1/pipeline/train", response_model=dict, tags=["pipeline"])
-async def train_pipeline_endpoint(request: PipelineTrainRequest):
-    """Start pipeline training phase."""
-    return {"status": "ok", "message": "Training started", "model": request.model_name}
-
-
-@app.post("/api/v1/pipeline/evaluate", response_model=dict, tags=["pipeline"])
-async def evaluate_pipeline_endpoint(request: PipelineEvaluateRequest):
-    """Evaluate pipeline robustness."""
-    return {
-        "status": "ok",
-        "message": "Evaluation started",
-        "model": request.model_name,
-    }
-
-
-@app.post("/api/v1/pipeline/cancel", response_model=dict, tags=["pipeline"])
-async def cancel_pipeline_post_endpoint(request: PipelineCancelRequest):
-    """Cancel pipeline run via POST body (Legacy/Alternative)."""
-    return {
-        "status": "ok",
-        "message": "Pipeline cancelled",
-        "pipeline_id": request.pipeline_id,
-    }
-
-
-@app.post("/settings/webhooks", response_model=dict, tags=["settings"])
-async def update_webhooks_endpoint(request: SettingsWebhooksRequest):
-    """Update configured webhooks."""
-    return {
-        "status": "ok",
-        "message": "Webhooks updated",
-        "webhooks_count": len(request.webhooks),
-    }
-
-
-# END MISSING ENDPOINTS
 
 
 @app.post(
