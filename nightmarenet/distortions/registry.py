@@ -48,6 +48,7 @@ class DistortionRegistry:
 
     def _register_builtins(self) -> None:
         from nightmarenet.distortions import dream as dream_mod
+        from nightmarenet.distortions import homoglyph as homoglyph_mod
         from nightmarenet.distortions import nightmare as nightmare_mod
 
         self.register(
@@ -65,6 +66,15 @@ class DistortionRegistry:
             metadata={
                 "phase": "nightmare",
                 "description": "Adversarial perturbation",
+                "source": "builtin",
+            },
+        )
+        self.register(
+            "homoglyph",
+            homoglyph_mod.distort,
+            metadata={
+                "phase": "nightmare",
+                "description": "Homoglyph and keyboard typo substitution",
                 "source": "builtin",
             },
         )
