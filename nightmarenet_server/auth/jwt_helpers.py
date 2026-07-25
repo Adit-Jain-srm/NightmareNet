@@ -13,7 +13,12 @@ except ImportError:
 
 def get_secret() -> str:
     """Return JWT signing secret from environment."""
-    return os.environ.get("NIGHTMARENET_JWT_SECRET", "dev-only-change-in-production")
+    secret = os.environ.get("NIGHTMARENET_JWT_SECRET")
+    if not secret:
+        raise RuntimeError(
+            "NIGHTMARENET_JWT_SECRET environment variable is not set"
+        )
+    return secret
 
 
 def create_access_token(
