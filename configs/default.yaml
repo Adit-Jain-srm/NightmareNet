@@ -98,6 +98,10 @@ evaluation:
     # - "glue"                  # Uncomment for GLUE benchmark (requires seq_classification model)
     # - "certification"         # Opt-in: certified robustness via randomized smoothing
   robustness_strengths: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+  calibration:
+    enabled: false
+    ece_bins: 15
+    temperature_scaling: true
   # significance_alpha: 0.05    # Statistical significance threshold for baseline vs trained comparisons
   eval_split_ratio: 0.2         # Fraction of ingested data held out for evaluation; 0.0 disables splitting
   # glue_tasks: null            # null = all tasks; or list: ["sst2", "mrpc"]
