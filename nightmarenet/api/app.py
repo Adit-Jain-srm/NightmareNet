@@ -43,6 +43,7 @@ try:
     from slowapi.errors import RateLimitExceeded
     from slowapi.middleware import SlowAPIMiddleware
     from slowapi.util import get_remote_address
+    from nightmarenet.api.webhooks import router
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
@@ -67,14 +68,10 @@ try:
         RobustnessRequest,
         RobustnessResponse,
         SettingsWebhooksRequest,
-        TestWebhookRequest,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
         UploadResponse,
-        WebhookSettingsRequest,
-        WebhookSettingsResponse,
-        WebhookTestResponse,
     )
 except ImportError as e:
     raise ImportError(
@@ -172,7 +169,9 @@ app.add_middleware(APIKeyMiddleware)  # type: ignore[arg-type]
 
 # --- CORS ---
 _cors_origins = [
-    o.strip() for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "").split(",") if o.strip()
+    o.strip()
+    for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "").split(",")
+    if o.strip()
 ]
 if not _cors_origins:
     logger.warning(
@@ -232,6 +231,7 @@ _TEST_CACHE_TTL = 300  # refresh every 5 minutes
 WEBHOOKS_FILE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
 )
+
 
 def _get_test_count() -> Optional[int]:
     """Return the number of collected tests, cached (optionally, dev-only)."""
@@ -411,16 +411,18 @@ async def evaluate_robustness(
             }
             scores["nightmare"][str(strength)] = {
                 "similarity": round(_char_similarity(body.text, nightmare_result), 4),
-                "length_ratio": round(len(nightmare_result) / max(len(body.text), 1), 4),
+                "length_ratio": round(
+                    len(nightmare_result) / max(len(body.text), 1), 4
+                ),
             }
 
         # Summary
         avg_dream_sim = sum(v["similarity"] for v in scores["dream"].values()) / max(
             len(scores["dream"]), 1
         )
-        avg_nightmare_sim = sum(v["similarity"] for v in scores["nightmare"].values()) / max(
-            len(scores["nightmare"]), 1
-        )
+        avg_nightmare_sim = sum(
+            v["similarity"] for v in scores["nightmare"].values()
+        ) / max(len(scores["nightmare"]), 1)
 
         summary = (
             f"Dream avg similarity: {avg_dream_sim:.2%}, "
@@ -670,11 +672,17 @@ async def compare_distortions(
         seed = body.seed
 
         # Baseline distortions
-        dream_base = _apply_dream_distortions(body.text, body.baseline_strength, seed=seed)
-        nightmare_base = _apply_nightmare_distortions(body.text, body.baseline_strength, seed=seed)
+        dream_base = _apply_dream_distortions(
+            body.text, body.baseline_strength, seed=seed
+        )
+        nightmare_base = _apply_nightmare_distortions(
+            body.text, body.baseline_strength, seed=seed
+        )
 
         # Challenge distortions
-        dream_challenge = _apply_dream_distortions(body.text, body.challenge_strength, seed=seed)
+        dream_challenge = _apply_dream_distortions(
+            body.text, body.challenge_strength, seed=seed
+        )
         nightmare_challenge = _apply_nightmare_distortions(
             body.text, body.challenge_strength, seed=seed
         )
@@ -697,11 +705,13 @@ async def compare_distortions(
 
         # Resilience = how much similarity drops between baseline and challenge
         dream_drop = max(
-            dream_details["baseline"].similarity - dream_details["challenge"].similarity,
+            dream_details["baseline"].similarity
+            - dream_details["challenge"].similarity,
             0.0,
         )
         nightmare_drop = max(
-            nightmare_details["baseline"].similarity - nightmare_details["challenge"].similarity,
+            nightmare_details["baseline"].similarity
+            - nightmare_details["challenge"].similarity,
             0.0,
         )
         avg_drop = (dream_drop + nightmare_drop) / 2
@@ -766,7 +776,9 @@ async def interactive_demo(
         nightmare_strength = 0.80
         # keep the existing function body below unchanged
 
-        dream_result = _apply_dream_distortions(body.text, dream_strength, seed=body.seed)
+        dream_result = _apply_dream_distortions(
+            body.text, dream_strength, seed=body.seed
+        )
         nightmare_result = _apply_nightmare_distortions(
             body.text, nightmare_strength, seed=body.seed
         )
@@ -911,19 +923,31 @@ async def train_pipeline_endpoint(request: PipelineTrainRequest):
 @app.post("/api/v1/pipeline/evaluate", response_model=dict, tags=["pipeline"])
 async def evaluate_pipeline_endpoint(request: PipelineEvaluateRequest):
     """Evaluate pipeline robustness."""
-    return {"status": "ok", "message": "Evaluation started", "model": request.model_name}
+    return {
+        "status": "ok",
+        "message": "Evaluation started",
+        "model": request.model_name,
+    }
 
 
 @app.post("/api/v1/pipeline/cancel", response_model=dict, tags=["pipeline"])
 async def cancel_pipeline_post_endpoint(request: PipelineCancelRequest):
     """Cancel pipeline run via POST body (Legacy/Alternative)."""
-    return {"status": "ok", "message": "Pipeline cancelled", "pipeline_id": request.pipeline_id}
+    return {
+        "status": "ok",
+        "message": "Pipeline cancelled",
+        "pipeline_id": request.pipeline_id,
+    }
 
 
 @app.post("/settings/webhooks", response_model=dict, tags=["settings"])
 async def update_webhooks_endpoint(request: SettingsWebhooksRequest):
     """Update configured webhooks."""
-    return {"status": "ok", "message": "Webhooks updated", "webhooks_count": len(request.webhooks)}
+    return {
+        "status": "ok",
+        "message": "Webhooks updated",
+        "webhooks_count": len(request.webhooks),
+    }
 
 
 # END MISSING ENDPOINTS
@@ -1104,46 +1128,7 @@ async def get_pipeline_report(run_id: str):
     )
 
 
-@app.get(
-    "/api/v1/settings/webhooks",
-    response_model=WebhookSettingsResponse,
-    summary="Get webhook settings",
-    tags=["settings"],
-)
-async def get_webhook_settings():
-    """Retrieve the current webhook settings."""
-    if not os.path.exists(WEBHOOKS_FILE_PATH):
-        return WebhookSettingsResponse(webhooks=[])
-    try:
-        with open(WEBHOOKS_FILE_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-            return WebhookSettingsResponse(webhooks=data.get("webhooks", []))
-    except Exception as e:
-        logger.error("Failed to read webhooks: %s", e)
-        return WebhookSettingsResponse(webhooks=[])
-
-
-@app.post(
-    "/api/v1/settings/webhooks",
-    response_model=WebhookSettingsResponse,
-    summary="Save webhook settings",
-    tags=["settings"],
-)
-async def save_webhook_settings(
-    request: Request,
-    body: WebhookSettingsRequest,
-):
-    """Save webhook settings."""
-    try:
-        os.makedirs(os.path.dirname(WEBHOOKS_FILE_PATH), exist_ok=True)
-        with open(WEBHOOKS_FILE_PATH, "w", encoding="utf-8") as f:
-            json.dump({"webhooks": [w.model_dump() for w in body.webhooks]}, f, indent=2)
-        return WebhookSettingsResponse(webhooks=body.webhooks)
-    except Exception as e:
-        logger.error("Failed to save webhooks: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to save webhook settings."
-        ) from None
+app.include_router(router, tags=["Webhooks Processing"])
 
 
 @app.get(
@@ -1156,7 +1141,9 @@ async def save_webhook_settings(
 async def list_runs(
     request: Request,
     offset: int = Query(0, ge=0, description="Number of runs to skip"),
-    limit: int = Query(50, ge=1, le=200, description="Maximum number of runs to return"),
+    limit: int = Query(
+        50, ge=1, le=200, description="Maximum number of runs to return"
+    ),
 ):
     """List all pipeline runs with pagination support.
 
@@ -1176,90 +1163,6 @@ async def list_runs(
         offset=offset,
         limit=limit,
     )
-
-
-_TEST_WEBHOOK_BODY = Body(...)
-
-
-@app.post(
-    "/api/v1/notifications/test-webhook",
-    response_model=WebhookTestResponse,
-    responses={
-        400: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Send a test notification to a webhook URL",
-    tags=["notifications"],
-)
-@limiter.limit("5/minute")
-async def test_webhook_endpoint(
-    request: Request,
-    body: TestWebhookRequest = _TEST_WEBHOOK_BODY,
-):
-    """Send a test notification payload to verify webhook integration."""
-    from nightmarenet.utils.webhooks import trigger_webhook, validate_webhook_url
-
-    if not validate_webhook_url(body.url):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Invalid webhook URL. Must be an allowed HTTPS domain"
-                " and not resolve to an internal IP."
-            ),
-        )
-
-    # Temporary configuration dict containing the target webhook
-    temp_config = {
-        "notifications": {
-            "webhooks": [
-                {
-                    "url": body.url,
-                    "events": [body.event_type],
-                }
-            ]
-        }
-    }
-
-    try:
-        # Build some mock details depending on the event type
-        details = {
-            "test": "true",
-            "message": f"This is a test notification for {body.event_type}.",
-        }
-        if body.event_type == "run_complete":
-            details.update({"run_id": "test-run-12345", "status": "complete", "model": "gpt2"})
-        elif body.event_type == "regression_detected":
-            details.update(
-                {
-                    "robustness_delta": "-0.0543",
-                    "baseline_auc": "0.8520",
-                    "trained_auc": "0.7977",
-                }
-            )
-        elif body.event_type == "alert":
-            details.update(
-                {
-                    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
-                    "usage_percent": "91.2%",
-                }
-            )
-        elif body.event_type == "deploy":
-            details.update({"mode": "full", "output_path": "results/benchmark-v1.json"})
-
-        trigger_webhook(
-            temp_config,
-            body.event_type,
-            f"Test notification: {body.event_type} integration test.",
-            details,
-        )
-        return WebhookTestResponse(status="ok")
-    except Exception as e:
-        logger.exception("Test webhook failed: %s", e)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Failed to dispatch test webhook: {e}",
-        ) from None
 
 
 # ------------------------------------------------------------------
