@@ -96,11 +96,10 @@ jobs:
 
       - name: Check frontend bundle size
         if: matrix.python-version == '3.12' && github.event_name == 'pull_request'
-        uses: andresz1/size-limit-action@v1
+        uses: andresz1/size-limit-action@d0b431767e7c9bf1f2f84b65679901ee19d20c5d # v1
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           directory: frontend
-          skip_step: build
 
       - name: Lint frontend
         if: matrix.python-version == '3.12'

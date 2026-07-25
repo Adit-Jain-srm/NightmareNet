@@ -5,10 +5,10 @@ const path = require("path");
 const chunkDir = path.join(__dirname, ".next/static/chunks");
 const chunkFiles = fs.existsSync(chunkDir)
   ? fs
-      .readdirSync(chunkDir)
-      .filter((name) => name.endsWith(".js"))
+      .readdirSync(chunkDir, { recursive: true })
+      .filter((name) => typeof name === "string" && name.endsWith(".js"))
       .map((name) => path.join(".next/static/chunks", name))
-  : [".next/static/chunks/*.js"];
+  : [".next/static/chunks/**/*.js"];
 
 module.exports = [
   {
