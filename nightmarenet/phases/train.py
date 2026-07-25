@@ -111,7 +111,9 @@ class TrainPhase(Phase):
         if not training_cfg.get("auto_terminate", False):
             return
 
-        threshold = training_cfg.get("convergence_threshold", 0.005)
+        threshold = training_cfg.get(
+            "convergence_delta_threshold", training_cfg.get("convergence_threshold", 0.005)
+        )
         patience = training_cfg.get("convergence_patience", 2)
 
         score = quick_robustness_score(

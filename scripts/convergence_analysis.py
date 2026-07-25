@@ -86,7 +86,7 @@ def diminishing_returns_cycle(
         "target_score": round(target_score, 6),
         "note": (
             f"{target_fraction * 100:.0f}% of max robustness gain "
-            f"({baseline:.4f} → {peak:.4f}) first reached at cycle {cycle}"
+            f"({baseline:.4f} -> {peak:.4f}) first reached at cycle {cycle}"
         ),
     }
 
@@ -485,7 +485,7 @@ def recommend_defaults(summary: Dict[str, Any]) -> Dict[str, Any]:
         "convergence_patience": 2,
         "auto_terminate": True,
         "rationale": (
-            f"95% of peak robustness gain arrived by cycle {fastest}–{slowest} "
+            f"95% of peak robustness gain arrived by cycle {fastest}-{slowest} "
             f"across models; default num_cycles={num_cycles} leaves headroom, "
             f"with auto_terminate (threshold=0.005, patience=2) to stop earlier "
             f"when deltas flatten."

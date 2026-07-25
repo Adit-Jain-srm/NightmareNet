@@ -19,9 +19,10 @@ training:
   wake_epochs: 3
   dream_epochs: 2
   nightmare_epochs: 1
-  num_cycles: 3
+  num_cycles: 8                  # Default cycle count based on convergence research (#324)
   auto_terminate: false          # Enable adaptive cycle termination
   convergence_threshold: 0.005   # Minimum robustness delta to continue training
+  convergence_delta_threshold: 0.005 # Delta threshold for auto-terminate decision
   convergence_patience: 2        # Consecutive non-improving cycles before stopping
   batch_size: 8
   learning_rate: 5.0e-5

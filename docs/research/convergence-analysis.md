@@ -23,6 +23,15 @@ Across two model scales on SST-2, **95% of the peak robustness gain arrives by c
 
 With `auto_terminate: true`, keep `num_cycles` as a **ceiling** (8–12), not a mandate to always burn that many cycles.
 
+```yaml
+# Recommended training configuration in configs/default.yaml
+training:
+  num_cycles: 8                  # Research-derived default (#324)
+  auto_terminate: true           # Enable adaptive early stopping
+  convergence_delta_threshold: 0.005 # Stop when per-cycle robustness delta < 0.005
+  convergence_patience: 2        # Consecutive non-improving cycles before stopping
+```
+
 ---
 
 ## Problem
