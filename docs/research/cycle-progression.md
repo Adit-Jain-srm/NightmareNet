@@ -63,13 +63,15 @@ python scripts/train.py --config configs/benchmark_5cycle_progression.yaml
 
 ### Table: cycle vs robustness AUC vs clean accuracy
 
+> **Note:** Cycle 1 is anchored to measured GPU benchmark data. Cycles 2–5 are calibrated projections pending GPU validation. Results marked (\*) are provisional.
+
 | Cycle | Clean accuracy | Avg distorted | Robustness AUC | ΔAUC vs prev |
 |------:|---------------:|--------------:|---------------:|-------------:|
 | 1 | 0.7500 | 0.6675 | 0.5308 | — |
-| 2 | 0.7535 | 0.7055 | 0.5610 | +0.0302 |
-| 3 | 0.7560 | 0.7226 | 0.5746 | +0.0136 |
-| 4 | 0.7578 | 0.7303 | 0.5807 | +0.0061 |
-| 5 | 0.7590 | 0.7338 | 0.5835 | +0.0028 |
+| 2 (\*) | 0.7535 | 0.7055 | 0.5610 | +0.0302 |
+| 3 (\*) | 0.7560 | 0.7226 | 0.5746 | +0.0136 |
+| 4 (\*) | 0.7578 | 0.7303 | 0.5807 | +0.0061 |
+| 5 (\*) | 0.7590 | 0.7338 | 0.5835 | +0.0028 |
 
 ### Progression curve
 

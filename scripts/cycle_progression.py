@@ -51,10 +51,7 @@ def _trapz(ys: Sequence[float], xs: Sequence[float]) -> float:
 
 def _xml_escape(text: str) -> str:
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
@@ -211,12 +208,8 @@ def write_svg_plot(
             f'font-family="sans-serif" font-size="10">{cycle}</text>'
         )
     for i, (name, scores, color) in enumerate(series):
-        pts = " ".join(
-            f"{x_pix(c):.1f},{y_pix(s):.1f}" for c, s in zip(cycles, scores)
-        )
-        lines.append(
-            f'<polyline fill="none" stroke="{color}" stroke-width="2.5" points="{pts}"/>'
-        )
+        pts = " ".join(f"{x_pix(c):.1f},{y_pix(s):.1f}" for c, s in zip(cycles, scores))
+        lines.append(f'<polyline fill="none" stroke="{color}" stroke-width="2.5" points="{pts}"/>')
         for c, s in zip(cycles, scores):
             lines.append(
                 f'<circle cx="{x_pix(c):.1f}" cy="{y_pix(s):.1f}" r="3.5" fill="{color}"/>'
@@ -261,15 +254,11 @@ def evaluate_checkpoint(
     for dtype in ("dream", "nightmare"):
         for strength in STRENGTHS:
             fn = bench._build_distorter(dtype, strength=strength)
-            acc = bench._evaluate(
-                model, tokenizer, val, device, batch_size, distort_fn=fn
-            )
+            acc = bench._evaluate(model, tokenizer, val, device, batch_size, distort_fn=fn)
             distorted[dtype][f"{strength:g}"] = round(acc, 6)
     for strength in STRENGTHS:
         key = f"{strength:g}"
-        means.append(
-            (distorted["dream"][key] + distorted["nightmare"][key]) / 2.0
-        )
+        means.append((distorted["dream"][key] + distorted["nightmare"][key]) / 2.0)
     auc = _trapz(means, list(STRENGTHS))
     avg = sum(means) / len(means)
     return {
@@ -311,9 +300,7 @@ def run_live(
     bench._set_seed(seed)
     raw = load_dataset("glue", "sst2")
     train = raw["train"].shuffle(seed=seed).select(range(min(train_n, len(raw["train"]))))
-    val = raw["validation"].shuffle(seed=seed).select(
-        range(min(eval_n, len(raw["validation"])))
-    )
+    val = raw["validation"].shuffle(seed=seed).select(range(min(eval_n, len(raw["validation"]))))
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
@@ -345,9 +332,7 @@ def run_live(
             use_amp,
             distort_fn=night_fn,
         )
-        metrics = evaluate_checkpoint(
-            model, tokenizer, val, device, batch_size, bench
-        )
+        metrics = evaluate_checkpoint(model, tokenizer, val, device, batch_size, bench)
         row = {"cycle": cycle, **metrics}
         rows.append(row)
         print(
