@@ -60,7 +60,7 @@ describe("useSounds hook", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorageMock.clear();
-    
+
     // Reset stubs before each test to guarantee isolated states
     vi.stubGlobal("localStorage", localStorageMock);
     vi.stubGlobal("matchMedia", vi.fn((query: string) => ({
@@ -81,7 +81,7 @@ describe("useSounds hook", () => {
 
   it("returns play functions for every supported sound", () => {
     vi.stubGlobal("AudioContext", function() { return mockAudioContext; });
-    
+
     const { result } = renderHook(() => useSounds());
 
     expect(typeof result.current.playClick).toBe("function");
@@ -95,33 +95,33 @@ describe("useSounds hook", () => {
 
   it("respects the user's mute preference", () => {
     vi.stubGlobal("AudioContext", function() { return mockAudioContext; });
-    
+
     // Simulate user previously disabling sounds via localStorage
     localStorageMock.getItem.mockReturnValueOnce("false");
-    
+
     const { result } = renderHook(() => useSounds());
-    
+
     // Ensure hook initialized in a muted state
     expect(result.current.enabled).toBe(false);
-    
+
     act(() => {
       result.current.playClick();
     });
-    
+
     // AudioContext should not be interacted with because sounds are disabled
     expect(mockAudioContext.createOscillator).not.toHaveBeenCalled();
-    
+
     // User toggles sounds back on
     act(() => {
       result.current.toggle();
     });
-    
+
     expect(result.current.enabled).toBe(true);
-    
+
     act(() => {
       result.current.playClick();
     });
-    
+
     // Now AudioContext should generate the sound
     expect(mockAudioContext.createOscillator).toHaveBeenCalled();
   });
@@ -129,9 +129,9 @@ describe("useSounds hook", () => {
   it("does not throw when Audio API is unavailable (SSR-safe)", () => {
     // Deliberately make AudioContext unavailable to simulate SSR or unsupported browser
     vi.stubGlobal("AudioContext", undefined);
-    
+
     const { result } = renderHook(() => useSounds());
-    
+
     expect(() => {
       act(() => {
         result.current.playClick();

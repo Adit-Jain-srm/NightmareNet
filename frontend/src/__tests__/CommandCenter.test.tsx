@@ -84,7 +84,7 @@ describe("CommandCenter dashboard component", () => {
   it("renders the demo data badge when the API is not live", () => {
     vi.mocked(hooks.useDemoMode).mockReturnValue({ isLive: false, isLoading: false });
     render(<CommandCenter />);
-    
+
     expect(screen.getByText("demo data · API offline")).toBeInTheDocument();
   });
 });

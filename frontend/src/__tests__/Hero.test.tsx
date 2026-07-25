@@ -56,7 +56,7 @@ describe("Landing Page Components", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     // Mock navigator.clipboard
     Object.assign(navigator, {
       clipboard: {
@@ -74,10 +74,10 @@ describe("Landing Page Components", () => {
   describe("Hero Component", () => {
     it("renders correctly and displays headline and description", () => {
       render(<Hero />);
-      
+
       // Verify headline
       expect(screen.getByRole("heading", { name: /NightmareNet/i })).toBeInTheDocument();
-      
+
       // Verify description texts
       expect(screen.getByText(/Autonomous AI Self-Improvement/i)).toBeInTheDocument();
       expect(
@@ -87,13 +87,13 @@ describe("Landing Page Components", () => {
 
     it("renders primary CTAs and ensures they are accessible links", () => {
       render(<Hero />);
-      
+
       const dashboardLink = screen.getByRole("link", { name: /Launch Dashboard/i });
       const playgroundLink = screen.getByRole("link", { name: /Try Playground/i });
-      
+
       expect(dashboardLink).toBeInTheDocument();
       expect(dashboardLink).toHaveAttribute("href", "/dashboard");
-      
+
       expect(playgroundLink).toBeInTheDocument();
       expect(playgroundLink).toHaveAttribute("href", "#playground");
     });
@@ -102,31 +102,31 @@ describe("Landing Page Components", () => {
   describe("QuickStart Component", () => {
     it("renders code snippets and switches correctly between tabs", async () => {
       render(<QuickStart />);
-      
+
       // Default tab should be "Install" and contain clone instructions
       expect(screen.getByText(/git clone/i)).toBeInTheDocument();
-      
+
       // Switch to "Python" tab
       const pythonTab = screen.getByRole("button", { name: /Python/i });
       fireEvent.click(pythonTab);
-      
+
       // Verify Python code is rendered
       expect(await screen.findByText(/trainer = Trainer\(config\)/i)).toBeInTheDocument();
     });
 
     it("renders the copy button, copies code to clipboard, and updates state", async () => {
       render(<QuickStart />);
-      
+
       const copyButton = screen.getByRole("button", { name: /Copy/i });
       expect(copyButton).toBeInTheDocument();
-      
+
       fireEvent.click(copyButton);
-      
+
       // Verify clipboard API was called with the "Install" snippet text
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         expect.stringContaining("git clone")
       );
-      
+
       // Verify the button text changed to indicate success
       expect(await screen.findByRole("button", { name: /Copied!/i })).toBeInTheDocument();
     });

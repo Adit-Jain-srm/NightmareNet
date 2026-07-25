@@ -128,25 +128,25 @@ describe("ExperimentList Row Actions", () => {
   it("Compare navigates to /compare?ids=<id>", () => {
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
-    
+
     const compareBtn = screen.getByRole("menuitem", { name: /Compare test-experiment to baseline/i });
     fireEvent.click(compareBtn);
-    
+
     expect(mockPush).toHaveBeenCalledWith("/compare?ids=exp_123");
   });
 
   it("Delete opens confirmation dialog, Cancel delete does not call API", async () => {
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
-    
+
     const deleteBtn = screen.getByRole("menuitem", { name: /Delete test-experiment/i });
     fireEvent.click(deleteBtn);
-    
+
     expect(await screen.findByText("Delete Experiment")).toBeInTheDocument();
-    
+
     const cancelBtn = screen.getByRole("button", { name: /Cancel/i });
     fireEvent.click(cancelBtn);
-    
+
     expect(api.deleteExperiment).not.toHaveBeenCalled();
     await waitFor(() => {
       expect(screen.queryByText("Delete Experiment")).not.toBeInTheDocument();
@@ -157,22 +157,22 @@ describe("ExperimentList Row Actions", () => {
     vi.mocked(api.deleteExperiment).mockResolvedValueOnce(undefined);
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
-    
+
     const deleteBtn = screen.getByRole("menuitem", { name: /Delete test-experiment/i });
     fireEvent.click(deleteBtn);
-    
+
     const confirmBtn = await screen.findByRole("button", { name: /Confirm Delete/i });
     fireEvent.click(confirmBtn);
-    
+
     expect(api.deleteExperiment).toHaveBeenCalledWith("exp_123");
-    
+
     await waitFor(() => {
       expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
         title: "Experiment deleted",
         variant: "success",
       }));
     });
-    
+
     expect(screen.queryByText("Delete Experiment")).not.toBeInTheDocument();
   });
 
@@ -180,17 +180,17 @@ describe("ExperimentList Row Actions", () => {
     vi.mocked(api.createPipeline).mockResolvedValueOnce({} as any);
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
-    
+
     const rerunBtn = screen.getByRole("menuitem", { name: /Re-run test-experiment with strength/i });
     fireEvent.click(rerunBtn);
-    
+
     expect(api.createPipeline).toHaveBeenCalledWith({
       source_type: "text",
       dream_strength: 0.6, // 0.5 * 1.2
       nightmare_strength: 0.96, // 0.8 * 1.2
       model_name: "GPT-2",
     });
-    
+
     await waitFor(() => {
       expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
         title: "Re-run queued",
@@ -202,10 +202,10 @@ describe("ExperimentList Row Actions", () => {
   it("Missing config shows error toast for Re-run", async () => {
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("missing-config-exp");
-    
+
     const rerunBtn = screen.getByRole("menuitem", { name: /Re-run missing-config-exp with strength/i });
     fireEvent.click(rerunBtn);
-    
+
     expect(api.createPipeline).not.toHaveBeenCalled();
     expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
       title: "Missing configuration",
@@ -216,15 +216,15 @@ describe("ExperimentList Row Actions", () => {
   it("Export calls exportExperiment(id, 'csv') and triggers browser download", async () => {
     const mockBlob = new Blob(["test"], { type: "text/csv" });
     vi.mocked(api.exportExperiment).mockResolvedValueOnce(mockBlob);
-    
+
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
-    
+
     const exportBtn = screen.getByRole("menuitem", { name: /Export test-experiment run report as CSV/i });
     fireEvent.click(exportBtn);
-    
+
     expect(api.exportExperiment).toHaveBeenCalledWith("exp_123", "csv");
-    
+
     await waitFor(() => {
       expect(global.URL.createObjectURL).toHaveBeenCalledWith(mockBlob);
       expect(mockClick).toHaveBeenCalled();
@@ -239,19 +239,19 @@ describe("ExperimentList Row Actions", () => {
         resolveExport = resolve;
       })
     );
-    
+
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
-    
+
     const exportBtn = screen.getByRole("menuitem", { name: /Export test-experiment run report as CSV/i });
     fireEvent.click(exportBtn);
-    
+
     // While pending, the menu item should be disabled
     expect(exportBtn).toBeDisabled();
-    
+
     // Resolve it
     resolveExport!(new Blob(["test"], { type: "text/csv" }));
-    
+
     await waitFor(() => {
       expect(screen.queryByRole("menuitem", { name: /Export test-experiment run report as CSV/i })).not.toBeInTheDocument();
     });
@@ -259,16 +259,16 @@ describe("ExperimentList Row Actions", () => {
 
   it("API failures display error toast", async () => {
     vi.mocked(api.deleteExperiment).mockRejectedValueOnce(new Error("Network Error"));
-    
+
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
-    
+
     const deleteBtn = screen.getByRole("menuitem", { name: /Delete test-experiment/i });
     fireEvent.click(deleteBtn);
-    
+
     const confirmBtn = await screen.findByRole("button", { name: /Confirm Delete/i });
     fireEvent.click(confirmBtn);
-    
+
     await waitFor(() => {
       expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
         title: "API Error",
