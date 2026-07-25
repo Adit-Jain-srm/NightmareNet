@@ -54,6 +54,28 @@ warning. release-please can still open or update the Release PR, but a tag creat
 with that fallback token will not trigger the downstream release workflow. In that
 case, a maintainer must push the release tag manually after reviewing the Release PR.
 
+
+## Verify the release workflow without publishing
+
+The release workflow supports a safe manual verification run:
+
+1. Open **Actions → Release → Run workflow**.
+2. Select the branch or commit to verify.
+3. Keep **Build and verify distributions without publishing** enabled.
+4. Start the workflow.
+
+A manual run performs the same pre-publication checks as a tagged release:
+
+- builds one wheel and one source distribution
+- runs `twine check` on both artifacts
+- inspects both archives for required package files
+- installs the wheel in a clean virtual environment
+- verifies installed metadata matches `nightmarenet.__version__`
+- uploads the verified artifacts for inspection
+
+Manual runs never execute the GitHub Release or PyPI publishing jobs. Those jobs
+remain restricted to pushed tags matching `v*`.
+
 ## Bootstrap: first release (`v0.2.1`)
 
 The package is prepared at **0.2.1**. After the release-automation PR is on
