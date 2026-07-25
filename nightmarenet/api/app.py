@@ -1128,7 +1128,7 @@ async def get_pipeline_report(run_id: str):
     )
 
 
-app.include_router(router, tags=["Webhooks Processing"])
+app.include_router(router)
 
 
 @app.get(
