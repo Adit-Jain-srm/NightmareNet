@@ -151,7 +151,7 @@ def write_svg_plot(
     colors = ["#2563eb", "#dc2626", "#059669", "#7c3aed"]
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">',
-        f'<rect width="100%" height="100%" fill="#ffffff"/>',
+        '<rect width="100%" height="100%" fill="#ffffff"/>',
         f'<text x="{width / 2}" y="28" text-anchor="middle" '
         f'font-family="sans-serif" font-size="16">{title}</text>',
         f'<line x1="{margin}" y1="{margin}" x2="{margin}" y2="{margin + plot_h}" '
@@ -346,12 +346,12 @@ def run_live_study(
     out_dir: Path = DEFAULT_OUT,
 ) -> Dict[str, Any]:
     """Run multi-cycle wake+nightmare SST-2 training with per-cycle metrics."""
+    # Reuse helpers from the GPU benchmark module without requiring a package import.
+    import importlib.util
+
     import torch
     from datasets import load_dataset
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-    # Reuse helpers from the GPU benchmark module without requiring a package import.
-    import importlib.util
 
     bench_path = REPO_ROOT / "scripts" / "run_gpu_benchmark.py"
     spec = importlib.util.spec_from_file_location("run_gpu_benchmark", bench_path)

@@ -192,8 +192,8 @@ docker compose up api frontend
 
 This starts only:
 
-- ✅ `api`
-- ✅ `frontend`
+- `api`
+- `frontend`
 
 ### Hosted profile (planned infrastructure)
 
