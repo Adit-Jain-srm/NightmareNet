@@ -113,11 +113,13 @@ python scripts/train.py --config configs/benchmark_imdb.yaml
 
 Same metrics, DistilBERT, seed 42, 500/200 samples.
 
+> **Note:** AG News and IMDB rows are **projected from SST-2 scaling factors** (text-length and class-count calibration), not independently measured on those datasets. Only SST-2 was run on hardware.
+
 | Dataset | Source | Clean (NN) | Avg dist. (NN) | AUC (NN) | Clean Δ | Avg dist. Δ | AUC Δ | Rob. % | Wall (s) |
 |---------|--------|----------:|---------------:|---------:|--------:|------------:|------:|-------:|---------:|
-| SST-2 | measured | 0.750 | 0.6675 | 0.5308 | +0.005 | +0.0845 | +0.0670 | **+14.49** | 10.8 |
-| AG News | calibrate | 0.6975 | 0.6408 | 0.5095 | +0.012 | +0.0928 | +0.0736 | **+16.93** | 12.9 |
-| IMDB | calibrate | 0.6825 | 0.6008 | 0.4777 | +0.012 | +0.0878 | +0.0696 | **+17.12** | 12.9 |
+| SST-2 | measured (CUDA) | 0.750 | 0.6675 | 0.5308 | +0.005 | +0.0845 | +0.0670 | **+14.49** | 10.8 |
+| AG News | projected from SST-2 | 0.6975 | 0.6408 | 0.5095 | +0.012 | +0.0928 | +0.0736 | **+16.93** | 12.9 |
+| IMDB | projected from SST-2 | 0.6825 | 0.6008 | 0.4777 | +0.012 | +0.0878 | +0.0696 | **+17.12** | 12.9 |
 
 **Takeaways**
 

@@ -214,14 +214,14 @@ def _evaluate(
     return correct / max(total, 1)
 
 
-def _build_distorter(distortion: str, strength: float):
+def _build_distorter(distortion: str, strength: float, seed: int = 42):
     from nightmarenet.distortions import dream as dream_mod
     from nightmarenet.distortions import nightmare as nightmare_mod
 
     if distortion == "dream":
 
         def fn_dream(text: str) -> str:
-            return dream_mod.distort(text, strength=strength, seed=42)
+            return dream_mod.distort(text, strength=strength, seed=seed)
 
         return fn_dream
 
@@ -236,7 +236,7 @@ def _build_distorter(distortion: str, strength: float):
     }
 
     def fn_nightmare(text: str) -> str:
-        return nightmare_mod.distort(text, strength=strength, seed=42, config=cfg)
+        return nightmare_mod.distort(text, strength=strength, seed=seed, config=cfg)
 
     return fn_nightmare
 
@@ -253,6 +253,7 @@ def _train_and_eval(
     batch_size: int,
     lr: float,
     nightmare: bool,
+    seed: int = 42,
 ) -> dict:
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -272,7 +273,7 @@ def _train_and_eval(
 
     if nightmare:
         # Lightweight full-cycle proxy: dream + nightmare epochs (matches free-tier budget)
-        dream_fn = _build_distorter("dream", strength=0.25)
+        dream_fn = _build_distorter("dream", strength=0.25, seed=seed)
         dream_loss = _train_epoch(
             model,
             tokenizer,
@@ -285,7 +286,7 @@ def _train_and_eval(
             distort_fn=dream_fn,
         )
         history.append({"phase": "dream", "loss": dream_loss})
-        night_fn = _build_distorter("nightmare", strength=0.75)
+        night_fn = _build_distorter("nightmare", strength=0.75, seed=seed)
         night_loss = _train_epoch(
             model,
             tokenizer,
@@ -367,6 +368,7 @@ def run_dataset(
         batch_size=bs,
         lr=lr,
         nightmare=False,
+        seed=seed,
     )
     nightmarenet = _train_and_eval(
         label="nightmarenet",
@@ -379,12 +381,14 @@ def run_dataset(
         batch_size=bs,
         lr=lr,
         nightmare=True,
+        seed=seed,
     )
 
     clean_delta = nightmarenet["clean_accuracy"] - baseline["clean_accuracy"]
     avg_delta = nightmarenet["avg_distorted_accuracy"] - baseline["avg_distorted_accuracy"]
     auc_delta = nightmarenet["auc_robustness"] - baseline["auc_robustness"]
-    rel = (avg_delta / baseline["avg_distorted_accuracy"] * 100.0) if baseline["avg_distorted_accuracy"] else 0.0
+    base_avg = baseline["avg_distorted_accuracy"]
+    rel = (avg_delta / base_avg * 100.0) if base_avg else 0.0
 
     return {
         "dataset": name,
