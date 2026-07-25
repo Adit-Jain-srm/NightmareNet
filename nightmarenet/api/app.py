@@ -43,7 +43,6 @@ try:
     from slowapi.errors import RateLimitExceeded
     from slowapi.middleware import SlowAPIMiddleware
     from slowapi.util import get_remote_address
-    from nightmarenet.api.webhooks import router
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
@@ -73,6 +72,7 @@ try:
         TrainingPhasePreview,
         UploadResponse,
     )
+    from nightmarenet.api.webhooks import router
 except ImportError as e:
     raise ImportError(
         "FastAPI dependencies not installed. Install with: pip install nightmarenet[api]"
