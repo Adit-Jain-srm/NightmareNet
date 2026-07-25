@@ -150,15 +150,15 @@ export default function Status() {
                   ) : isError ? (
                     <WifiOff className="w-5 h-5 text-nightmare" />
                   ) : (
-                    <RefreshCw className="w-5 h-5 text-muted animate-spin" />
+                    <RefreshCw className="w-5 h-5 text-slate-400 animate-spin" />
                   )}
                 </motion.div>
               </AnimatePresence>
               <div>
-                <p className={`text-sm font-semibold ${isConnected ? "text-success" : isError ? "text-nightmare" : "text-muted"}`}>
+                <p className={`text-sm font-semibold ${isConnected ? "text-success" : isError ? "text-nightmare" : "text-slate-400"}`}>
                   {isConnected ? "All Systems Operational" : isError ? "API Unreachable" : "Checking..."}
                 </p>
-                <p className="text-[10px] text-muted font-mono">
+                <p className="text-[10px] text-slate-400 font-mono">
                   {lastCheck ? `Last checked: ${lastCheck.toLocaleTimeString()}` : "Waiting..."}
                 </p>
               </div>
@@ -169,7 +169,7 @@ export default function Status() {
               className="p-2 rounded-lg hover:bg-white/[0.05] transition-colors disabled:opacity-40 cursor-pointer"
               title="Refresh all"
             >
-              <RefreshCw className={`w-4 h-4 text-muted ${state === "loading" ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-4 h-4 text-slate-400 ${state === "loading" ? "animate-spin" : ""}`} />
             </button>
           </div>
         </motion.div>
@@ -194,7 +194,7 @@ export default function Status() {
                 <div key={m.label} className="glass-card p-3 flex items-center gap-2.5">
                   <m.icon className={`w-4 h-4 text-${m.accent} shrink-0`} />
                   <div className="min-w-0">
-                    <p className="text-[9px] font-mono text-muted uppercase tracking-wider">{m.label}</p>
+                    <p className="text-[9px] font-mono text-slate-400 uppercase tracking-wider">{m.label}</p>
                     <p className={`text-sm font-semibold text-${m.accent} truncate`}>{m.value}</p>
                   </div>
                 </div>
@@ -212,7 +212,7 @@ export default function Status() {
           className="glass-card overflow-hidden"
         >
           <div className="px-5 py-3 border-b border-white/[0.04]">
-            <p className="text-xs font-mono text-muted uppercase tracking-wider flex items-center gap-1.5">
+            <p className="text-xs font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
               <Activity className="w-3.5 h-3.5" /> Endpoint Health Matrix
             </p>
           </div>
@@ -231,13 +231,13 @@ export default function Status() {
                   ) : ep.status === "error" ? (
                     <XCircle className="w-4 h-4 text-nightmare" />
                   ) : (
-                    <RefreshCw className="w-4 h-4 text-muted animate-spin" />
+                    <RefreshCw className="w-4 h-4 text-slate-400 animate-spin" />
                   )}
                 </div>
-                <ep.icon className="w-4 h-4 text-muted shrink-0" />
+                <ep.icon className="w-4 h-4 text-slate-400 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-text-dim truncate">{ep.name}</p>
-                  <p className="text-[10px] font-mono text-muted truncate">{ep.method} {ep.path}</p>
+                  <p className="text-[10px] font-mono text-slate-400 truncate">{ep.method} {ep.path}</p>
                 </div>
                 <div className="text-right shrink-0">
                   {ep.latency != null ? (
@@ -245,7 +245,7 @@ export default function Status() {
                       {ep.latency}ms
                     </span>
                   ) : (
-                    <span className="text-xs font-mono text-muted">—</span>
+                    <span className="text-xs font-mono text-slate-400">—</span>
                   )}
                 </div>
                 <div className="w-16 shrink-0 hidden sm:block">
@@ -270,7 +270,7 @@ export default function Status() {
           {isError && error && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mt-4 glass-card p-4 !border-nightmare/15">
               <p className="text-nightmare text-xs font-mono mb-1">Error: {error}</p>
-              <p className="text-muted text-xs">
+              <p className="text-slate-400 text-xs">
                 Start the API: <code className="text-neural">uvicorn nightmarenet.api.app:app --reload</code>
               </p>
             </motion.div>

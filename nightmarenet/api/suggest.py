@@ -97,9 +97,7 @@ class ConfigSuggestion(BaseModel):
 class SuggestConfigRequest(BaseModel):
     """Request body for the config suggestion endpoint."""
 
-    current_config: Dict[str, Any] = Field(
-        ..., description="Training YAML as a dict"
-    )
+    current_config: Dict[str, Any] = Field(..., description="Training YAML as a dict")
     last_metrics: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Last run metrics (clean_accuracy, avg_distorted_accuracy, etc.)",
@@ -117,43 +115,25 @@ class SuggestConfigRequest(BaseModel):
 
         lr = training.get("learning_rate")
         if lr is not None and (not isinstance(lr, (int, float)) or lr <= 0):
-            raise ValueError(
-                f"learning_rate must be positive, got {lr}"
-            )
+            raise ValueError(f"learning_rate must be positive, got {lr}")
 
         batch_size = training.get("batch_size")
-        if batch_size is not None and (
-            not isinstance(batch_size, int) or batch_size < 1
-        ):
-            raise ValueError(
-                f"batch_size must be >= 1, got {batch_size}"
-            )
+        if batch_size is not None and (not isinstance(batch_size, int) or batch_size < 1):
+            raise ValueError(f"batch_size must be >= 1, got {batch_size}")
 
         num_cycles = training.get("num_cycles")
-        if num_cycles is not None and (
-            not isinstance(num_cycles, int) or num_cycles < 1
-        ):
-            raise ValueError(
-                f"num_cycles must be >= 1, got {num_cycles}"
-            )
+        if num_cycles is not None and (not isinstance(num_cycles, int) or num_cycles < 1):
+            raise ValueError(f"num_cycles must be >= 1, got {num_cycles}")
 
         epochs = training.get("wake_epochs")
-        if epochs is not None and (
-            not isinstance(epochs, int) or epochs < 1
-        ):
-            raise ValueError(
-                f"wake_epochs must be >= 1, got {epochs}"
-            )
+        if epochs is not None and (not isinstance(epochs, int) or epochs < 1):
+            raise ValueError(f"wake_epochs must be >= 1, got {epochs}")
 
         distortion = v.get("distortion", v)
         for strength_key in ("dream_strength", "nightmare_strength"):
             val = distortion.get(strength_key)
-            if val is not None and (
-                not isinstance(val, (int, float)) or val < 0.0 or val > 1.0
-            ):
-                raise ValueError(
-                    f"{strength_key} must be in [0.0, 1.0], got {val}"
-                )
+            if val is not None and (not isinstance(val, (int, float)) or val < 0.0 or val > 1.0):
+                raise ValueError(f"{strength_key} must be in [0.0, 1.0], got {val}")
 
         return v
 
@@ -239,6 +219,7 @@ def _detect_azure_available() -> bool:
         return False
     try:
         import openai  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -258,8 +239,8 @@ _LLM_SYSTEM_PROMPT = (
     "You are NightmareNet's config optimizer. Given a training config and "
     "optional metrics from the last run, suggest 3-5 hyperparameter improvements.\n\n"
     "Rules:\n"
-    "- Return ONLY valid JSON: {\"suggestions\": [{\"param\": str, \"current\": value, "
-    "\"suggested\": value, \"reason\": str}, ...]}\n"
+    '- Return ONLY valid JSON: {"suggestions": [{"param": str, "current": value, '
+    '"suggested": value, "reason": str}, ...]}\n'
     "- Focus on measurable improvements to robustness, convergence, or efficiency.\n"
     "- Consider hardware constraints if provided.\n"
     "- Each reason should be 1-2 sentences max.\n"
@@ -287,9 +268,7 @@ async def _suggest_via_azure(
     client = openai.AsyncAzureOpenAI(
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-        api_version=os.environ.get(
-            "AZURE_OPENAI_API_VERSION", "2025-01-01-preview"
-        ),
+        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2025-01-01-preview"),
     )
 
     user_content = json.dumps(
@@ -367,26 +346,24 @@ def _heuristic_suggestions(
     distortion = config.get("distortion", config)
 
     batch_size = training.get("batch_size", distortion.get("batch_size"))
-    dream_strength = distortion.get(
-        "dream_strength", training.get("dream_strength")
-    )
-    nightmare_strength = distortion.get(
-        "nightmare_strength", training.get("nightmare_strength")
-    )
+    dream_strength = distortion.get("dream_strength", training.get("dream_strength"))
+    nightmare_strength = distortion.get("nightmare_strength", training.get("nightmare_strength"))
     learning_rate = training.get("learning_rate")
     num_cycles = training.get("num_cycles")
 
     # Rule 1: batch size vs VRAM (low VRAM)
     if batch_size is not None and vram is not None and vram < 6 and batch_size > 8:
-        suggestions.append({
-            "param": "training.batch_size",
-            "current": batch_size,
-            "suggested": 4,
-            "reason": (
-                f"With ~{vram}GB VRAM, batch_size {batch_size} risks OOM. "
-                "Use 4 with gradient accumulation for effective larger batches."
-            ),
-        })
+        suggestions.append(
+            {
+                "param": "training.batch_size",
+                "current": batch_size,
+                "suggested": 4,
+                "reason": (
+                    f"With ~{vram}GB VRAM, batch_size {batch_size} risks OOM. "
+                    "Use 4 with gradient accumulation for effective larger batches."
+                ),
+            }
+        )
 
     # Rule 2: robustness drop too high
     if metrics:
@@ -394,94 +371,108 @@ def _heuristic_suggestions(
         if rob_drop is not None and rob_drop > 0.15:
             current_ns = nightmare_strength or 0.7
             suggested_ns = min(current_ns + 0.1, 0.95)
-            suggestions.append({
-                "param": "distortion.nightmare_strength",
-                "current": current_ns,
-                "suggested": round(suggested_ns, 2),
-                "reason": (
-                    f"Robustness drop is {rob_drop:.1%} — increasing nightmare "
-                    "strength forces the model to handle harder adversarial examples."
-                ),
-            })
+            suggestions.append(
+                {
+                    "param": "distortion.nightmare_strength",
+                    "current": current_ns,
+                    "suggested": round(suggested_ns, 2),
+                    "reason": (
+                        f"Robustness drop is {rob_drop:.1%} — increasing nightmare "
+                        "strength forces the model to handle harder adversarial examples."
+                    ),
+                }
+            )
 
     # Rule 3: dream strength too high
     if dream_strength is not None and dream_strength >= 0.5:
-        suggestions.append({
-            "param": "distortion.dream_strength",
-            "current": dream_strength,
-            "suggested": 0.25,
-            "reason": (
-                "Dream strength >= 0.5 is unusually aggressive. "
-                "Values of 0.2-0.3 give gentle generalization without degrading clean accuracy."
-            ),
-        })
+        suggestions.append(
+            {
+                "param": "distortion.dream_strength",
+                "current": dream_strength,
+                "suggested": 0.25,
+                "reason": (
+                    "Dream strength >= 0.5 is unusually aggressive. "
+                    "Values of 0.2-0.3 give gentle generalization without degrading clean accuracy."
+                ),
+            }
+        )
 
     # Rule 4: too few cycles
     if num_cycles is not None and num_cycles < 3:
-        suggestions.append({
-            "param": "training.num_cycles",
-            "current": num_cycles,
-            "suggested": 3,
-            "reason": (
-                "Fewer than 3 Wake/Dream/Nightmare/Compress cycles rarely "
-                "converges. 3-5 cycles is the sweet spot."
-            ),
-        })
+        suggestions.append(
+            {
+                "param": "training.num_cycles",
+                "current": num_cycles,
+                "suggested": 3,
+                "reason": (
+                    "Fewer than 3 Wake/Dream/Nightmare/Compress cycles rarely "
+                    "converges. 3-5 cycles is the sweet spot."
+                ),
+            }
+        )
 
     # Rule 5: learning rate too high for fine-tuning
     if learning_rate is not None and learning_rate > 5e-4:
-        suggestions.append({
-            "param": "training.learning_rate",
-            "current": learning_rate,
-            "suggested": 2e-5,
-            "reason": (
-                "Learning rate > 5e-4 often causes catastrophic forgetting in "
-                "fine-tuning. 2e-5 is safer for pretrained transformers."
-            ),
-        })
+        suggestions.append(
+            {
+                "param": "training.learning_rate",
+                "current": learning_rate,
+                "suggested": 2e-5,
+                "reason": (
+                    "Learning rate > 5e-4 often causes catastrophic forgetting in "
+                    "fine-tuning. 2e-5 is safer for pretrained transformers."
+                ),
+            }
+        )
 
     # Rule 6: batch size too large for VRAM 4-8GB range
     if batch_size is not None and vram is not None and 4 <= vram <= 8 and batch_size > 16:
         if not any(s["param"] == "training.batch_size" for s in suggestions):
-            suggestions.append({
-                "param": "training.batch_size",
-                "current": batch_size,
-                "suggested": 8,
-                "reason": (
-                    f"Batch size {batch_size} is large for {vram}GB VRAM. "
-                    "Reducing to 8 prevents OOM and maintains throughput with "
-                    "gradient accumulation steps."
-                ),
-            })
+            suggestions.append(
+                {
+                    "param": "training.batch_size",
+                    "current": batch_size,
+                    "suggested": 8,
+                    "reason": (
+                        f"Batch size {batch_size} is large for {vram}GB VRAM. "
+                        "Reducing to 8 prevents OOM and maintains throughput with "
+                        "gradient accumulation steps."
+                    ),
+                }
+            )
 
     # Rule 7: low clean accuracy suggests model underfitting
     if metrics:
         clean_acc = metrics.get("clean_accuracy")
         if clean_acc is not None and clean_acc < 0.7:
             wake_epochs = training.get("wake_epochs", 1)
-            suggestions.append({
-                "param": "training.wake_epochs",
-                "current": wake_epochs,
-                "suggested": max(wake_epochs + 1, 3),
-                "reason": (
-                    f"Clean accuracy is only {clean_acc:.1%} — the model may be "
-                    "underfitting. Increase wake epochs for more supervised learning."
-                ),
-            })
+            suggestions.append(
+                {
+                    "param": "training.wake_epochs",
+                    "current": wake_epochs,
+                    "suggested": max(wake_epochs + 1, 3),
+                    "reason": (
+                        f"Clean accuracy is only {clean_acc:.1%} — the model may be "
+                        "underfitting. Increase wake epochs for more supervised learning."
+                    ),
+                }
+            )
 
     # Rule 8: mixed precision recommendation
     fp16 = training.get("fp16", training.get("mixed_precision"))
     if fp16 is None or fp16 is False:
         if vram is not None and vram <= 16:
-            suggestions.append({
-                "param": "training.fp16",
-                "current": fp16 if fp16 is not None else "not set",
-                "suggested": True,
-                "reason": (
-                    "Mixed precision (FP16) halves memory usage and speeds up "
-                    "training 1.5-2x on modern GPUs with minimal accuracy loss."
-                ),
-            })
+            suggestions.append(
+                {
+                    "param": "training.fp16",
+                    "current": fp16 if fp16 is not None else "not set",
+                    "suggested": True,
+                    "reason": (
+                        "Mixed precision (FP16) halves memory usage and speeds up "
+                        "training 1.5-2x on modern GPUs with minimal accuracy loss."
+                    ),
+                }
+            )
 
     # Rule 9: gradient accumulation steps calculation
     if batch_size is not None and batch_size <= 4:
@@ -489,52 +480,60 @@ def _heuristic_suggestions(
         target_effective = 16
         suggested_accum = max(target_effective // batch_size, 2)
         if grad_accum < suggested_accum:
-            suggestions.append({
-                "param": "training.gradient_accumulation_steps",
-                "current": grad_accum,
-                "suggested": suggested_accum,
-                "reason": (
-                    f"With batch_size={batch_size}, accumulating {suggested_accum} "
-                    f"steps gives effective batch of {batch_size * suggested_accum}, "
-                    "improving gradient stability without extra memory."
-                ),
-            })
+            suggestions.append(
+                {
+                    "param": "training.gradient_accumulation_steps",
+                    "current": grad_accum,
+                    "suggested": suggested_accum,
+                    "reason": (
+                        f"With batch_size={batch_size}, accumulating {suggested_accum} "
+                        f"steps gives effective batch of {batch_size * suggested_accum}, "
+                        "improving gradient stability without extra memory."
+                    ),
+                }
+            )
 
     # Rule 10: warmup ratio suggestion
     warmup = training.get("warmup_ratio", training.get("warmup_steps"))
     if warmup is None or warmup == 0:
-        suggestions.append({
-            "param": "training.warmup_ratio",
-            "current": warmup if warmup is not None else "not set",
-            "suggested": 0.06,
-            "reason": (
-                "A 6% warmup prevents early training instability and reduces "
-                "the risk of divergence in the first few steps."
-            ),
-        })
+        suggestions.append(
+            {
+                "param": "training.warmup_ratio",
+                "current": warmup if warmup is not None else "not set",
+                "suggested": 0.06,
+                "reason": (
+                    "A 6% warmup prevents early training instability and reduces "
+                    "the risk of divergence in the first few steps."
+                ),
+            }
+        )
 
     # Rule 11: weight decay check
     weight_decay = training.get("weight_decay")
     if weight_decay is not None and weight_decay > 0.1:
-        suggestions.append({
-            "param": "training.weight_decay",
-            "current": weight_decay,
-            "suggested": 0.01,
-            "reason": (
-                f"Weight decay of {weight_decay} is aggressive and can "
-                "under-parameterize the model. 0.01 is standard for AdamW fine-tuning."
-            ),
-        })
+        suggestions.append(
+            {
+                "param": "training.weight_decay",
+                "current": weight_decay,
+                "suggested": 0.01,
+                "reason": (
+                    f"Weight decay of {weight_decay} is aggressive and can "
+                    "under-parameterize the model. 0.01 is standard for AdamW fine-tuning."
+                ),
+            }
+        )
     elif weight_decay is None and learning_rate is not None:
-        suggestions.append({
-            "param": "training.weight_decay",
-            "current": "not set",
-            "suggested": 0.01,
-            "reason": (
-                "Adding weight_decay=0.01 with AdamW provides regularization "
-                "that improves generalization without significant compute cost."
-            ),
-        })
+        suggestions.append(
+            {
+                "param": "training.weight_decay",
+                "current": "not set",
+                "suggested": 0.01,
+                "reason": (
+                    "Adding weight_decay=0.01 with AdamW provides regularization "
+                    "that improves generalization without significant compute cost."
+                ),
+            }
+        )
 
     return suggestions[:5]
 

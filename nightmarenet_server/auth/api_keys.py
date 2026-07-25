@@ -74,9 +74,7 @@ def mint_api_key(
     try:
         from nightmarenet_server.models import ApiKey
     except ImportError as exc:
-        raise RuntimeError(
-            "nightmarenet_server.models is required to mint API keys"
-        ) from exc
+        raise RuntimeError("nightmarenet_server.models is required to mint API keys") from exc
 
     plaintext, hashed = generate_api_key()
     api_key = ApiKey(
@@ -97,9 +95,7 @@ def revoke_api_key(session: Any, api_key_id: str) -> bool:
     try:
         from nightmarenet_server.models import ApiKey
     except ImportError as exc:
-        raise RuntimeError(
-            "nightmarenet_server.models is required to revoke API keys"
-        ) from exc
+        raise RuntimeError("nightmarenet_server.models is required to revoke API keys") from exc
 
     row = session.get(ApiKey, api_key_id)
     if row is None:

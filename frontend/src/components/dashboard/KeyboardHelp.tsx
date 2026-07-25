@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { SHORTCUT_GROUPS } from "./useGlobalShortcuts";
+import { useDialogFocus } from "../a11y/useDialogFocus";
 
 interface KeyboardHelpProps {
   open: boolean;
@@ -9,6 +10,8 @@ interface KeyboardHelpProps {
 }
 
 export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
+  const dialogRef = useDialogFocus(open, onClose);
+
   return (
     <AnimatePresence>
       {open && (
@@ -18,16 +21,19 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.14 }}
           className="fixed inset-0 z-[58] flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="kbd-help-title"
         >
-          <div
-            className="absolute inset-0 bg-void/80 backdrop-blur-sm"
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-void/80 backdrop-blur-sm"
             onClick={onClose}
-            aria-hidden="true"
+            aria-label="Close keyboard shortcuts"
           />
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="kbd-help-title"
+            tabIndex={-1}
             initial={{ opacity: 0, y: 8, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -41,6 +47,7 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
               <button
                 type="button"
                 onClick={onClose}
+                aria-label="Close keyboard shortcuts"
                 className="cursor-pointer rounded-md px-2 py-1 text-[11px] text-slate-400 hover:bg-white/5 hover:text-slate-300"
               >
                 Esc
@@ -49,7 +56,7 @@ export function KeyboardHelp({ open, onClose }: KeyboardHelpProps) {
             <div className="max-h-[60vh] space-y-5 overflow-y-auto px-5 py-4">
               {SHORTCUT_GROUPS.map((group) => (
                 <div key={group.label}>
-                  <p className="pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                  <p className="pb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-300">
                     {group.label}
                   </p>
                   <ul className="space-y-1.5">

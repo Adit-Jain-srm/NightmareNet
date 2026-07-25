@@ -7,6 +7,7 @@ Run from the repo root, inside your activated venv:
 
 Outputs a ready-to-paste markdown block to appendix_e_output.md
 """
+
 import difflib
 
 from nightmarenet.distortions.dream import distort as dream_distort
@@ -63,12 +64,12 @@ def main():
         "words that differ from the original.\n"
     )
     lines.append(
-        "Reproduce with: `nightmarenet distort --type dream --text \"...\" "
+        'Reproduce with: `nightmarenet distort --type dream --text "..." '
         "--strength 0.3 --seed 42` (swap `--type nightmare` for the nightmare column).\n"
     )
 
     for idx, (sentiment, sentence) in enumerate(SENTENCES, start=1):
-        lines.append(f"### E.{idx} ({sentiment}) — \"{sentence}\"\n")
+        lines.append(f'### E.{idx} ({sentiment}) — "{sentence}"\n')
         lines.append("| Strength | Dream (semantic-preserving) | Nightmare (adversarial) |")
         lines.append("|---|---|---|")
         for s in STRENGTHS:

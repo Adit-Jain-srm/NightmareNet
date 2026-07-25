@@ -1,8 +1,8 @@
 # NightmareNet — Product Requirements Document (PRD)
 
-**Version**: 1.0  
-**Last Updated**: 2026-05-23  
-**Status**: Draft  
+**Version**: 1.0
+**Last Updated**: 2026-05-23
+**Status**: Draft
 **Owner**: NightmareNet Core Team
 
 ---

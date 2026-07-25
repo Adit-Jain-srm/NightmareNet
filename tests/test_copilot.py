@@ -126,9 +126,7 @@ class TestCopilotStream:
             },
         ) as response:
             assert response.status_code == 200
-            assert response.headers["content-type"].startswith(
-                "text/event-stream"
-            )
+            assert response.headers["content-type"].startswith("text/event-stream")
             body = response.read().decode("utf-8")
 
         events = _parse_sse(body)

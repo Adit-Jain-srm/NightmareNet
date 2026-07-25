@@ -30,6 +30,9 @@ import {
   type PipelineStatusResponse,
   type PipelineReportResponse,
 } from "@/lib/api";
+import { buildRunWsUrl, MAX_RECONNECT_ATTEMPTS } from "@/lib/websocket";
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -105,87 +108,90 @@ export default function PipelineLab() {
   const [error, setError] = useState<string | null>(null);
   const [isLaunching, setIsLaunching] = useState(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
 
-  /* ── Cleanup on unmount ── */
-  useEffect(() => {
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-    };
-  }, []);
-
-  /* ── WebSocket live progress (with polling fallback) ── */
-  const startPolling = useCallback((id: string) => {
-    if (pollRef.current) clearInterval(pollRef.current);
-    if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
-
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/runs/${id}`;
-
-    try {
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.error) {
-            setError(data.error);
-            return;
-          }
-          setPipelineStatus(data);
-          if (data.event === "complete" || !data.is_running) {
-            if (data.has_report) {
-              getPipelineReport(id).then(setReport).catch(() => {});
-              setStep("complete");
-            } else if (data.status === "failed") {
-              setError(data.error || "Pipeline failed.");
-            }
-            ws.close();
-            wsRef.current = null;
-          }
-        } catch { /* malformed message */ }
-      };
-
-      ws.onerror = () => {
-        ws.close();
-        wsRef.current = null;
-        startPollingFallback(id);
-      };
-
-      ws.onclose = () => { wsRef.current = null; };
-    } catch {
-      startPollingFallback(id);
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
     }
   }, []);
 
+  const applyStatusUpdate = useCallback((id: string, data: PipelineStatusResponse & { event?: string }) => {
+    setPipelineStatus(data);
+    if (data.event === "complete" || !data.is_running) {
+      stopPolling();
+      if (data.has_report || data.status === "complete") {
+        getPipelineReport(id).then(setReport).catch(() => {});
+        setStep("complete");
+      } else if (data.status === "failed") {
+        setError(data.error || "Pipeline failed.");
+      }
+    }
+  }, [stopPolling]);
+
   const startPollingFallback = useCallback((id: string) => {
-    if (pollRef.current) clearInterval(pollRef.current);
+    stopPolling();
     pollRef.current = setInterval(async () => {
       try {
         const s = await getPipelineStatus(id);
-        setPipelineStatus(s);
-        if (!s.is_running) {
-          if (pollRef.current) clearInterval(pollRef.current);
-          if (s.status === "complete" && s.has_report) {
-            try {
-              const r = await getPipelineReport(id);
-              setReport(r);
-            } catch { /* report not ready yet */ }
-            setStep("complete");
-          } else if (s.status === "failed") {
-            setError(s.error || "Pipeline failed.");
-          }
-        }
+        applyStatusUpdate(id, s);
       } catch {
         /* network hiccup — keep polling */
       }
     }, 3000);
-  }, []);
+  }, [applyStatusUpdate, stopPolling]);
+
+  const wsEnabled = step === "running" && !!runId;
+  const wsUrl = wsEnabled && runId ? buildRunWsUrl(runId) : null;
+
+  const handleWsMessage = useCallback((raw: unknown) => {
+    if (!runId || !raw || typeof raw !== "object") return;
+    const data = raw as PipelineStatusResponse & { event?: string };
+    if (data.error && data.is_running) {
+      setError(data.error);
+      return;
+    }
+    applyStatusUpdate(runId, data);
+  }, [runId, applyStatusUpdate]);
+
+  const refreshAfterReconnect = useCallback(async () => {
+    if (!runId) return;
+    stopPolling();
+    try {
+      const s = await getPipelineStatus(runId);
+      applyStatusUpdate(runId, s);
+    } catch {
+      /* will catch up on next WS message */
+    }
+  }, [runId, applyStatusUpdate, stopPolling]);
+
+  const {
+    status: wsStatus,
+    attempt: wsAttempt,
+    reconnect: reconnectWs,
+    disconnect: disconnectWs,
+  } = useWebSocket({
+    url: wsUrl,
+    enabled: wsEnabled,
+    onMessage: handleWsMessage,
+    onReconnect: refreshAfterReconnect,
+  });
+
+  /* Poll only after WS retries are exhausted — not during the initial connect. */
+  useEffect(() => {
+    if (wsEnabled && runId && wsStatus === "disconnected" && wsAttempt >= MAX_RECONNECT_ATTEMPTS) {
+      startPollingFallback(runId);
+    }
+    if (wsStatus === "connected") {
+      stopPolling();
+    }
+  }, [wsEnabled, runId, wsStatus, wsAttempt, startPollingFallback, stopPolling]);
+
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, [stopPolling]);
 
   /* ── Launch pipeline ── */
   const handleLaunch = async () => {
@@ -215,7 +221,7 @@ export default function PipelineLab() {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed)) {
             req.webhooks = parsed
-              .map((wh: any) => ({
+              .map((wh) => ({
                 url: wh.url || "",
                 events: wh.events || [],
               }))
@@ -241,7 +247,6 @@ export default function PipelineLab() {
       setRunId(status.run_id);
       setPipelineStatus(status);
       setStep("running");
-      startPolling(status.run_id);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to launch pipeline");
     } finally {
@@ -254,7 +259,8 @@ export default function PipelineLab() {
     if (!runId) return;
     try {
       await cancelPipeline(runId);
-      if (pollRef.current) clearInterval(pollRef.current);
+      stopPolling();
+      disconnectWs();
     } catch { /* best effort */ }
   };
 
@@ -491,6 +497,13 @@ export default function PipelineLab() {
                 >
                 <div className="text-center mb-6 -mt-2">
                   <p className="text-sm text-gray-400 font-mono">{runId}</p>
+                  <div className="mt-2 flex justify-center">
+                    <ConnectionStatus
+                      status={wsStatus}
+                      attempt={wsAttempt}
+                      onReconnect={wsStatus === "disconnected" ? reconnectWs : undefined}
+                    />
+                  </div>
                 </div>
 
                 {/* Phase progress */}
@@ -624,7 +637,15 @@ export default function PipelineLab() {
 
                 <div className="flex justify-center gap-4">
                   <button
-                    onClick={() => { setStep("source"); setRunId(null); setPipelineStatus(null); setReport(null); setError(null); }}
+                    onClick={() => {
+                      stopPolling();
+                      disconnectWs();
+                      setStep("source");
+                      setRunId(null);
+                      setPipelineStatus(null);
+                      setReport(null);
+                      setError(null);
+                    }}
                     className="px-6 py-2.5 rounded-lg border border-white/10 text-white text-sm hover:bg-white/5 transition cursor-pointer"
                   >
                     Run Another Pipeline

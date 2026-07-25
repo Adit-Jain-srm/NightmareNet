@@ -5,14 +5,17 @@ import os
 def format_percentage(val):
     return f"{val * 100:.1f}%"
 
+
 def format_decimal(val):
     return f"{val:.3f}"
+
 
 def format_delta(val, is_percentage=False):
     prefix = "+" if val > 0 else ""
     if is_percentage:
         return f"{prefix}{val * 100:.1f}%"
     return f"{prefix}{val:.3f}"
+
 
 def main():
     try:
@@ -35,7 +38,7 @@ def main():
             "<!-- robustness-delta-comment -->",
             "## Robustness Regression Report",
             "",
-            f"_{reason}_"
+            f"_{reason}_",
         ]
         with open("comment_body.md", "w", encoding="utf-8") as f:
             f.write("\n".join(lines))
@@ -50,7 +53,7 @@ def main():
         "## Robustness Regression Report",
         "",
         "| Metric | main | This PR | Delta | Status |",
-        "|--------|------|---------|-------|--------|"
+        "|--------|------|---------|-------|--------|",
     ]
 
     for item in results:
@@ -98,6 +101,7 @@ def main():
 
     with open("comment_body.md", "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
+
 
 if __name__ == "__main__":
     main()

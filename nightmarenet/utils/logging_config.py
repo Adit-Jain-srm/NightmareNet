@@ -135,4 +135,5 @@ def reset_logging() -> None:
     for handler in list(root_logger.handlers):
         handler.close()
         root_logger.removeHandler(handler)
+    root_logger.propagate = True
     _INITIALIZED = False

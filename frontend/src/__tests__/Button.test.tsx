@@ -5,10 +5,23 @@ import React from "react";
 // Mock framer-motion to avoid animation complexity in tests
 vi.mock("framer-motion", () => ({
   motion: {
-    button: React.forwardRef(
-      ({ children, whileHover, whileTap, ...props }: any, ref: any) =>
-        React.createElement("button", { ...props, ref }, children)
-    ),
+    button: React.forwardRef(function MockMotionButton(
+      {
+        children,
+        whileHover,
+        whileTap,
+        ...props
+      }: Record<string, unknown>,
+      ref: React.Ref<HTMLButtonElement>
+    ) {
+      void whileHover;
+      void whileTap;
+      return React.createElement(
+        "button",
+        { ...(props as Record<string, unknown>), ref },
+        children as React.ReactNode
+      );
+    }),
   },
   HTMLMotionProps: {},
 }));

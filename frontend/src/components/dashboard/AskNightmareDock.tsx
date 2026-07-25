@@ -385,7 +385,7 @@ export function AskNightmareDock({ section, onNavigate }: AskNightmareDockProps)
 
               {displayedSuggestions.length > 0 && (
                 <div className="space-y-1.5">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-300">
                     Suggested next steps
                   </p>
                   {displayedSuggestions.map((s) => (
@@ -411,7 +411,7 @@ export function AskNightmareDock({ section, onNavigate }: AskNightmareDockProps)
               )}
 
               <div>
-                <p className="pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
+                <p className="pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-slate-300">
                   Ask anything
                 </p>
                 <div className="flex items-center gap-2 rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-2">
@@ -428,7 +428,7 @@ export function AskNightmareDock({ section, onNavigate }: AskNightmareDockProps)
                     placeholder="e.g. compare last two runs"
                     aria-label="Ask the NightmareNet copilot"
                     disabled={isStreaming}
-                    className="flex-1 bg-transparent text-[13px] text-slate-200 placeholder:text-slate-600 focus:outline-none disabled:opacity-60"
+                    className="flex-1 bg-transparent text-[13px] text-slate-200 placeholder:text-slate-300 focus:outline-none disabled:opacity-60"
                   />
                   <Button
                     size="sm"
@@ -439,7 +439,7 @@ export function AskNightmareDock({ section, onNavigate }: AskNightmareDockProps)
                     {isStreaming ? "…" : "Ask"}
                   </Button>
                 </div>
-                <p className="flex items-center justify-between pt-1.5 text-[10px] text-slate-600">
+                <p className="flex items-center justify-between pt-1.5 text-[10px] text-slate-300">
                   <span>Streaming SSE · context-aware</span>
                   {modelLabel && (
                     <span className="font-mono text-slate-400">

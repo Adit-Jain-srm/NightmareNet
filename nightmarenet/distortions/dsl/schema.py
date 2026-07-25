@@ -41,7 +41,7 @@ class ChainStep(BaseModel):
 
         # Use AST parsing to validate the condition structure
         try:
-            tree = ast.parse(v, mode='eval')
+            tree = ast.parse(v, mode="eval")
             cls._validate_condition_ast(tree.body)
         except (SyntaxError, ValueError) as e:
             raise ValueError(f"Invalid condition syntax: {e}") from e
@@ -87,9 +87,7 @@ class ChainStep(BaseModel):
                 ast.NotEq: "!=",
             }
             if len(node.ops) != 1 or type(node.ops[0]) not in allowed_ops:
-                raise ValueError(
-                    f"Condition must use one of: {', '.join(allowed_ops.values())}"
-                )
+                raise ValueError(f"Condition must use one of: {', '.join(allowed_ops.values())}")
         else:
             raise ValueError("Condition must be a comparison")
 

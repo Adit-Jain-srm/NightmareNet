@@ -90,7 +90,7 @@ class TestPipelineStatusTransitions:
     def test_cancel_flag_persists(self, minimal_config):
         pipe = Pipeline(minimal_config)
         pipe.cancel()
-        assert pipe._cancelled is True
+        assert pipe._context.cancelled is True
 
     def test_failed_ingest_sets_failed(self, minimal_config):
         pipe = Pipeline(minimal_config)
@@ -158,11 +158,18 @@ class TestPipelineConfigValidation:
             "model": {"name": "gpt2", "type": "invalid_type", "max_length": 32},
             "dataset": {"text_column": "text"},
             "training": {
-                "wake_epochs": 1, "dream_epochs": 1, "nightmare_epochs": 1,
-                "num_cycles": 1, "batch_size": 2, "learning_rate": 5e-5,
-                "weight_decay": 0.01, "max_grad_norm": 1.0,
-                "gradient_accumulation_steps": 1, "save_every_phase": False,
-                "checkpoint_dir": "checkpoints", "log_dir": "logs",
+                "wake_epochs": 1,
+                "dream_epochs": 1,
+                "nightmare_epochs": 1,
+                "num_cycles": 1,
+                "batch_size": 2,
+                "learning_rate": 5e-5,
+                "weight_decay": 0.01,
+                "max_grad_norm": 1.0,
+                "gradient_accumulation_steps": 1,
+                "save_every_phase": False,
+                "checkpoint_dir": "checkpoints",
+                "log_dir": "logs",
             },
             "distortion": {"dream_strength": 0.25, "nightmare_strength": 0.8},
             "compression": {"pruning_ratio": 0.1, "pruning_method": "magnitude"},
@@ -176,7 +183,16 @@ class TestPipelineConfigValidation:
     def test_pipeline_metrics_to_dict_shape(self, minimal_config):
         pipe = Pipeline(minimal_config)
         d = pipe.metrics.to_dict()
-        required_keys = {"status", "current_cycle", "total_cycles", "current_phase",
-                         "phase_loss", "progress_pct", "eta_seconds", "history",
-                         "error", "has_report"}
+        required_keys = {
+            "status",
+            "current_cycle",
+            "total_cycles",
+            "current_phase",
+            "phase_loss",
+            "progress_pct",
+            "eta_seconds",
+            "history",
+            "error",
+            "has_report",
+        }
         assert required_keys.issubset(set(d.keys()))

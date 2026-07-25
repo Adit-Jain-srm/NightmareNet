@@ -33,9 +33,7 @@ def _load_module():
     cached entry between tests that need to re-trigger module-level
     initialisation.
     """
-    spec = importlib.util.spec_from_file_location(
-        "_healthcheck_worker_under_test", SCRIPT
-    )
+    spec = importlib.util.spec_from_file_location("_healthcheck_worker_under_test", SCRIPT)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -64,6 +62,7 @@ def test_old_tautological_check_would_have_passed_with_broken_broker(monkeypatch
     monkeypatch.setenv("NIGHTMARENET_REDIS_URL", "redis://unreachable.invalid:6379/0")
     # Simulate the old behaviour explicitly:
     import os as _os
+
     assert _os.environ.get("NIGHTMARENET_REDIS_URL")  # i.e. would return truthy → exit 0
 
 

@@ -16,6 +16,7 @@ import numpy as np
 from scipy import stats
 from torch.utils.data import DataLoader
 
+from nightmarenet.evaluation.certification import certify_dataset
 from nightmarenet.evaluation.glue import evaluate_glue
 from nightmarenet.evaluation.metrics import (
     classification_metrics,
@@ -112,9 +113,12 @@ class Evaluator:
         self.device = device
         self.tracker = tracker
         self.eval_config = config.get("evaluation", {})
-        self.enabled_metrics = self.eval_config.get(
-            "metrics", ["recall", "generalization", "robustness", "hallucination"]
+        default_metrics = (
+            ["classification", "robustness"]
+            if config.get("model", {}).get("type") == "image_classification"
+            else ["recall", "generalization", "robustness", "hallucination"]
         )
+        self.enabled_metrics = self.eval_config.get("metrics", default_metrics)
         self.output_dir = self.eval_config.get("output_dir", "results")
         self.significance_alpha = self.eval_config.get("significance_alpha", 0.05)
         os.makedirs(self.output_dir, exist_ok=True)
@@ -199,7 +203,21 @@ class Evaluator:
                     max_length=model_config.get("max_length", 128),
                     batch_size=self.config.get("training", {}).get("batch_size", 8),
                     device=self.device,
+                    export_failures=self.eval_config.get("export_failures", False),
                 )
+                if self.eval_config.get("export_failures", False):
+                    failures = results["robustness"].get("per_sample_data")
+                    if failures:
+                        from nightmarenet.evaluation.failure_export import save_failure_report
+
+                        format = self.eval_config.get("failure_export_format", "json")
+                        threshold = self.eval_config.get("failure_threshold", 0.20)
+                        saved_path = save_failure_report(
+                            failures, self.output_dir, format, threshold
+                        )
+                        if saved_path:
+                            logger.info("Saved failure report to %s", saved_path)
+
                 if self.tracker:
                     self._log_eval(
                         "robustness",
@@ -262,7 +280,88 @@ class Evaluator:
                 logger.error("Failed to compute GLUE: %s", e)
                 results["glue"] = {"error": str(e)}
 
+        if "certification" in self.enabled_metrics and base_dataset is not None:
+            logger.info("Evaluating: certification")
+            try:
+                results["certification"] = self._run_certification(base_dataset)
+                if self.tracker:
+                    self._log_eval("certification", results["certification"])
+            except Exception as e:
+                logger.error("Failed to compute certification: %s", e)
+                results["certification"] = {"error": str(e)}
+
         return results
+
+    def _run_certification(self, base_dataset) -> dict:
+        """Run certified-robustness verification (randomized smoothing) on a dataset.
+
+        Opt-in metric: only invoked from evaluate() when "certification" is explicitly
+        listed in evaluation.metrics. Config is read from the evaluation.certification
+        namespace (see configs/default.yaml).
+
+        Budget control: `budget` caps the total forward passes for the *estimation*
+        stage across the whole run (n * subset_size). If the configured n and
+        subset_size would exceed it, n is reduced proportionally (subset_size is left
+        alone, since it controls how many samples get any signal at all) and a warning
+        is logged. This is a coarse, evaluator-level cap on top of certify_dataset's own
+        finer-grained per-sample budget splitting.
+
+        Args:
+            base_dataset: Dataset to certify (same dataset used for robustness testing).
+
+        Returns:
+            Dict with certified_radius_mean, certified_radius_median,
+            certification_abstain_rate, certified_accuracy, samples_certified, and
+            budget_exceeded -- the shape expected in compare()'s comparison dict.
+        """
+        cert_config = self.eval_config.get("certification", {})
+        n = cert_config.get("n", 1000)
+        n0 = cert_config.get("n0", 100)
+        subset_size = cert_config.get("subset_size", 50)
+        budget = cert_config.get("budget")
+
+        effective_size = subset_size if subset_size is not None else len(base_dataset)
+        budget_exceeded = False
+        if budget is not None and effective_size > 0 and n * effective_size > budget:
+            reduced_n = max(1, budget // effective_size)
+            logger.warning(
+                "Certification budget exceeded: n=%d * subset_size=%d = %d > budget=%d; "
+                "reducing n to %d",
+                n,
+                effective_size,
+                n * effective_size,
+                budget,
+                reduced_n,
+            )
+            n = reduced_n
+            budget_exceeded = True
+
+        dataset_config = self.config.get("dataset", {})
+        model_config = self.config.get("model", {})
+        cert_result = certify_dataset(
+            self.model,
+            self.tokenizer,
+            base_dataset,
+            text_column=dataset_config.get("text_column", "text"),
+            label_column=cert_config.get("label_column", "label"),
+            sigma=cert_config.get("sigma", 0.1),
+            n=n,
+            n0=n0,
+            alpha=cert_config.get("alpha", 0.001),
+            subset_size=subset_size,
+            batch_size=cert_config.get("batch_size", 100),
+            max_length=model_config.get("max_length", 128),
+            device=self.device,
+        )
+
+        return {
+            "certified_radius_mean": cert_result["certified_radius_mean"],
+            "certified_radius_median": cert_result["certified_radius_median"],
+            "certification_abstain_rate": cert_result["certification_abstain_rate"],
+            "certified_accuracy": cert_result["certified_accuracy"],
+            "samples_certified": cert_result["n_samples"],
+            "budget_exceeded": budget_exceeded,
+        }
 
     def compare(self, baseline_results: dict, trained_results: dict) -> dict:
         """Produce a comparison between baseline and trained model results.
@@ -293,25 +392,41 @@ class Evaluator:
                 "trained": trained,
             }
 
-            # Compute deltas for key numeric fields
+            # Compute deltas for key numeric fields. bool is a subtype of int in Python,
+            # so it's explicitly excluded here -- otherwise flags like budget_exceeded
+            # would silently get a meaningless numeric delta (e.g. True - False == 1).
             deltas = {}
             for key in baseline:
-                if isinstance(baseline.get(key), (int, float)) and isinstance(
-                    trained.get(key), (int, float)
+                baseline_val = baseline.get(key)
+                trained_val = trained.get(key)
+                if (
+                    isinstance(baseline_val, (int, float))
+                    and not isinstance(baseline_val, bool)
+                    and isinstance(trained_val, (int, float))
+                    and not isinstance(trained_val, bool)
                 ):
-                    deltas[key] = trained[key] - baseline[key]
+                    deltas[key] = trained_val - baseline_val
             metric_comparison["deltas"] = deltas
 
             # Add statistical significance testing for robustness (per-strength scores)
             if metric_name == "robustness":
-                baseline_perplexities = baseline.get("perplexities", [])
-                trained_perplexities = trained.get("perplexities", [])
-                if baseline_perplexities and trained_perplexities:
-                    # Use inverse perplexity as the metric (higher is better).
-                    # Perplexity is lower-is-better, so 1/ppl converts it to higher-is-better
-                    # for the paired statistical test to correctly interpret improvements.
-                    baseline_scores = [1.0 / max(p, 1e-8) for p in baseline_perplexities]
-                    trained_scores = [1.0 / max(p, 1e-8) for p in trained_perplexities]
+                if "accuracies" in baseline:
+                    baseline_scores = baseline.get("accuracies", [])
+                    trained_scores = trained.get("accuracies", [])
+                else:
+                    baseline_perplexities = baseline.get("perplexities", [])
+                    trained_perplexities = trained.get("perplexities", [])
+                    baseline_scores = (
+                        [1.0 / max(p, 1e-8) for p in baseline_perplexities]
+                        if baseline_perplexities
+                        else []
+                    )
+                    trained_scores = (
+                        [1.0 / max(p, 1e-8) for p in trained_perplexities]
+                        if trained_perplexities
+                        else []
+                    )
+                if baseline_scores and trained_scores:
                     significance = _bootstrap_ci(
                         baseline_scores,
                         trained_scores,
@@ -320,6 +435,27 @@ class Evaluator:
                     metric_comparison["significance"] = significance
 
             comparison["metrics"][metric_name] = metric_comparison
+
+            # Backward-compatible top-level robustness summary.
+        robustness = comparison["metrics"].get("robustness")
+        if robustness:
+            trained_auc = robustness.get("trained", {}).get("auc_robustness")
+            delta_auc = robustness.get("deltas", {}).get("auc_robustness")
+
+            if trained_auc is not None:
+                comparison["robustness_score"] = trained_auc
+
+            if delta_auc is not None:
+                comparison["robustness_delta"] = delta_auc
+
+        failure_categories = (
+            trained_results.get("failure_categories")
+            or trained_results.get("robustness", {}).get("failure_categories")
+            or baseline_results.get("failure_categories")
+            or baseline_results.get("robustness", {}).get("failure_categories")
+        )
+        if failure_categories is not None:
+            comparison["failure_categories"] = failure_categories
 
         return comparison
 
@@ -392,6 +528,23 @@ class Evaluator:
             )
         metrics = comparison.get("metrics", {})
 
+        if "classification" in metrics and _metric_ok(metrics["classification"]):
+            r = metrics["classification"]
+            lines.extend(
+                [
+                    "### Classification",
+                    "",
+                    "| Metric | Baseline | Trained | Delta |",
+                    "|--------|----------|---------|-------|",
+                ]
+            )
+            for key in ["accuracy", "f1_weighted"]:
+                bl = r.get("baseline", {}).get(key, "N/A")
+                tr = r.get("trained", {}).get(key, "N/A")
+                delta = r.get("deltas", {}).get(key, "N/A")
+                lines.append(f"| {key} | {_fmt(bl)} | {_fmt(tr)} | {_fmt(delta, signed=True)} |")
+            lines.append("")
+
         if "recall" in metrics and _metric_ok(metrics["recall"]):
             r = metrics["recall"]
             lines.extend(
@@ -449,9 +602,7 @@ class Evaluator:
             sig = r.get("significance", {})
             if sig and sig.get("method") == "bootstrap_ci":
                 sig_verdict = (
-                    "**statistically significant**"
-                    if sig.get("significant")
-                    else "not significant"
+                    "**statistically significant**" if sig.get("significant") else "not significant"
                 )
                 lines.extend(
                     [
@@ -464,7 +615,46 @@ class Evaluator:
                         f"- Verdict: {sig_verdict} (α={sig.get('alpha', 0.05)})",
                     ]
                 )
+
+            trained_robustness = r.get("trained", {})
+            if "top_failures" in trained_robustness:
+                lines.extend(
+                    [
+                        "",
+                        "## Confidence Delta Analysis",
+                        "",
+                        "### Top 10 Most Vulnerable Samples",
+                        "",
+                        "| Sample | Preview | Clean | Distorted | Delta |",
+                        "|--------|---------|-------|-----------|-------|",
+                    ]
+                )
+                for f in trained_robustness["top_failures"]:
+                    idx = f.get("sample_index", "N/A")
+                    prev = f.get("preview", "N/A")
+                    cln = f.get("clean_confidence", 0.0)
+                    dst = f.get("distorted_confidence", 0.0)
+                    dlt = f.get("confidence_delta", 0.0)
+                    lines.append(f"| {idx} | {prev} | {_fmt(cln)} | {_fmt(dst)} | {_fmt(dlt)} |")
+
+                dist = trained_robustness.get("delta_distribution", {})
+                if dist:
+                    lines.extend(
+                        [
+                            "",
+                            "### Severity Distribution",
+                            "",
+                            f"- **0-10% drop**: {dist.get('0_10', 0)}",
+                            f"- **10-25% drop**: {dist.get('10_25', 0)}",
+                            f"- **25-50% drop**: {dist.get('25_50', 0)}",
+                            f"- **50%+ drop**: {dist.get('50_plus', 0)}",
+                        ]
+                    )
+
             lines.append("")
+
+        if "certification" in metrics and _metric_ok(metrics["certification"]):
+            lines.extend(self._format_certification_section(metrics["certification"]))
 
         if "hallucination" in metrics and _metric_ok(metrics["hallucination"]):
             r = metrics["hallucination"]
@@ -483,7 +673,130 @@ class Evaluator:
                 lines.append(f"| {key} | {_fmt(bl)} | {_fmt(tr)} | {_fmt(delta, signed=True)} |")
             lines.append("")
 
+        failure_cats = comparison.get("failure_categories")
+        if failure_cats is None and "robustness" in metrics:
+            failure_cats = metrics["robustness"].get("trained", {}).get("failure_categories")
+            if failure_cats is None:
+                failure_cats = metrics["robustness"].get("baseline", {}).get("failure_categories")
+
+        if failure_cats is not None:
+            lines.extend(["## Failure by Distortion Type", ""])
+            if failure_cats and any(cat.get("count", 0) > 0 for cat in failure_cats.values()):
+                lines.extend(
+                    [
+                        "| Distortion | Failures | Failure Rate | Avg Confidence Δ |",
+                        "|------------|----------|--------------|------------------|",
+                    ]
+                )
+                for dtype, cat in failure_cats.items():
+                    cnt = cat.get("count", 0)
+                    rate = cat.get("failure_rate", 0.0)
+                    avg_delta = cat.get("avg_confidence_delta", 0.0)
+                    lines.append(f"| {dtype} | {cnt} | {rate * 100:.1f}% | {avg_delta:.4f} |")
+                lines.append("")
+            else:
+                lines.extend(["No failures detected across evaluated distortion types.", ""])
+
         return "\n".join(lines)
+
+    def _format_certification_section(self, cert_metrics: dict) -> list:
+        """Formats the "Certified Robustness" markdown section (issue #162).
+
+        Uses the same baseline/trained/delta table shape as the other sections in
+        generate_report() (for consistency, and because the acceptance criteria for
+        issue #162 specifically calls for a baseline-vs-trained certified-radius
+        comparison), plus a callout distinguishing this formal, distribution-free
+        guarantee from the empirical Robustness (AUC) metric above it, and a
+        configuration line (noise sigma / smoothing sample count) read from
+        `evaluation.certification` -- config values that are inputs to the run, not
+        outputs, so they don't belong in the per-run baseline/trained dict itself
+        (and aren't part of _run_certification's returned keys, which several
+        existing tests pin exactly).
+
+        Args:
+            cert_metrics: metrics["certification"] from a compare() output, i.e.
+                {"baseline": {...}, "trained": {...}, "deltas": {...}}.
+
+        Returns:
+            List of markdown lines (not yet joined).
+        """
+
+        def _fmt(val, signed: bool = False) -> str:
+            if isinstance(val, float):
+                return f"{val:+.4f}" if signed else f"{val:.4f}"
+            if val is None:
+                return "N/A"
+            return str(val)
+
+        def _pct(val) -> str:
+            return f"{val * 100:.1f}%" if isinstance(val, (int, float)) else "N/A"
+
+        def _pct_signed(val) -> str:
+            return f"{val * 100:+.1f}pp" if isinstance(val, (int, float)) else "N/A"
+
+        baseline = cert_metrics.get("baseline", {})
+        trained = cert_metrics.get("trained", {})
+        deltas = cert_metrics.get("deltas", {})
+
+        cert_config = self.eval_config.get("certification", {})
+        sigma = cert_config.get("sigma", 0.1)
+        n = cert_config.get("n", 1000)
+        n0 = cert_config.get("n0", 100)
+        alpha = cert_config.get("alpha", 0.001)
+        subset_size = cert_config.get("subset_size")
+
+        def _samples_str(side: dict) -> str:
+            certified = side.get("samples_certified", "N/A")
+            total = subset_size if subset_size is not None else certified
+            return f"{certified} / {total}"
+
+        lines = [
+            "### Certified Robustness (Randomized Smoothing)",
+            "",
+            "> **Formal vs. empirical**: certified radii are a formal, "
+            "distribution-free guarantee (no perturbation with embedding-space L2 "
+            "norm below the radius can change the prediction) -- unlike the "
+            "empirical Robustness (AUC) score above, which only reflects degradation "
+            "under the specific distortions actually tried. Radii are L2 distances "
+            "in **embedding space**, not token/edit-distance space.",
+            "",
+            "| Metric | Baseline | Trained | Delta |",
+            "|--------|----------|---------|-------|",
+            (
+                f"| Mean certified radius | {_fmt(baseline.get('certified_radius_mean'))} "
+                f"| {_fmt(trained.get('certified_radius_mean'))} "
+                f"| {_fmt(deltas.get('certified_radius_mean'), signed=True)} |"
+            ),
+            (
+                f"| Median certified radius | {_fmt(baseline.get('certified_radius_median'))} "
+                f"| {_fmt(trained.get('certified_radius_median'))} "
+                f"| {_fmt(deltas.get('certified_radius_median'), signed=True)} |"
+            ),
+            (
+                f"| Abstention rate | {_pct(baseline.get('certification_abstain_rate'))} "
+                f"| {_pct(trained.get('certification_abstain_rate'))} "
+                f"| {_pct_signed(deltas.get('certification_abstain_rate'))} |"
+            ),
+            (
+                f"| Certified accuracy | {_fmt(baseline.get('certified_accuracy'))} "
+                f"| {_fmt(trained.get('certified_accuracy'))} "
+                f"| {_fmt(deltas.get('certified_accuracy'), signed=True)} |"
+            ),
+            (f"| Samples certified | {_samples_str(baseline)} | {_samples_str(trained)} | N/A |"),
+            "",
+            f"**Configuration**: noise sigma (σ) = {sigma}, smoothing samples (n) = {n}, "
+            f"selection samples (n0) = {n0}, significance level (α) = {alpha}",
+        ]
+
+        if baseline.get("budget_exceeded") or trained.get("budget_exceeded"):
+            lines.append(
+                "> Note: the configured compute budget reduced `n` for at least one "
+                "run below (see logs) -- certified radii for that run are valid but "
+                "computed with fewer smoothing samples than requested."
+            )
+
+        lines.append("")
+        return lines
 
     def save_report(self, comparison: dict, filename: str = "evaluation_report.md") -> str:
         """Generate and save a markdown report.

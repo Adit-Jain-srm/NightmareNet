@@ -204,20 +204,14 @@ class AdaptiveScheduler:
                 self.max_epochs,
                 max(
                     1,
-                    int(
-                        self.base_scheduler.dream_epochs
-                        * (1 + self.adjustment_factor)
-                    ),
+                    int(self.base_scheduler.dream_epochs * (1 + self.adjustment_factor)),
                 ),
             )
             self.base_scheduler.nightmare_epochs = min(
                 self.max_epochs,
                 max(
                     1,
-                    int(
-                        self.base_scheduler.nightmare_epochs
-                        * (1 + self.adjustment_factor)
-                    ),
+                    int(self.base_scheduler.nightmare_epochs * (1 + self.adjustment_factor)),
                 ),
             )
             logger.info(

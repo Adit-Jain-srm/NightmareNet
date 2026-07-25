@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Panel } from "./Panel";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
 import { useSounds } from "@/lib/sounds";
-import { IconKey, IconSettings, IconShield, IconWand, IconBell } from "./icons";
-import { testWebhook } from "@/lib/api";
+import { IconKey, IconSettings, IconShield, IconWand, IconBell, IconHome } from "./icons";
+import { testWebhook, getWebhooks, saveWebhooks } from "@/lib/api";
 
-type Tab = "keys" | "model" | "distortion" | "integrations" | "notifications";
+type Tab = "keys" | "model" | "distortion" | "integrations" | "notifications" | "preferences";
 
 const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "keys", label: "API Keys", icon: <IconKey size={12} /> },
@@ -19,6 +19,7 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
   { key: "distortion", label: "Distortion", icon: <IconWand size={12} /> },
   { key: "integrations", label: "Integrations", icon: <IconSettings size={12} /> },
   { key: "notifications", label: "Notifications", icon: <IconBell size={12} /> },
+  { key: "preferences", label: "Preferences", icon: <IconHome size={12} /> },
 ];
 
 interface WebhookConfig {
@@ -58,25 +59,15 @@ export function SettingsPanel() {
   const toast = useToast();
   const sounds = useSounds();
 
-  const [webhooks, setWebhooks] = useState<WebhookConfig[]>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("nightmarenet-webhooks");
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // fallback
-        }
-      }
-    }
-    return [
-      {
-        id: "wh-1",
-        url: "https://hooks.slack.com/services/YOUR_WORKSPACE/YOUR_CHANNEL/YOUR_TOKEN",
-        events: ["run_complete", "regression_detected", "alert"],
-      },
-    ];
-  });
+  const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
+
+  useEffect(() => {
+    getWebhooks()
+      .then((res) => {
+        setWebhooks(res.webhooks.map((w, i) => ({ ...w, id: `wh-${i}-${Date.now()}` })));
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <Panel
@@ -106,6 +97,7 @@ export function SettingsPanel() {
         <button
           type="button"
           role="switch"
+          aria-label="Toggle UI sounds"
           aria-checked={sounds.enabled}
           onClick={sounds.toggle}
           className={[
@@ -374,6 +366,7 @@ export function SettingsPanel() {
                           >
                             <input
                               type="checkbox"
+                              aria-label={`${ev.label} webhook event`}
                               checked={active}
                               onChange={() => {
                                 const newEvents = active
@@ -435,19 +428,44 @@ export function SettingsPanel() {
               <Button
                 variant="primary"
                 size="sm"
-                onClick={() => {
-                  localStorage.setItem("nightmarenet-webhooks", JSON.stringify(webhooks));
-                  toast.push({
-                    title: "Webhooks Saved",
-                    description: "Webhook configuration saved successfully.",
-                    variant: "success",
-                  });
+                onClick={async () => {
+                  try {
+                    await saveWebhooks({
+                      webhooks: webhooks.map(w => ({ url: w.url, events: w.events }))
+                    });
+                    toast.push({
+                      title: "Webhooks Saved",
+                      description: "Webhook configuration saved successfully.",
+                      variant: "success",
+                    });
+                  } catch (err: unknown) {
+                    toast.push({
+                      title: "Failed to save",
+                      description: "Could not save webhooks.",
+                      variant: "warning",
+                    });
+                  }
                 }}
               >
                 Save webhooks
               </Button>
             </div>
           )}
+        </div>
+      )}
+
+      {tab === "preferences" && (
+        <div className="space-y-4">
+          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Sidebar Layout</p>
+            <p className="text-[11px] text-slate-400 mb-3">Reset the personalized dashboard section ordering back to the default state. This removes custom ordering and visit statistics.</p>
+            <Button variant="danger" size="sm" onClick={() => {
+              window.dispatchEvent(new CustomEvent("reset-sidebar-prefs"));
+              toast.push({ title: "Sidebar layout reset", variant: "info" });
+            }}>
+              Reset to default order
+            </Button>
+          </div>
         </div>
       )}
     </Panel>

@@ -22,9 +22,7 @@ class SimpleModel(nn.Module):
         logits = self.linear(hidden)
         loss = None
         if labels is not None:
-            loss = nn.functional.cross_entropy(
-                logits.view(-1, self.vocab_size), labels.view(-1)
-            )
+            loss = nn.functional.cross_entropy(logits.view(-1, self.vocab_size), labels.view(-1))
         return type("Output", (), {"loss": loss, "logits": logits})()
 
 
@@ -36,20 +34,12 @@ class TestMagnitudePruner:
         pruner = MagnitudePruner(pruning_ratio=0.5)
 
         # Count non-zero params before
-        before_nonzero = sum(
-            (p != 0).sum().item()
-            for p in model.parameters()
-            if p.dim() >= 2
-        )
+        before_nonzero = sum((p != 0).sum().item() for p in model.parameters() if p.dim() >= 2)
 
         stats = pruner.apply(model)
 
         # Count non-zero params after
-        after_nonzero = sum(
-            (p != 0).sum().item()
-            for p in model.parameters()
-            if p.dim() >= 2
-        )
+        after_nonzero = sum((p != 0).sum().item() for p in model.parameters() if p.dim() >= 2)
 
         assert after_nonzero < before_nonzero
         assert stats["pruned_params"] > 0
@@ -134,9 +124,7 @@ class TestMetricsComputation:
             def __iter__(self):
                 yield {"input_ids": input_ids}
 
-        result = recall_score(
-            model, SimpleDataLoader(), MockTokenizer(), device="cpu"
-        )
+        result = recall_score(model, SimpleDataLoader(), MockTokenizer(), device="cpu")
         assert "metric" in result
         assert result["metric"] == "recall"
         assert "token_accuracy" in result
@@ -156,9 +144,7 @@ class TestMetricsComputation:
             def __iter__(self):
                 yield {"input_ids": input_ids}
 
-        result = hallucination_rate(
-            model, SimpleDataLoader(), MockTokenizer(), device="cpu"
-        )
+        result = hallucination_rate(model, SimpleDataLoader(), MockTokenizer(), device="cpu")
         assert "metric" in result
         assert result["metric"] == "hallucination"
         assert "hallucination_rate" in result

@@ -19,8 +19,6 @@ from transformers import PreTrainedModel
 logger = logging.getLogger(__name__)
 
 
-
-
 class TransferFineTuner:
     """Manages the fine-tuning of a foundation model on a downstream task."""
 
@@ -164,5 +162,5 @@ class TransferFineTuner:
             "avg_loss": avg_loss,
             "final_epoch_loss": final_epoch_loss,
             "per_epoch_losses": per_epoch_losses,
-            "layers_frozen": freeze_bottom_n > 0
+            "layers_frozen": freeze_bottom_n > 0,
         }

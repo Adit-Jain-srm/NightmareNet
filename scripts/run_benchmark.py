@@ -100,6 +100,7 @@ def main() -> int:
     try:
         from nightmarenet.utils.config import load_config
         from nightmarenet.utils.webhooks import trigger_webhook
+
         config = load_config(str(REPO_ROOT / "configs" / "default.yaml"))
         trigger_webhook(
             config,
@@ -109,7 +110,7 @@ def main() -> int:
                 "mode": result.get("mode", "unknown"),
                 "timestamp": result.get("timestamp"),
                 "output_path": str(output_path),
-            }
+            },
         )
     except Exception as e:
         print(f"Warning: Failed to trigger webhook notification: {e}")

@@ -25,7 +25,7 @@ export default function Footer() {
           </div>
 
           {/* Links */}
-          <div className="flex items-center gap-6 text-xs text-muted">
+          <div className="flex items-center gap-6 text-xs text-slate-400">
             <a
               href="/dashboard"
               className="hover:text-neural transition-colors flex items-center gap-1.5 cursor-pointer"
@@ -64,7 +64,7 @@ export default function Footer() {
             {["Next.js", "FastAPI", "PyTorch", "Framer"].map((tech) => (
               <span
                 key={tech}
-                className="text-[9px] font-mono text-muted/50 px-2 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] border border-black/[0.04] dark:border-white/[0.03]"
+                className="text-[9px] font-mono text-slate-400 px-2 py-1 rounded-md bg-black/[0.02] dark:bg-white/[0.02] border border-black/[0.04] dark:border-white/[0.03]"
               >
                 {tech}
               </span>
@@ -73,7 +73,7 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-black/[0.03] dark:border-white/[0.03] text-center">
-          <p className="text-[10px] text-muted/40 font-mono">
+          <p className="text-[10px] text-slate-400 font-mono">
             NightmareNet v0.2.0 • Apache License 2.0 • Sleep-Inspired Training Paradigm
           </p>
         </div>

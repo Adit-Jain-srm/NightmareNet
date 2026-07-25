@@ -272,6 +272,13 @@ export interface PipelineReportResponse {
   comparison: Record<string, unknown> | null;
 }
 
+export interface PipelineRunsListResponse {
+  runs: PipelineStatusResponse[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
 export function createPipeline(
   req: PipelineCreateRequest,
 ): Promise<PipelineStatusResponse> {
@@ -303,6 +310,19 @@ export function getPipelineReport(
 ): Promise<PipelineReportResponse> {
   return apiFetch<PipelineReportResponse>(
     `/api/v1/pipeline/${runId}/report`,
+  );
+}
+
+export function listPipelineRuns(
+  offset?: number,
+  limit?: number,
+): Promise<PipelineRunsListResponse> {
+  const params = new URLSearchParams();
+  if (offset !== undefined) params.append("offset", offset.toString());
+  if (limit !== undefined) params.append("limit", limit.toString());
+  const query = params.toString();
+  return apiFetch<PipelineRunsListResponse>(
+    `/api/v1/pipeline/runs${query ? `?${query}` : ""}`,
   );
 }
 
@@ -582,6 +602,32 @@ export function suggestConfig(body: SuggestConfigRequest): Promise<SuggestConfig
   });
 }
 
+// --- Experiment Search ---
+
+export interface ExperimentSearchResult {
+  run_id: string;
+  relevance_score: number;
+  summary: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface ExperimentSearchResponse {
+  results: ExperimentSearchResult[];
+  filters: Record<string, unknown>;
+  backend: string;
+}
+
+export function searchExperiments(
+  query: string,
+  topK = 10,
+  filters?: Record<string, unknown>,
+): Promise<ExperimentSearchResponse> {
+  return apiFetch<ExperimentSearchResponse>("/api/v1/search", {
+    method: "POST",
+    body: JSON.stringify({ query, top_k: topK, filters: filters ?? {} }),
+  });
+}
+
 // --- Adaption Labs: Import & Estimate ---
 
 export function importAndOptimize(body: DataImportRequest): Promise<DataOptimizeResponse> {
@@ -610,4 +656,58 @@ export function testWebhook(body: TestWebhookRequest): Promise<{ status: string 
     method: "POST",
     body: JSON.stringify(body),
   });
+}
+
+export interface WebhookConfig {
+  url: string;
+  events: string[];
+}
+
+export interface WebhookSettingsRequest {
+  webhooks: WebhookConfig[];
+}
+
+export interface WebhookSettingsResponse {
+  webhooks: WebhookConfig[];
+}
+
+export function getWebhooks(): Promise<WebhookSettingsResponse> {
+  return apiFetch<WebhookSettingsResponse>("/api/v1/settings/webhooks");
+}
+
+export function saveWebhooks(body: WebhookSettingsRequest): Promise<WebhookSettingsResponse> {
+  return apiFetch<WebhookSettingsResponse>("/api/v1/settings/webhooks", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+// --- Experiment Management ---
+
+export interface ExperimentDeleteResponse {
+  run_id: string;
+  deleted: boolean;
+}
+
+export function deleteExperiment(runId: string): Promise<ExperimentDeleteResponse> {
+  return apiFetch<ExperimentDeleteResponse>(`/api/v1/experiments/${runId}`, {
+    method: "DELETE",
+  });
+}
+
+export function updateExperiment(runId: string, data: { name: string }): Promise<{ success: boolean; id: string; name: string }> {
+  return apiFetch(`/api/v1/experiments/${runId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}
+
+export interface ExperimentExportResponse {
+  run_id: string;
+  format: string;
+  data: string;
+}
+
+export function exportExperiment(runId: string, format: "csv" | "json" = "csv"): Promise<ExperimentExportResponse> {
+  return apiFetch<ExperimentExportResponse>(`/api/v1/experiments/${runId}/export?format=${format}`);
 }

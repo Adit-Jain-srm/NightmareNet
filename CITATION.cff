@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: "If you use NightmareNet in your research, please cite it as below."
+title: "NightmareNet: Sleep-Inspired Cyclic Training for Adversarial Robustness"
+type: software
+authors:
+  - family-names: Jain
+    given-names: Adit
+    orcid: ""
+repository-code: "https://github.com/Adit-Jain-srm/NightmareNet"
+license: Apache-2.0
+version: "0.2.0"
+date-released: "2026-07-01"
+keywords:
+  - adversarial-robustness
+  - adversarial-training
+  - knowledge-distillation
+  - pytorch
+  - nlp
+preferred-citation:
+  type: article
+  title: "NightmareNet: Sleep-Inspired Cyclic Training for Adversarial Robustness in Text Classification"
+  authors:
+    - family-names: Jain
+      given-names: Adit
+  year: 2026

@@ -67,7 +67,7 @@ export default function Architecture() {
                 transition={{ delay: i * 0.1, duration: 0.5, ease: "easeOut" }}
                 className={`relative z-10 glass-card p-6 flex flex-col items-center text-center group`}
               >
-                <span className="absolute top-3 right-3 text-[10px] font-mono text-muted/40">
+                <span className="absolute top-3 right-3 text-[10px] font-mono text-slate-400">
                   {String(i + 1).padStart(2, "0")}
                 </span>
 
@@ -92,7 +92,7 @@ export default function Architecture() {
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ delay: 0.6 }}
-          className="mt-8 flex items-center justify-center gap-3 text-xs text-muted"
+          className="mt-8 flex items-center justify-center gap-3 text-xs text-slate-400"
         >
           <RefreshCw className="w-3.5 h-3.5 text-success animate-[spin_6s_linear_infinite]" />
           <span className="font-mono">

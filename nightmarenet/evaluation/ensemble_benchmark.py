@@ -52,6 +52,7 @@ def _evaluate_model_worker(
 
     Runs in a separate process to ensure memory is freed after execution.
     """
+
     def _get_cache_key(
         model: str,
         dataset: str,
@@ -60,8 +61,9 @@ def _evaluate_model_worker(
         strength: float,
     ) -> str:
         """Generate cache key for a specific evaluation tuple."""
-        safe_model = model.replace('/', '_').replace('-', '_')
+        safe_model = model.replace("/", "_").replace("-", "_")
         return f"{safe_model}_{dataset}_{split}_{distortion_type}_{strength:g}.json"
+
     from datasets import load_dataset
     from torch.utils.data import DataLoader
 
@@ -101,9 +103,9 @@ def _evaluate_model_worker(
 
                 if cache_file and cache_file.exists() and not no_cache:
                     try:
-                        with open(cache_file, encoding='utf-8') as f:
+                        with open(cache_file, encoding="utf-8") as f:
                             cached_result = json.load(f)
-                            accuracies.append(cached_result['accuracy'])
+                            accuracies.append(cached_result["accuracy"])
                             logger.info("Cache hit for %s at strength %.1f", model_name, strength)
                             continue
                     except (OSError, json.JSONDecodeError, KeyError) as e:
@@ -112,10 +114,9 @@ def _evaluate_model_worker(
                 def distortion_fn(text, _s=strength, _dt=distortion_type):
                     return registry.apply(_dt, text, strength=_s, seed=42)
 
-
                 distorted = ds.map(
                     lambda x: {text_column: distortion_fn(x[text_column])},
-                    desc=f"Distorting {distortion_type} at strength {strength:.1f}"
+                    desc=f"Distorting {distortion_type} at strength {strength:.1f}",
                 )
 
                 def tokenize_fn(examples):
@@ -147,19 +148,20 @@ def _evaluate_model_worker(
                 if cache_file and not no_cache:
                     try:
                         cache_file.parent.mkdir(parents=True, exist_ok=True)
-                        with open(cache_file, 'w', encoding='utf-8') as f:
-                            json.dump({'accuracy': accuracy}, f)
+                        with open(cache_file, "w", encoding="utf-8") as f:
+                            json.dump({"accuracy": accuracy}, f)
                     except OSError as e:
                         logger.warning("Failed to write cache file %s: %s", cache_file, e)
 
             from sklearn.metrics import auc as sklearn_auc
+
             auc = float(sklearn_auc(strengths, accuracies))
             total_auc += auc
 
             results_by_distortion[distortion_type] = {
                 "strengths": strengths,
                 "accuracies": accuracies,
-                "auc": auc
+                "auc": auc,
             }
 
     except Exception as e:

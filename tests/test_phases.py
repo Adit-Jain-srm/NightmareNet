@@ -36,9 +36,7 @@ class TestCyclicScheduler:
         assert phases[3][1] == "compress"
 
     def test_epochs_per_phase(self):
-        scheduler = CyclicScheduler(
-            wake_epochs=3, dream_epochs=2, nightmare_epochs=1
-        )
+        scheduler = CyclicScheduler(wake_epochs=3, dream_epochs=2, nightmare_epochs=1)
         assert scheduler.get_epochs_for_phase("wake") == 3
         assert scheduler.get_epochs_for_phase("dream") == 2
         assert scheduler.get_epochs_for_phase("nightmare") == 1
@@ -88,9 +86,7 @@ class TestAdaptiveScheduler:
 
     def test_update_stagnation_increases_epochs(self):
         base = CyclicScheduler(num_cycles=1, dream_epochs=2, nightmare_epochs=1)
-        adaptive = AdaptiveScheduler(
-            base_scheduler=base, patience=2, adjustment_factor=0.5
-        )
+        adaptive = AdaptiveScheduler(base_scheduler=base, patience=2, adjustment_factor=0.5)
 
         # Report stagnating losses
         adaptive.update("wake", 2.0)
@@ -174,7 +170,7 @@ class TestEarlyStopping:
             early_stopping_min_delta=0.1,
         )
         adaptive.update("wake", 2.0)
-        adaptive.update("dream", 2.0)    # No improvement
+        adaptive.update("dream", 2.0)  # No improvement
         adaptive.update("nightmare", 2.0)  # Triggers stop (patience=2)
         assert adaptive.should_stop is True
 
@@ -187,10 +183,10 @@ class TestEarlyStopping:
             early_stopping_min_delta=0.0,
         )
         adaptive.update("wake", 1.0)
-        adaptive.update("dream", 1.5)      # Worse
-        adaptive.update("nightmare", 2.0)   # Worse
+        adaptive.update("dream", 1.5)  # Worse
+        adaptive.update("nightmare", 2.0)  # Worse
         assert adaptive.should_stop is False  # patience=3, only 2 bad updates
-        adaptive.update("compress", 2.5)     # Worse → triggers stop
+        adaptive.update("compress", 2.5)  # Worse → triggers stop
         assert adaptive.should_stop is True
 
     def test_min_delta_sensitivity(self):
@@ -203,7 +199,7 @@ class TestEarlyStopping:
         )
         # Improve, but by less than min_delta
         adaptive.update("wake", 2.0)
-        adaptive.update("dream", 1.8)     # Improved by 0.2 < delta 0.5
+        adaptive.update("dream", 1.8)  # Improved by 0.2 < delta 0.5
         adaptive.update("nightmare", 1.6)  # Still < delta from best
         assert adaptive.should_stop is True
 

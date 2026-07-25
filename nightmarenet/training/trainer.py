@@ -13,6 +13,7 @@ import math
 import os
 import signal
 import threading
+from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 import torch
@@ -25,6 +26,7 @@ from transformers import (
     AutoModelForMaskedLM,
     AutoModelForSequenceClassification,
     AutoTokenizer,
+    get_cosine_schedule_with_warmup,
 )
 
 from nightmarenet.distributed.checkpoint import AtomicCheckpointer
@@ -56,6 +58,26 @@ _MODEL_TYPE_MAP = {
 }
 
 
+@dataclass
+class ModelOutput:
+    loss: Optional[torch.Tensor]
+    logits: torch.Tensor
+
+
+class VisionModelWrapper(torch.nn.Module):
+    def __init__(self, base_model, criterion=None):
+        super().__init__()
+        self.base_model = base_model
+        self.criterion = criterion or torch.nn.CrossEntropyLoss()
+
+    def forward(self, pixel_values, labels=None, **kwargs):
+        logits = self.base_model(pixel_values)
+        loss = None
+        if labels is not None:
+            loss = self.criterion(logits, labels)
+        return ModelOutput(loss=loss, logits=logits)
+
+
 def _get_device(config: dict) -> torch.device:
     """Determine the training device from config."""
     device_str = config.get("model", {}).get("device", "auto")
@@ -76,6 +98,7 @@ def _worker_init_fn(worker_id: int) -> None:
     import random
 
     import numpy as np
+
     worker_seed = (torch.initial_seed() + worker_id) % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
@@ -87,17 +110,24 @@ def _tokenize_dataset(
     text_column: str,
     max_length: int,
     batch_size: int,
+    label_column: Optional[str] = None,
 ) -> DataLoader:
     """Tokenize a dataset and return a DataLoader."""
+    if tokenizer is None or not hasattr(dataset, "map"):
+        return DataLoader(
+            dataset, batch_size=batch_size, shuffle=True, worker_init_fn=_worker_init_fn
+        )
 
     def tokenize_fn(examples):
-        return tokenizer(
+        tokenized = tokenizer(
             examples[text_column],
             truncation=True,
             padding="max_length",
             max_length=max_length,
-            return_tensors="pt",
         )
+        if label_column is not None and label_column in examples:
+            tokenized["labels"] = examples[label_column]
+        return tokenized
 
     if isinstance(dataset, IterableDataset):
         tokenized = dataset.map(
@@ -106,11 +136,7 @@ def _tokenize_dataset(
             remove_columns=dataset.column_names if dataset.column_names else [text_column],
         )
         tokenized = tokenized.with_format("torch")
-        return DataLoader(
-            tokenized,
-            batch_size=batch_size,
-            worker_init_fn=_worker_init_fn
-        )
+        return DataLoader(tokenized, batch_size=batch_size, worker_init_fn=_worker_init_fn)
 
     tokenized = dataset.map(
         tokenize_fn,
@@ -120,10 +146,7 @@ def _tokenize_dataset(
     )
     tokenized.set_format("torch")
     return DataLoader(
-        tokenized,
-        batch_size=batch_size,
-        shuffle=True,
-        worker_init_fn=_worker_init_fn
+        tokenized, batch_size=batch_size, shuffle=True, worker_init_fn=_worker_init_fn
     )
 
 
@@ -179,18 +202,36 @@ class Trainer:
                 model_name,
                 self.model_type,
             )
-            model_cls = _MODEL_TYPE_MAP.get(self.model_type)
-            if model_cls is None:
-                raise ValueError(
-                    f"Unknown model type '{self.model_type}'. Supported: {list(_MODEL_TYPE_MAP)}"
-                )
-            try:
-                kwargs = {}
-                if self.model_type == "seq_classification":
-                    kwargs["num_labels"] = self.model_config.get("num_labels", 2)
-                self.model = model_cls.from_pretrained(model_name, **kwargs)
-            except Exception as exc:
-                raise RuntimeError(f"Failed to load model '{model_name}': {exc}") from exc
+            if self.model_type == "image_classification":
+                import torchvision.models as torchvision_models
+
+                model_creator = None
+                for name in dir(torchvision_models):
+                    if name.lower() == model_name.lower():
+                        model_creator = getattr(torchvision_models, name)
+                        break
+                if model_creator is None:
+                    raise ValueError(f"Unknown torchvision model name '{model_name}'.")
+                num_classes = self.model_config.get("num_labels", 10)
+                try:
+                    base_model = model_creator(num_classes=num_classes)
+                except TypeError:
+                    base_model = model_creator()
+                self.model = VisionModelWrapper(base_model)
+            else:
+                model_cls = _MODEL_TYPE_MAP.get(self.model_type)
+                if model_cls is None:
+                    raise ValueError(
+                        f"Unknown model type '{self.model_type}'. "
+                        f"Supported: {list(_MODEL_TYPE_MAP)}"
+                    )
+                try:
+                    kwargs = {}
+                    if self.model_type == "seq_classification":
+                        kwargs["num_labels"] = self.model_config.get("num_labels", 2)
+                    self.model = model_cls.from_pretrained(model_name, **kwargs)
+                except Exception as exc:
+                    raise RuntimeError(f"Failed to load model '{model_name}': {exc}") from exc
         else:
             self.model = model
         self.model.to(self.device)
@@ -201,7 +242,9 @@ class Trainer:
 
             load_model_weights(self.model, resume_from, self.device)
 
-        if tokenizer is None:
+        if self.model_type == "image_classification":
+            self.tokenizer = None
+        elif tokenizer is None:
             has_resume = resume_from and os.path.exists(resume_from)
             tokenizer_load_path = resume_from if has_resume else model_name
             self.tokenizer = AutoTokenizer.from_pretrained(tokenizer_load_path)
@@ -238,9 +281,10 @@ class Trainer:
 
         # Create scheduler
         self.scheduler = create_scheduler_from_config(config)
+        self.lr_scheduler = None
 
         # Reference model for KL regularization (created after wake phase)
-        self.reference_model = None
+        self.reference_model: Optional[torch.nn.Module] = None
 
         # Training history
         self.history: list[dict] = []
@@ -289,7 +333,7 @@ class Trainer:
         else:
             self.tracker = create_tracker_from_config({})
 
-        self.run_id = None
+        self.run_id: Optional[str] = None
         self._vram_alert_sent = False
         self.callback_manager = callback_manager or CallbackManager()
 
@@ -337,13 +381,17 @@ class Trainer:
         )
 
         # Save tokenizer
-        self.tokenizer.save_pretrained(path)
+        if self.tokenizer is not None:
+            self.tokenizer.save_pretrained(path)
 
         # Save training state
         import time
 
         state = {
             "optimizer_state_dict": self.optimizer.state_dict(),
+            "lr_scheduler_state_dict": (
+                self.lr_scheduler.state_dict() if self.lr_scheduler is not None else None
+            ),
             "scaler_state_dict": self.scaler.state_dict() if self.scaler is not None else None,
             "cycle": cycle,
             "phase": phase,
@@ -356,6 +404,11 @@ class Trainer:
         }
         torch.save(state, os.path.join(path, "training_state.pt"))
         logger.info("Checkpoint saved: %s (including training state)", path)
+
+        try:
+            self.tracker.log_artifact(path)
+        except Exception as e:
+            logger.warning("Failed to log checkpoint artifact to tracker: %s", e)
 
         # Post-save validation and complete file hashes update
         meta_path = os.path.join(path, "metadata.json")
@@ -395,6 +448,10 @@ class Trainer:
         nightmare_dataloader: DataLoader,
         val_dataloader: Optional[DataLoader] = None,
         on_progress: Optional[Callable[[dict], None]] = None,
+        dream_generator: Optional[Any] = None,
+        nightmare_generator: Optional[Any] = None,
+        dream_base_dataset: Optional[Any] = None,
+        nightmare_base_dataset: Optional[Any] = None,
     ) -> list[dict]:
         """Run the full sleep-cycle training pipeline.
 
@@ -403,6 +460,11 @@ class Trainer:
             dream_dataloader: DataLoader for dream phase (mildly distorted).
             nightmare_dataloader: DataLoader for nightmare phase (extreme perturbations).
             val_dataloader: Optional DataLoader for validation.
+            on_progress: Optional progress callback.
+            dream_generator: Optional generator for dream dataset.
+            nightmare_generator: Optional generator for nightmare dataset.
+            dream_base_dataset: Optional base dataset for dream.
+            nightmare_base_dataset: Optional base dataset for nightmare.
 
         Returns:
             List of phase result dicts (training history).
@@ -419,15 +481,55 @@ class Trainer:
         # Native distributed logic is applied per-phase via apply_phase_strategy
 
         warmup_steps = self.training_config.get("warmup_steps", 0)
+        lr_schedule = self.training_config.get("lr_schedule", "none")
 
-        lr_scheduler = None
+        def get_dataloader_steps(dataloader, default_steps=1000):
+            try:
+                return len(dataloader)
+            except (TypeError, AttributeError):
+                return default_steps
 
-        if warmup_steps > 0:
+        self.lr_scheduler = None
+
+        if lr_schedule == "linear_warmup_cosine":
+            grad_accum = self.training_config.get("gradient_accumulation_steps", 1)
+            steps_per_epoch_train = get_dataloader_steps(train_dataloader)
+            steps_per_epoch_dream = get_dataloader_steps(dream_dataloader)
+            steps_per_epoch_nightmare = get_dataloader_steps(nightmare_dataloader)
+
+            wake_epochs = self.training_config.get("wake_epochs", 3)
+            dream_epochs = self.training_config.get("dream_epochs", 2)
+            nightmare_epochs = self.training_config.get("nightmare_epochs", 1)
+            num_cycles = self.training_config.get("num_cycles", 3)
+
+            finetune_after_prune = self.compression_config.get("finetune_after_prune", True)
+            finetune_epochs = (
+                self.compression_config.get("finetune_epochs", 1) if finetune_after_prune else 0
+            )
+
+            def get_opt_steps(steps, accum):
+                return max(1, steps // accum)
+
+            wake_steps = get_opt_steps(steps_per_epoch_train, grad_accum) * wake_epochs
+            dream_steps = get_opt_steps(steps_per_epoch_dream, grad_accum) * dream_epochs
+            nightmare_steps = (
+                get_opt_steps(steps_per_epoch_nightmare, grad_accum) * nightmare_epochs
+            )
+            compress_steps = get_opt_steps(steps_per_epoch_train, grad_accum) * finetune_epochs
+
+            total_steps = num_cycles * (wake_steps + dream_steps + nightmare_steps + compress_steps)
+
+            self.lr_scheduler = get_cosine_schedule_with_warmup(
+                self.optimizer,
+                num_warmup_steps=warmup_steps,
+                num_training_steps=total_steps,
+            )
+        elif lr_schedule != "none" and warmup_steps > 0:
 
             def warmup_lambda(current_step):
                 return min(1.0, current_step / warmup_steps)
 
-            lr_scheduler = LambdaLR(
+            self.lr_scheduler = LambdaLR(
                 self.optimizer,
                 lr_lambda=warmup_lambda,
             )
@@ -488,6 +590,17 @@ class Trainer:
                             except Exception as opt_err:
                                 logger.warning("Failed to load optimizer state dict: %s", opt_err)
 
+                    has_sched_state = state.get("lr_scheduler_state_dict") is not None
+                    if self.lr_scheduler is not None and has_sched_state:
+                        try:
+                            self.lr_scheduler.load_state_dict(state["lr_scheduler_state_dict"])
+                            logger.info("Resumed learning rate scheduler state.")
+                        except Exception as lr_err:
+                            logger.warning(
+                                "Failed to load learning rate scheduler state dict: %s",
+                                lr_err,
+                            )
+
                     if self.scaler is not None and state.get("scaler_state_dict") is not None:
                         try:
                             self.scaler.load_state_dict(state["scaler_state_dict"])
@@ -533,11 +646,121 @@ class Trainer:
                     state_path,
                 )
 
+        last_cycle_for_strength = -1
         try:
             for cycle, phase, num_epochs in self.scheduler:
                 if cycle < getattr(self, "_start_cycle", 0):
                     logger.info(f"Skipping cycle {cycle} (resuming from {self._start_cycle})")
                     continue
+
+                if cycle != last_cycle_for_strength:
+                    last_cycle_for_strength = cycle
+                    distortion_config = self.config.get("distortion", {})
+                    schedule_across_cycles = distortion_config.get(
+                        "schedule_across_cycles",
+                        False,
+                    )
+                    regenerate_dream = False
+                    regenerate_nightmare = False
+                    cycle_strength = None
+
+                    if schedule_across_cycles:
+                        num_cycles = self.training_config.get("num_cycles", 3)
+                        strength_min = distortion_config.get("strength_min", 0.2)
+                        strength_max = distortion_config.get("strength_max", 0.9)
+
+                        if num_cycles > 1:
+                            difference = strength_max - strength_min
+                            cycle_strength = strength_min + difference * cycle / (num_cycles - 1)
+                        else:
+                            cycle_strength = strength_max
+
+                        logger.info(
+                            "Cycle %d: Scheduled distortion strength = %.4f",
+                            cycle + 1,
+                            cycle_strength,
+                        )
+                        if dream_generator is not None:
+                            dream_generator.strength = cycle_strength
+                            regenerate_dream = True
+                        if nightmare_generator is not None:
+                            nightmare_generator.strength = cycle_strength
+                            regenerate_nightmare = True
+
+                    if nightmare_generator is not None:
+                        if hasattr(nightmare_generator, "set_target_model"):
+                            nightmare_generator.set_target_model(
+                                self.model,
+                                self.tokenizer,
+                            )
+                        if hasattr(nightmare_generator, "set_cycle"):
+                            nightmare_generator.set_cycle(cycle)
+
+                        # Cycle 0 was generated during Pipeline.prepare(). Later cycles
+                        # must be regenerated with current weights for model-aware attacks.
+                        if cycle > 0 and getattr(
+                            nightmare_generator,
+                            "uses_gradient_learned",
+                            False,
+                        ):
+                            regenerate_nightmare = True
+
+                    if regenerate_dream or regenerate_nightmare:
+                        text_column = self.config.get("dataset", {}).get(
+                            "text_column",
+                            "text",
+                        )
+                        max_length = self.config.get("model", {}).get(
+                            "max_length",
+                            128,
+                        )
+                        batch_size = self.training_config.get("batch_size", 8)
+
+                        if (
+                            regenerate_dream
+                            and dream_generator is not None
+                            and dream_base_dataset is not None
+                        ):
+                            logger.info(
+                                "Regenerating dream dataset for cycle %d%s",
+                                cycle + 1,
+                                (
+                                    f" at strength {cycle_strength:.4f}"
+                                    if cycle_strength is not None
+                                    else ""
+                                ),
+                            )
+                            dream_data = dream_generator.generate(dream_base_dataset)
+                            dream_dataloader = _tokenize_dataset(
+                                dream_data,
+                                self.tokenizer,
+                                text_column,
+                                max_length,
+                                batch_size,
+                            )
+
+                        if (
+                            regenerate_nightmare
+                            and nightmare_generator is not None
+                            and nightmare_base_dataset is not None
+                        ):
+                            logger.info(
+                                "Regenerating nightmare dataset for cycle %d%s",
+                                cycle + 1,
+                                (
+                                    f" at strength {cycle_strength:.4f}"
+                                    if cycle_strength is not None
+                                    else " with current target-model gradients"
+                                ),
+                            )
+                            nightmare_data = nightmare_generator.generate(nightmare_base_dataset)
+                            nightmare_dataloader = _tokenize_dataset(
+                                nightmare_data,
+                                self.tokenizer,
+                                text_column,
+                                max_length,
+                                batch_size,
+                            )
 
                 if cycle == getattr(self, "_start_cycle", 0):
                     start_phase = getattr(self, "_start_phase", None)
@@ -608,12 +831,13 @@ class Trainer:
                 if phase == "wake":
                     wake_runner = WakePhase(
                         model=phase_model,
+                        model_type=self.model_type,
                         optimizer=self.optimizer,
                         config=self.training_config,
                         device=self.device,
                         scaler=self.scaler,
                         callback_manager=self.callback_manager,
-                        lr_scheduler=lr_scheduler,
+                        lr_scheduler=self.lr_scheduler,
                     )
                     result = wake_runner.run(train_dataloader, num_epochs=num_epochs)
 
@@ -632,8 +856,9 @@ class Trainer:
                         reference_model=self.reference_model,
                         kl_weight=0.1,
                         scaler=self.scaler,
+                        model_type=self.model_type,
                         callback_manager=self.callback_manager,
-                        lr_scheduler=lr_scheduler,
+                        lr_scheduler=self.lr_scheduler,
                     )
                     result = dream_runner.run(dream_dataloader, num_epochs=num_epochs)
 
@@ -646,8 +871,9 @@ class Trainer:
                         device=self.device,
                         lr_multiplier=lr_multiplier,
                         scaler=self.scaler,
+                        model_type=self.model_type,
                         callback_manager=self.callback_manager,
-                        lr_scheduler=lr_scheduler,
+                        lr_scheduler=self.lr_scheduler,
                     )
                     result = nightmare_runner.run(nightmare_dataloader, num_epochs=num_epochs)
 
@@ -657,7 +883,9 @@ class Trainer:
                         config=self.compression_config,
                         device=self.device,
                         scaler=self.scaler,
+                        model_type=self.model_type,
                         callback_manager=self.callback_manager,
+                        lr_scheduler=self.lr_scheduler,
                     )
                     result = compress_runner.run(
                         dataloader=train_dataloader,
@@ -792,8 +1020,12 @@ class Trainer:
             dist.barrier()
 
         if not (dist.is_available() and dist.is_initialized()) or dist.get_rank() == 0:
-            self.model.save_pretrained(final_path)
-            self.tokenizer.save_pretrained(final_path)
+            if hasattr(self.model, "save_pretrained"):
+                self.model.save_pretrained(final_path)
+            else:
+                torch.save(self.model.state_dict(), os.path.join(final_path, "pytorch_model.bin"))
+            if self.tokenizer is not None:
+                self.tokenizer.save_pretrained(final_path)
             self._save_history()
 
         if dist.is_available() and dist.is_initialized():

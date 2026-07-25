@@ -147,8 +147,10 @@ def _build_distorter(distortion: str, strength: float):
     from nightmarenet.distortions import nightmare as nightmare_mod
 
     if distortion == "dream":
+
         def fn_dream(text: str) -> str:
             return dream_mod.distort(text, strength=strength, seed=42)
+
         return fn_dream
 
     # Nightmare with learned: 0 to avoid per-call model loading
@@ -183,20 +185,30 @@ def _train_model(label: str, train: list[dict], val: list[dict], args: argparse.
 
     if label == "baseline":
         print(
-            f"[{label}] wake epoch over {len(train)} examples "
-            f"(bs={args.batch_size}, amp={use_amp})"
+            f"[{label}] wake epoch over {len(train)} examples (bs={args.batch_size}, amp={use_amp})"
         )
         loss = _train_epoch(
-            model, tokenizer, train, args.device, args.batch_size, args.lr, use_amp,
+            model,
+            tokenizer,
+            train,
+            args.device,
+            args.batch_size,
+            args.lr,
+            use_amp,
         )
         history = [{"phase": "wake", "loss": loss}]
     else:
         print(
-            f"[{label}] wake epoch over {len(train)} examples "
-            f"(bs={args.batch_size}, amp={use_amp})"
+            f"[{label}] wake epoch over {len(train)} examples (bs={args.batch_size}, amp={use_amp})"
         )
         wake_loss = _train_epoch(
-            model, tokenizer, train, args.device, args.batch_size, args.lr, use_amp,
+            model,
+            tokenizer,
+            train,
+            args.device,
+            args.batch_size,
+            args.lr,
+            use_amp,
         )
         nightmare_distorter = _build_distorter("nightmare", strength=0.5)
         print(f"[{label}] nightmare epoch (adversarial hardening, strength=0.5)")
@@ -332,6 +344,7 @@ def main() -> int:
     try:
         from nightmarenet.utils.config import load_config
         from nightmarenet.utils.webhooks import trigger_webhook
+
         config = load_config(str(REPO_ROOT / "configs" / "default.yaml"))
         trigger_webhook(
             config,
@@ -344,7 +357,7 @@ def main() -> int:
                 "avg_distorted_delta": f"{improvement:+.4f}",
                 "improvement_pct": f"{relative_pct:.2f}%",
                 "output_path": str(out_path),
-            }
+            },
         )
     except Exception as e:
         print(f"Warning: Failed to trigger webhook notification: {e}")

@@ -1,0 +1,28 @@
+name: API Smoke Test
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.10"
+          
+      - name: Install package with API extras
+        run: pip install .[api]
+        
+      - name: Run minimal import smoke test
+        run: python -c "import nightmarenet.api"
+        

@@ -60,8 +60,7 @@ def validate_distortion_contract(
         result2 = fn(text, strength=0.5, seed=42)
         if result1 != result2:
             failures.append(
-                "Non-deterministic: same (text, strength, seed) "
-                "should produce identical output"
+                "Non-deterministic: same (text, strength, seed) should produce identical output"
             )
     except Exception as e:
         failures.append(f"Determinism test raised exception: {e}")
@@ -109,17 +108,17 @@ def validate_base_distortion(engine_cls: type) -> List[str]:
         failures.append(f"Failed to instantiate: {e}")
         return failures
 
-    if not hasattr(instance, 'name') or not instance.name:
+    if not hasattr(instance, "name") or not instance.name:
         failures.append("Class must have a non-empty 'name' attribute")
 
-    if not hasattr(instance, 'phase'):
+    if not hasattr(instance, "phase"):
         failures.append("Class must have a 'phase' attribute")
 
-    if not hasattr(instance, 'description'):
+    if not hasattr(instance, "description"):
         failures.append("Class must have a 'description' attribute")
 
     # Check distort method
-    if not hasattr(instance, 'distort') or not callable(instance.distort):
+    if not hasattr(instance, "distort") or not callable(instance.distort):
         failures.append("Class must have a callable 'distort' method")
     else:
         # Validate the distort method contract
@@ -127,7 +126,7 @@ def validate_base_distortion(engine_cls: type) -> List[str]:
         failures.extend(method_failures)
 
     # Check validate method
-    if not hasattr(instance, 'validate') or not callable(instance.validate):
+    if not hasattr(instance, "validate") or not callable(instance.validate):
         failures.append("Class must have a callable 'validate' method")
 
     return failures
@@ -148,6 +147,7 @@ def validate_plugin_package(
 
     try:
         import importlib.metadata
+
         importlib.metadata.metadata(package_name)
     except Exception as e:
         failures.append(f"Failed to load package metadata: {e}")
@@ -157,9 +157,7 @@ def validate_plugin_package(
     try:
         eps = importlib.metadata.entry_points(group="nightmarenet.distortions")
         package_eps = [
-            ep
-            for ep in eps
-            if hasattr(ep, 'dist') and ep.dist and ep.dist.name == package_name
+            ep for ep in eps if hasattr(ep, "dist") and ep.dist and ep.dist.name == package_name
         ]
 
         if not package_eps:

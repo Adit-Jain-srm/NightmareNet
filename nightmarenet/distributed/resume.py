@@ -17,10 +17,7 @@ class ResumeManager:
         self.resume_dir = resume_dir
 
     def verify_and_load(
-        self,
-        model: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
-        current_config: dict
+        self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, current_config: dict
     ) -> dict:
         """Loads state into model and optimizer and returns metadata."""
         from nightmarenet.distributed.checkpoint import (

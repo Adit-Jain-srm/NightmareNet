@@ -107,7 +107,7 @@ export default function QuickStart() {
                   key={t.id}
                   onClick={() => { setActiveTab(t.id); setCopied(false); }}
                   className={`relative flex items-center gap-2 px-4 py-3 text-xs font-mono transition-colors cursor-pointer ${
-                    isActive ? "text-neural" : "text-muted hover:text-text-dim"
+                    isActive ? "text-neural" : "text-slate-400 hover:text-text-dim"
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5" />
@@ -124,7 +124,7 @@ export default function QuickStart() {
             })}
             <button
               onClick={handleCopy}
-              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono text-muted hover:text-neural transition-colors cursor-pointer"
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-mono text-slate-400 hover:text-neural transition-colors cursor-pointer"
             >
               {copied ? <Check className="w-3 h-3 text-success" /> : <Copy className="w-3 h-3" />}
               {copied ? "Copied!" : "Copy"}
@@ -149,7 +149,7 @@ export default function QuickStart() {
         >
           <div className="flex items-center gap-2 mb-4 justify-center">
             <Zap className="w-3.5 h-3.5 text-neural" />
-            <span className="text-xs font-mono text-muted uppercase tracking-wider">
+            <span className="text-xs font-mono text-slate-400 uppercase tracking-wider">
               What happens each cycle (~38 min on A100)
             </span>
           </div>
@@ -166,7 +166,7 @@ export default function QuickStart() {
               >
                 {i < 3 && (
                   <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 z-10 hidden md:block">
-                    <ArrowRight className="w-3 h-3 text-muted/30" />
+                    <ArrowRight className="w-3 h-3 text-slate-400/30" />
                   </div>
                 )}
                 <p className={`text-xs font-semibold text-${p.color} mb-1`}>{p.phase}</p>
