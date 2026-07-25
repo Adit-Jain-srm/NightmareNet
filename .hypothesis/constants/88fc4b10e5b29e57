@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/distributed/checkpoint.py
+# hypothesis_version: 6.141.1
+
+[8192, '%Y-%m-%d %H:%M:%S', '.', '.bak', '.complete', '/', '\\', 'complete', 'config_hash', 'cpu', 'created_at', 'cuda', 'cycle', 'devices_used', 'file_hashes', 'metadata.json', 'metrics', 'model.pt', 'model.safetensors', 'module', 'optimizer.pt', 'phase', 'pytorch_model.bin', 'rb', 'rng_state.pt', 'save_pretrained', 'timestamp', 'version', 'w']

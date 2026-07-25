@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/phases/ingest.py
+# hypothesis_version: 6.141.1
+
+['Ingestion failed.', 'dataset', 'dataset.name', 'file', 'huggingface', 'image_classification', 'ingest', 'max_samples', 'model', 'name', 'seed', 'source', 'text', 'text_column', 'type', 'urls']

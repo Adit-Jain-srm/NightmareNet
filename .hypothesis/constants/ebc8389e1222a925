@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/utils/validation.py
+# hypothesis_version: 6.141.1
+
+[0.0, 1.0, 'column_names', 'config', 'dataloader', 'dataset', 'ratio', 'strength', 'text', 'value']
