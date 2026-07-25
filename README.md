@@ -395,6 +395,23 @@ The API also exposes generated reports:
 
 Four top-level commands cover the full workflow.
 
+### Common CLI Commands
+
+The table below provides a quick reference for the most commonly used NightmareNet CLI commands.
+
+| Task | Command |
+|------|---------|
+| Install | `pip install nightmarenet` |
+| Train | `nightmarenet train --config configs/benchmark_sst2.yaml` |
+| Evaluate | `nightmarenet evaluate --model ./output/model` |
+| Distort Text | `nightmarenet distort --type nightmare --strength 0.7 --text "Hello World"` |
+| Benchmark | `nightmarenet benchmark --suite standard` |
+| Run Tests | `pytest tests/` |
+| Lint | `ruff check .` |
+| Type Check | `mypy nightmarenet/` |
+
+> **Tip:** Run these commands from the project root directory unless otherwise noted.
+
 ### `nightmarenet train`
 
 Run the full 4-phase cycle from a YAML config.
