@@ -79,6 +79,7 @@ results/*
 !results/gpu_benchmark.json
 !results/convergence/
 !results/convergence/**
+!results/multi_dataset_benchmark.json
 checkpoints/
 logs/
 
