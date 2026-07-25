@@ -154,14 +154,15 @@ def run_distillation(
                 continue
 
             if scaler is not None:
+                optimizer.zero_grad()
                 scaler.scale(loss).backward()
                 scaler.unscale_(optimizer)
                 scaler.step(optimizer)
                 scaler.update()
             else:
+                optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
-            optimizer.zero_grad()
 
             total_loss += loss.item()
             total_steps += 1
