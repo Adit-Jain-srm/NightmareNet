@@ -214,7 +214,7 @@ def _evaluate(
     return correct / max(total, 1)
 
 
-def _build_distorter(distortion: str, strength: float, seed: int = 42):
+def _build_distorter(distortion: str, strength: float, seed: int):
     from nightmarenet.distortions import dream as dream_mod
     from nightmarenet.distortions import nightmare as nightmare_mod
 
@@ -307,7 +307,7 @@ def _train_and_eval(
     for d_type in ("dream", "nightmare"):
         per: Dict[str, float] = {}
         for s in STRENGTHS:
-            fn = _build_distorter(d_type, strength=s)
+            fn = _build_distorter(d_type, strength=s, seed=seed)
             acc = _evaluate(model, tokenizer, val, device, batch_size, max_length, distort_fn=fn)
             per[f"{s:.1f}"] = round(acc, 4)
         distorted[d_type] = per
