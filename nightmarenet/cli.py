@@ -52,11 +52,11 @@ def cmd_train(args: argparse.Namespace) -> int:
 
     def on_event(event: dict) -> None:
         phase = event.get("status", "unknown")
-        logger.info("[%s] %s", phase, event.get('message', ''))
+        logger.info("[%s] %s", phase, event.get("message", ""))
 
     logger.info("NightmareNet Training Pipeline")
     logger.info("  Config: %s", config_path)
-    logger.info("  Model: %s", config.get('model', {}).get('name', 'gpt2'))
+    logger.info("  Model: %s", config.get("model", {}).get("name", "gpt2"))
     if getattr(args, "distributed", None):
         logger.info("  Distributed: %s", args.distributed)
     if getattr(args, "resume", None):
@@ -135,9 +135,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
             logger.info("  Model:   %s", model_name)
             logger.info("  Config:  %s", config_path)
 
-        device = getattr(args, "device", None) or (
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
+        device = getattr(args, "device", None) or ("cuda" if torch.cuda.is_available() else "cpu")
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model_obj = AutoModelForSequenceClassification.from_pretrained(model_name)
         model_obj.to(device)
@@ -310,7 +308,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
         logger.info("NightmareNet Ensemble Benchmark Suite")
         logger.info("  Config: %s", args.config)
-        logger.info("  Output: %s", args.output if args.output else './results')
+        logger.info("  Output: %s", args.output if args.output else "./results")
         logger.info("")
 
         output_dir = args.output if args.output else "./results"
@@ -408,8 +406,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         evaluator.print_results_table(results)
     else:
         logger.info(
-            "Model: %s | Suite Profile: %s | Status: Evaluation Complete",
-            model_name, suite
+            "Model: %s | Suite Profile: %s | Status: Evaluation Complete", model_name, suite
         )
     logger.info("-----------------------------------")
 
@@ -421,9 +418,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     if robustness_delta >= 0.14:
         logger.info("[SUCCESS] Metrics match or exceed canonical paper specifications!")
     else:
-        logger.warning(
-            "Benchmark completed, but metrics diverged below the target paper standard."
-        )
+        logger.warning("Benchmark completed, but metrics diverged below the target paper standard.")
 
     return 0
 
@@ -442,9 +437,9 @@ def cmd_distort(args: argparse.Namespace) -> int:
             return 0
         logger.info("Available presets (%d):", len(presets))
         for preset in presets:
-            logger.info("  - %s: %s", preset['name'], preset['description'])
-            logger.info("    Path: %s", preset['path'])
-            logger.info("    Version: %s, Steps: %d", preset['version'], preset['num_steps'])
+            logger.info("  - %s: %s", preset["name"], preset["description"])
+            logger.info("    Path: %s", preset["path"])
+            logger.info("    Version: %s, Steps: %d", preset["version"], preset["num_steps"])
         return 0
 
     # Handle --validate
@@ -496,21 +491,25 @@ def cmd_distort(args: argparse.Namespace) -> int:
         if engines_by_source.get("builtin"):
             logger.info("Built-in:")
             for engine in engines_by_source["builtin"]:
-                pkg_info = " [%s]" % engine.get('package', '') if engine.get("package") else ""  # noqa: UP031
+                pkg_info = " [%s]" % engine.get("package", "") if engine.get("package") else ""  # noqa: UP031
                 logger.info(
                     "  %s (%s)%s - %s",
-                    engine['name'], engine.get('phase', 'unknown'), pkg_info,
-                    engine.get('description', '')
+                    engine["name"],
+                    engine.get("phase", "unknown"),
+                    pkg_info,
+                    engine.get("description", ""),
                 )
 
         if engines_by_source.get("plugin"):
             logger.info("Plugins:")
             for engine in engines_by_source["plugin"]:
-                pkg_info = " [%s]" % engine.get('package', '') if engine.get("package") else ""  # noqa: UP031
+                pkg_info = " [%s]" % engine.get("package", "") if engine.get("package") else ""  # noqa: UP031
                 logger.info(
                     "  %s (%s)%s - %s",
-                    engine['name'], engine.get('phase', 'unknown'), pkg_info,
-                    engine.get('description', '')
+                    engine["name"],
+                    engine.get("phase", "unknown"),
+                    pkg_info,
+                    engine.get("description", ""),
                 )
 
         if engines_by_source.get("custom"):
@@ -518,8 +517,9 @@ def cmd_distort(args: argparse.Namespace) -> int:
             for engine in engines_by_source["custom"]:
                 logger.info(
                     "  %s (%s) - %s",
-                    engine['name'], engine.get('phase', 'unknown'),
-                    engine.get('description', '')
+                    engine["name"],
+                    engine.get("phase", "unknown"),
+                    engine.get("description", ""),
                 )
 
         return 0
@@ -529,7 +529,7 @@ def cmd_distort(args: argparse.Namespace) -> int:
         # Use registry-based engine
         if args.engine not in registry:
             logger.error("Unknown engine '%s'", args.engine)
-            logger.error("Available: %s", ', '.join(registry.engine_names))
+            logger.error("Available: %s", ", ".join(registry.engine_names))
             return 1
 
         result = registry.apply(args.engine, text, strength=strength, seed=args.seed)
@@ -606,8 +606,7 @@ def cmd_transfer(args: argparse.Namespace) -> int:
                 return 1
             if "robustness_score" not in b_data or "clean_accuracy" not in b_data:
                 logger.error(
-                    "Baseline JSON is missing required keys "
-                    "('robustness_score', 'clean_accuracy')"
+                    "Baseline JSON is missing required keys ('robustness_score', 'clean_accuracy')"
                 )
                 return 1
 
@@ -623,9 +622,9 @@ def cmd_transfer(args: argparse.Namespace) -> int:
             return 1
     elif args.foundation and args.config:
         logger.info(
-            "Starting transfer fine-tuning using foundation '%s' "
-            "and config '%s'",
-            args.foundation, args.config
+            "Starting transfer fine-tuning using foundation '%s' and config '%s'",
+            args.foundation,
+            args.config,
         )
         try:
             config = load_config(args.config)
@@ -717,6 +716,7 @@ def cmd_optimize(args: argparse.Namespace) -> int:
         return 1
 
     return 0
+
 
 def cmd_push(args: argparse.Namespace) -> int:
     """Push a hardened model package structure to HuggingFace Hub."""

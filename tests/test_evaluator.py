@@ -429,4 +429,3 @@ class TestEvaluatorCalibration:
         assert results["optimal_temperature"] == 1.0
         # Since no temperature scaling is performed, ECE before and after must be exactly equal
         assert results["ece_before"] == results["ece_after"]
-
