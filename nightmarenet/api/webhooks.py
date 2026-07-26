@@ -58,15 +58,11 @@ async def save_webhook_settings(
     try:
         os.makedirs(os.path.dirname(WEBHOOKS_FILE_PATH), exist_ok=True)
         with open(WEBHOOKS_FILE_PATH, "w", encoding="utf-8") as f:
-            json.dump(
-                {"webhooks": [w.model_dump() for w in body.webhooks]}, f, indent=2
-            )
+            json.dump({"webhooks": [w.model_dump() for w in body.webhooks]}, f, indent=2)
         return WebhookSettingsResponse(webhooks=body.webhooks)
     except Exception as e:
         logger.error("Failed to save webhooks: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to save webhook settings."
-        ) from None
+        raise HTTPException(status_code=500, detail="Failed to save webhook settings.") from None
 
 
 _TEST_WEBHOOK_BODY = Body(...)
@@ -119,9 +115,7 @@ async def test_webhook_endpoint(
             "message": f"This is a test notification for {body.event_type}.",
         }
         if body.event_type == "run_complete":
-            details.update(
-                {"run_id": "test-run-12345", "status": "complete", "model": "gpt2"}
-            )
+            details.update({"run_id": "test-run-12345", "status": "complete", "model": "gpt2"})
         elif body.event_type == "regression_detected":
             details.update(
                 {

@@ -180,12 +180,8 @@ def write_svg_plot(
 
     for i, (name, scores) in enumerate(series.items()):
         color = colors[i % len(colors)]
-        pts = " ".join(
-            f"{x_pix(c):.1f},{y_pix(s):.1f}" for c, s in enumerate(scores, start=1)
-        )
-        lines.append(
-            f'<polyline fill="none" stroke="{color}" stroke-width="2.5" points="{pts}"/>'
-        )
+        pts = " ".join(f"{x_pix(c):.1f},{y_pix(s):.1f}" for c, s in enumerate(scores, start=1))
+        lines.append(f'<polyline fill="none" stroke="{color}" stroke-width="2.5" points="{pts}"/>')
         legend_y = margin + 14 + i * 18
         lines.append(
             f'<rect x="{margin + 8}" y="{legend_y - 10}" width="12" height="12" fill="{color}"/>'
@@ -202,10 +198,7 @@ def write_svg_plot(
 
 def _xml_escape(text: str) -> str:
     return (
-        text.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )
 
 
@@ -402,9 +395,7 @@ def run_live_study(
         nightmare = _build_distorter("nightmare", strength=0.5)
 
         for cycle in range(1, n_cycles + 1):
-            wake_loss = _train_epoch(
-                model, tokenizer, train, device, batch_size, lr, use_amp
-            )
+            wake_loss = _train_epoch(model, tokenizer, train, device, batch_size, lr, use_amp)
             night_loss = _train_epoch(
                 model,
                 tokenizer,
@@ -420,9 +411,7 @@ def run_live_study(
             for dtype in ("dream", "nightmare"):
                 for strength in (0.3, 0.5, 0.7):
                     fn = _build_distorter(dtype, strength=strength)
-                    accs.append(
-                        _evaluate(model, tokenizer, val, device, batch_size, distort_fn=fn)
-                    )
+                    accs.append(_evaluate(model, tokenizer, val, device, batch_size, distort_fn=fn))
             score = sum(accs) / len(accs)
             scores.append(score)
             history.append(
@@ -523,9 +512,7 @@ def main() -> int:
 
     if args.run:
         models = [m.strip() for m in args.models.split(",")] if args.models else None
-        summary = run_live_study(
-            args.config, device=args.device, models=models, out_dir=out_dir
-        )
+        summary = run_live_study(args.config, device=args.device, models=models, out_dir=out_dir)
         print(json.dumps({"run": "ok", "plot": summary.get("plot")}, indent=2))
 
     if args.analyze or summary is None:
