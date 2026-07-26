@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel } from "./Panel";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
 import { useToast } from "@/components/ui/Toast";
-import { cancelPipeline, getPipelineReport } from "@/lib/api";
+import { cancelPipeline, getPipelineReport, createPipeline } from "@/lib/api";
 import {
   IconActivity,
   IconClock,
@@ -19,7 +20,9 @@ import {
 type PhaseTab = "wake" | "dream" | "nightmare" | "compress";
 
 interface RunConfig {
+  sourceType: "urls" | "huggingface" | "text";
   modelName: string;
+  modelType: string;
   nightmareStrength: number;
   dreamStrength: number;
   numCycles: number;
@@ -32,12 +35,13 @@ interface MutationPreset {
   label: string;
   detail: string;
   mutate: (cfg: RunConfig) => RunConfig;
-  // Inline diff description rendered next to each preset.
   diff: (cfg: RunConfig) => string;
 }
 
 const BASE_CONFIG: RunConfig = {
+  sourceType: "text",
   modelName: "DistilBERT",
+  modelType: "causal_lm",
   nightmareStrength: 0.5,
   dreamStrength: 0.25,
   numCycles: 5,
@@ -96,7 +100,7 @@ const TABS: { key: PhaseTab; label: string; tone: "neural" | "dream" | "nightmar
   { key: "compress", label: "Compress", tone: "warning" },
 ];
 
-const PHASE_DATA: Record
+const PHASE_DATA: Record<
   PhaseTab,
   { lossStart: number; lossEnd: number; epochs: number; samples: number; description: string; metrics: { label: string; value: string }[] }
 > = {
@@ -157,15 +161,13 @@ const PHASE_DATA: Record
 function ReRunMenu({ config }: { config: RunConfig }) {
   const [open, setOpen] = useState(false);
   const [focusIdx, setFocusIdx] = useState(0);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  // Synchronous mutex guard: React state updates (loading) are async/batched,
-  // so a plain `if (loading) return` can let rapid double-clicks slip through
-  // before the first setLoading(true) has committed. A ref updates immediately.
   const inFlight = useRef(false);
 
-  // Close on Escape and on outside click.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -196,28 +198,11 @@ function ReRunMenu({ config }: { config: RunConfig }) {
     };
   }, [open]);
 
-  // Move focus when the active index changes (keyboard nav).
   useEffect(() => {
     if (!open) return;
     buttonRefs.current[focusIdx]?.focus();
   }, [focusIdx, open]);
 
-  const fire = (preset: MutationPreset) => {
-    const next = preset.mutate(config);
-    toast.push({
-      title: `Re-run queued · ${preset.label}`,
-      description:
-        preset.id === "same"
-          ? "Reusing the original configuration."
-          : preset.diff(config),
-      variant: "info",
-      durationMs: 3200,
-    });
-    // TODO: wire to POST /api/v1/pipeline/create with this mutated config.
-    // For now the queue surface lives only client-side so reviewers can
-    // exercise the UX without an active training cluster.
-    console.log("[RunDetail] re-run requested", { preset: preset.id, config: next });
-    setOpen(false);
   const fire = async (preset: MutationPreset) => {
     if (inFlight.current) return;
     inFlight.current = true;
@@ -267,8 +252,10 @@ function ReRunMenu({ config }: { config: RunConfig }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        loading={loading}
+        disabled={loading}
       >
-        <IconRunning size={12} /> Re-run
+        <IconRunning size={12} /> {loading ? "Re-running..." : "Re-run"}
       </Button>
       <AnimatePresence>
         {open && (
