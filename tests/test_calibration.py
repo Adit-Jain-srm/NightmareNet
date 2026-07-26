@@ -124,9 +124,7 @@ def test_temperature_scaler_reduces_ece():
     calib_test_logits = scaler.calibrate(test_logits)
     probs_after = torch.softmax(calib_test_logits, dim=-1)
     conf_after, preds_after = probs_after.max(dim=-1)
-    ece_after = compute_ece(
-        conf_after.numpy(), preds_after.numpy(), test_labels.numpy(), n_bins=15
-    )
+    ece_after = compute_ece(conf_after.numpy(), preds_after.numpy(), test_labels.numpy(), n_bins=15)
 
     # Verify that calibration successfully reduced ECE
     assert ece_after < ece_before
