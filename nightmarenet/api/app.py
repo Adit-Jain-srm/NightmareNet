@@ -149,7 +149,8 @@ async def telemetry_middleware(request: Request, call_next):
 
 
 # --- Rate limiting ---
-limiter = Limiter(key_func=get_remote_address)
+_rate_limit_enabled = os.environ.get("RATELIMIT_ENABLED", "true").lower() not in ("false", "0", "off", "no")
+limiter = Limiter(key_func=get_remote_address, enabled=_rate_limit_enabled)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
