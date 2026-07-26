@@ -62,7 +62,6 @@ try:
         PipelineStatusResponse,
         RobustnessRequest,
         RobustnessResponse,
-        TestWebhookRequest,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
