@@ -22,6 +22,9 @@ interface RunConfig {
   modelName: string;
   nightmareStrength: number;
   dreamStrength: number;
+  numCycles: number;
+  textContent: string;
+  seed?: number;
 }
 
 interface MutationPreset {
@@ -37,6 +40,9 @@ const BASE_CONFIG: RunConfig = {
   modelName: "DistilBERT",
   nightmareStrength: 0.5,
   dreamStrength: 0.25,
+  numCycles: 5,
+  textContent: "",
+  seed: 42,
 };
 
 const PRESETS: MutationPreset[] = [
@@ -90,7 +96,7 @@ const TABS: { key: PhaseTab; label: string; tone: "neural" | "dream" | "nightmar
   { key: "compress", label: "Compress", tone: "warning" },
 ];
 
-const PHASE_DATA: Record<
+const PHASE_DATA: Record
   PhaseTab,
   { lossStart: number; lossEnd: number; epochs: number; samples: number; description: string; metrics: { label: string; value: string }[] }
 > = {
@@ -154,6 +160,10 @@ function ReRunMenu({ config }: { config: RunConfig }) {
   const toast = useToast();
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  // Synchronous mutex guard: React state updates (loading) are async/batched,
+  // so a plain `if (loading) return` can let rapid double-clicks slip through
+  // before the first setLoading(true) has committed. A ref updates immediately.
+  const inFlight = useRef(false);
 
   // Close on Escape and on outside click.
   useEffect(() => {
@@ -208,6 +218,45 @@ function ReRunMenu({ config }: { config: RunConfig }) {
     // exercise the UX without an active training cluster.
     console.log("[RunDetail] re-run requested", { preset: preset.id, config: next });
     setOpen(false);
+  const fire = async (preset: MutationPreset) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setLoading(true);
+    try {
+      const next = preset.mutate(config);
+      const res = await createPipeline({
+        source_type: next.sourceType,
+        model_name: next.modelName,
+        model_type: next.modelType,
+        num_cycles: next.numCycles,
+        nightmare_strength: next.nightmareStrength,
+        dream_strength: next.dreamStrength,
+        ...(next.textContent ? { text_content: next.textContent } : {}),
+        ...(next.seed !== undefined ? { seed: next.seed } : {}),
+      });
+
+      toast.push({
+        title: `Re-run queued · ${preset.label}`,
+        description:
+          preset.id === "same"
+            ? "Reusing the original configuration."
+            : preset.diff(config),
+        variant: "info",
+        durationMs: 3200,
+      });
+      setOpen(false);
+      router.push(`/run/${res.run_id}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred";
+      toast.push({
+        title: "Re-run failed",
+        description: message,
+        variant: "error",
+      });
+    } finally {
+      inFlight.current = false;
+      setLoading(false);
+    }
   };
 
   return (
@@ -249,6 +298,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
                     }}
                     type="button"
                     role="menuitem"
+                    disabled={loading}
                     onClick={() => fire(preset)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -260,6 +310,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
                     className={[
                       "group flex w-full cursor-pointer flex-col gap-1 px-3 py-2 text-left transition-colors",
                       "hover:bg-white/[0.04] focus-visible:bg-white/[0.04] focus-visible:outline-none",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
                     ].join(" ")}
                   >
                     <span className="flex items-center justify-between">

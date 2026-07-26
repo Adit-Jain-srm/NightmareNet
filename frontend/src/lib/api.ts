@@ -231,7 +231,7 @@ export function runDemo(req: DemoRequest): Promise<DemoResponse> {
 
 // --- Pipeline ---
 
-export interface PipelineCreateRequest {
+ export interface PipelineCreateRequest {
   source_type: "urls" | "huggingface" | "text";
   urls?: string[];
   hf_dataset?: string;
@@ -246,6 +246,7 @@ export interface PipelineCreateRequest {
   learning_rate?: number;
   batch_size?: number;
   max_samples?: number;
+  seed?: number;              
   dream_strength?: number;
   nightmare_strength?: number;
   webhooks?: { url: string; events: string[] }[];
