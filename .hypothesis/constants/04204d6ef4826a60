@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/compression/distillation.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.01, 0.7, 1.0, 4.0, 'attention_mask', 'batchmean', 'cuda', 'distillation_loss', 'input_ids', 'inputs_embeds', 'labels', 'logits', 'pixel_values']

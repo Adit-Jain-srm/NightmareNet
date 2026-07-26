@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Panel } from "./Panel";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/Button";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
@@ -97,6 +99,9 @@ interface MenuItemDef {
 function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, loading }: RowActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -126,21 +131,68 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
         label: "Compare to baseline",
         ariaLabel: `Compare ${row.name} to baseline`,
         onSelect: () => {
+          router.push(`/compare?ids=${row.id}`);
           onCompare(row.id);
         },
       },
       {
         label: "Re-run with strength × 1.2",
         ariaLabel: `Re-run ${row.name} with strength × 1.2`,
-        onSelect: () => {
-          onRerun(row);
+        onSelect: async () => {
+          if (!row.config || typeof row.config.dream_strength !== "number" || typeof row.config.nightmare_strength !== "number") {
+            toast.push({
+              title: "Missing configuration",
+              description: "Cannot re-run because the experiment config is missing.",
+              variant: "error",
+            });
+            return;
+          }
+          setIsLoading(true);
+          try {
+            await createPipeline({
+              source_type: row.config.source_type || "text",
+              dream_strength: row.config.dream_strength * 1.2,
+              nightmare_strength: row.config.nightmare_strength * 1.2,
+              model_name: row.model,
+            });
+            toast.push({
+              title: "Re-run queued",
+              description: `${row.name} will run at 1.2× the original strength.`,
+              variant: "success",
+            });
+          } catch (e: any) {
+            toast.push({
+              title: "API Error",
+              description: e.message || "Failed to re-run",
+              variant: "error",
+            });
+          } finally {
+            setIsLoading(false);
+          }
         },
       },
       {
         label: "Export run report (CSV)",
         ariaLabel: `Export ${row.name} run report as CSV`,
-        onSelect: () => {
-          onExport(row.id);
+        onSelect: async () => {
+          setIsLoading(true);
+          try {
+            const blob = await exportExperiment(row.id, "csv");
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `experiment-${row.id}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (e: any) {
+            toast.push({
+              title: "API Error",
+              description: e.message || "Failed to export",
+              variant: "error",
+            });
+          } finally {
+            setIsLoading(false);
+          }
         },
       },
       {
@@ -159,11 +211,11 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
         ariaLabel: `Delete ${row.name}`,
         variant: "danger",
         onSelect: () => {
-          onDelete(row.id);
+          setDeleteConfirmOpen(true);
         },
       },
     ],
-    [row, onCompare, onRerun, onExport, onDelete]
+    [row, toast, router]
   );
 
   return (
@@ -221,8 +273,9 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
                   type="button"
                   role="menuitem"
                   aria-label={item.ariaLabel}
-                  onClick={() => {
-                    item.onSelect();
+                  disabled={isLoading}
+                  onClick={async () => {
+                    await item.onSelect();
                     close();
                   }}
                   className={[
@@ -242,6 +295,49 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
           </motion.div>
         )}
       </AnimatePresence>
+      <Modal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Delete Experiment"
+        subtitle={`Are you sure you want to delete ${row.name}?`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              loading={isLoading}
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  await deleteExperiment(row.id);
+                  toast.push({
+                    title: "Experiment deleted",
+                    description: `${row.name} has been deleted.`,
+                    variant: "success",
+                  });
+                  setDeleteConfirmOpen(false);
+                } catch (e: any) {
+                  toast.push({
+                    title: "API Error",
+                    description: e.message || "Failed to delete",
+                    variant: "error",
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              Confirm Delete
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-300">
+          This action cannot be undone. All data and metrics for this experiment will be permanently lost.
+        </p>
+      </Modal>
     </div>
   );
 }
@@ -463,8 +559,7 @@ export function ExperimentList({
     
     try {
       const response = await exportExperiment(id, "csv");
-      const blob = new Blob([response.data], { type: "text/csv" });
-      const url = URL.createObjectURL(blob);
+      const url = URL.createObjectURL(response);
       const a = document.createElement("a");
       a.href = url;
       a.download = `${id}.csv`;

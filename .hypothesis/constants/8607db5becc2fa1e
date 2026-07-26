@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/glue.py
+# hypothesis_version: 6.141.1
+
+[0.0, 128, 'accuracy', 'average', 'cola', 'cpu', 'dataset', 'error', 'f1', 'f1_weighted', 'glue', 'input_columns', 'label', 'label_column', 'labels', 'matthews_correlation', 'max_length', 'mean_primary_score', 'metric', 'mrpc', 'num_labels', 'num_samples', 'primary_metric', 'primary_score', 'qnli', 'question', 'rte', 'sentence', 'sentence1', 'sentence2', 'sst2', 'subset', 'task', 'tasks_evaluated', 'tasks_failed', 'test', 'torch', 'validation', 'weighted']

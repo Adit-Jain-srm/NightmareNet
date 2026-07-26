@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/training/callbacks.py
+# hypothesis_version: 6.141.1
+
+[0.0, 100.0, 'cancel', 'checkpoint', 'epoch', 'epoch_end', 'epoch_start', 'error', 'event_type', 'message', 'metric', 'metrics', 'phase', 'phase_end', 'phase_start', 'progress_pct', 'step', 'timestamp', 'total_steps']
