@@ -6,6 +6,7 @@ from fastapi import APIRouter, Body, HTTPException, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
+from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
 from nightmarenet.api.schemas import (
     ErrorResponse,
     TestWebhookRequest,
@@ -15,10 +16,6 @@ from nightmarenet.api.schemas import (
 )
 
 router = APIRouter()
-
-WEBHOOKS_FILE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
-)
 
 logger = logging.getLogger(__name__)
 
