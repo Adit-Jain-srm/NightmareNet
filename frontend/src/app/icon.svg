@@ -1,0 +1,45 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gradNeural" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#f87171" />
+    </linearGradient>
+    <linearGradient id="gradDream" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#6366f1" />
+    </linearGradient>
+    <linearGradient id="gradNightmare" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f87171" />
+      <stop offset="100%" stop-color="#dc2626" />
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="#030712" />
+
+  <circle cx="32" cy="32" r="28" stroke="url(#gradNeural)" stroke-width="2" fill="none" opacity="0.3" />
+
+  <ellipse cx="32" cy="32" rx="20" ry="12" stroke="url(#gradDream)" stroke-width="1.5" fill="none" opacity="0.5" transform="rotate(-30 32 32)" />
+  <ellipse cx="32" cy="32" rx="20" ry="12" stroke="url(#gradNightmare)" stroke-width="1.5" fill="none" opacity="0.5" transform="rotate(30 32 32)" />
+
+  <g filter="url(#glow)">
+    <path d="M32 16c-8.837 0-16 7.163-16 16s7.163 16 16 16 16-7.163 16-16-7.163-16-16-16z" fill="none" stroke="url(#gradNeural)" stroke-width="2" />
+    <path d="M24 28c2-4 6-6 8-6s6 2 8 6" stroke="#22d3ee" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <path d="M24 36c2 4 6 6 8 6s6-2 8-6" stroke="#818cf8" stroke-width="1.5" fill="none" stroke-linecap="round" />
+    <path d="M28 24v16" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" opacity="0.7" />
+    <path d="M36 24v16" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" opacity="0.7" />
+    <circle cx="32" cy="32" r="4" fill="url(#gradNeural)" />
+  </g>
+
+  <circle cx="32" cy="8" r="3" fill="#34d399" opacity="0.9" />
+  <circle cx="56" cy="32" r="3" fill="#818cf8" opacity="0.9" />
+  <circle cx="32" cy="56" r="3" fill="#f87171" opacity="0.9" />
+  <circle cx="8" cy="32" r="3" fill="#22d3ee" opacity="0.9" />
+</svg>

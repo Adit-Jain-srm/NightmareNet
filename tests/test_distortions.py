@@ -201,9 +201,7 @@ class TestAdversarialDistortions:
         assert isinstance(result, str)
 
     def test_cross_domain_splice_with_domain(self):
-        result = cross_domain_splice(
-            LONG_TEXT, strength=0.8, target_domain="legal"
-        )
+        result = cross_domain_splice(LONG_TEXT, strength=0.8, target_domain="legal")
         assert isinstance(result, str)
 
     def test_inject_misleading_context_produces_output(self):

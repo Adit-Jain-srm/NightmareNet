@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/phases/optimize.py
+# hypothesis_version: 6.141.1
+
+[100, 5000, 'ADAPTION_API_KEY', 'adaption', 'brand_controls', 'column_mapping', 'credits', 'disabled', 'dream', 'enabled', 'estimate_first', 'estimated_minutes', 'generic', 'has_phase_controls', 'max_credits', 'max_rows', 'nightmare', 'no_api_key', 'optimize', 'over_budget', 'quality', 'recipe_specification', 'sdk_missing', 'sdk_unavailable', 'skipped', 'wake']

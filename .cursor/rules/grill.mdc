@@ -1,0 +1,34 @@
+---
+description: "Resolve decisions before building — ask questions one at a time until clarity"
+globs:
+alwaysApply: false
+---
+
+## Grill Before Building
+
+For any non-trivial new feature or system, resolve decision branches BEFORE implementation.
+
+### Ask ONE question at a time, covering:
+
+1. WHO is this for? (specific user, not "developers")
+2. WHAT specific pain does this eliminate?
+3. WHY doesn't a solution already exist?
+4. WHAT'S the simplest version that would be useful?
+5. WHAT could go wrong? (failure modes, edge cases, misuse)
+6. HOW do you KNOW it works? (verification, not "I think")
+
+### Depth Control
+
+- Simple task (< 5 min): 2-3 questions
+- Medium task (< 1 hour): 4-6 questions
+- Complex task (> 1 hour): full tree
+
+### Stop When
+
+- Every branch has a clear answer
+- Can state in ONE sentence: what, for whom, why it's better
+- There's a concrete first step
+
+### Anti-Pattern
+
+"Let me just start and see where it goes" — this is what grilling prevents.

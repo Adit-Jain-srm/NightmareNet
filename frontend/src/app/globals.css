@@ -74,6 +74,32 @@ body {
   mix-blend-mode: multiply;
 }
 
+:where(
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  summary,
+  [role="button"],
+  [role="link"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 3px solid #22d3ee;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*            GLASSMORPHISM UTILITIES            */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -142,6 +168,7 @@ body {
 .light .text-slate-300 { color: #475569; }
 .light .text-slate-400 { color: #64748b; }
 .light .text-white { color: #0f172a; }
+.light .text-text { color: #64748b; }
 
 /* Borders that use white opacity — flip to black opacity */
 .light [class*="border-white"] {
@@ -155,16 +182,41 @@ body {
 
 /* Gradient text needs darker stops in light mode */
 .light .text-gradient-dream {
-  background: linear-gradient(135deg, #6366f1, #4f46e5, #7c3aed);
+  background-image: linear-gradient(135deg, #6366f1, #4f46e5, #7c3aed);
+}
+.light .logo-net {
+  color: #5B6475 !important;
+}
+
+/* Demo section light mode fixes */
+.light .text-slate-400 { color: #475569; }
+.light .text-text-dim { color: #334155; }
+.light .text-text { color: #0f172a; }
+
+.light textarea {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #0f172a !important;
+}
+.light textarea::placeholder { color: #94a3b8 !important; }
+
+.light textarea:focus {
+  border-color: rgba(8, 145, 178, 0.4) !important;
+  box-shadow: 0 0 0 1px rgba(8, 145, 178, 0.15) !important;
+}
+
+.light .bg-void\/40,
+.light .bg-void\/60 {
+  background: rgba(241, 245, 249, 0.8) !important;
 }
 .light .text-gradient-nightmare {
-  background: linear-gradient(135deg, #dc2626, #b91c1c, #ea580c);
+  background-image: linear-gradient(135deg, #dc2626, #b91c1c, #ea580c);
 }
 .light .text-gradient-neural {
-  background: linear-gradient(135deg, #0891b2, #0e7490, #6366f1);
+  background-image: linear-gradient(135deg, #0891b2, #0e7490, #6366f1);
 }
 .light .text-gradient-hero {
-  background: linear-gradient(135deg, #0f172a 0%, #334155 40%, #4f46e5 70%, #0891b2 100%);
+  background-image: linear-gradient(135deg, #0f172a 0%, #334155 40%, #4f46e5 70%, #0891b2 100%);
 }
 
 /* Button primary stays white text even in light mode */
@@ -176,7 +228,12 @@ body {
 /*              GRADIENT TEXT FILLS              */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .text-gradient-dream {
-  background: linear-gradient(135deg, #818cf8, #6366f1, #a78bfa);
+  background: linear-gradient(
+    135deg,
+    #6366F1,
+    #4F46E5,
+    #4338CA
+  );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

@@ -1,0 +1,32 @@
+---
+description: "Maximum effort on every response — production-grade, verified, excellent"
+globs:
+alwaysApply: true
+---
+
+## Max Effort Standard
+
+Every output is production-grade. No exceptions.
+
+### Non-Negotiable Behaviors
+
+1. **THINK DEEPLY** — Consider multiple approaches before choosing. Plan before executing.
+2. **RESEARCH BEFORE ASSUMING** — Read the file before modifying. Check what exists before creating.
+3. **COMPLETE SOLUTIONS** — Don't suggest, DO. Include error handling, types, edge cases.
+4. **VERIFY EVERYTHING** — Run tests. Read your own output critically. Prove it works.
+5. **RETRY AND IMPROVE** — If first output isn't excellent, iterate. Never present first drafts.
+6. **AUTONOMOUS DEBUGGING** — Trace root causes. Fix the cause, not the symptom.
+
+### Quality Gate (before every response)
+
+- Is this the BEST approach, not just the first?
+- Would a senior engineer approve without changes?
+- Are edge cases and error paths handled?
+- Have I verified this works (not assumed)?
+
+### Red Flags (you are being lazy — STOP)
+
+- "This should work" → prove it
+- "You could try..." → do it
+- "Here's a basic example" → make it production-grade
+- Presenting untested code → run or review first

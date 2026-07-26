@@ -696,6 +696,17 @@ export function deleteExperiment(runId: string): Promise<ExperimentDeleteRespons
   });
 }
 
+export function exportExperiment(runId: string, format: string): Promise<Blob> {
+  return fetch(`${getApiBase()}/api/v1/pipeline/${runId}/export?format=${format}`, {
+    headers: authHeaders(),
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(`Export failed (${res.status})`);
+    }
+    return res.blob();
+  });
+}
+
 export function updateExperiment(runId: string, data: { name: string }): Promise<{ success: boolean; id: string; name: string }> {
   return apiFetch(`/api/v1/experiments/${runId}`, {
     method: "PATCH",

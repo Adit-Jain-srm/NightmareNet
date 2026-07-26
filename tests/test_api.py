@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 # Only run if fastapi is installed
@@ -26,9 +29,11 @@ class TestHealthEndpoint:
         assert "version" in data
 
     def test_health_includes_version(self):
+        from nightmarenet import __version__
+
         response = client.get("/api/v1/health")
         data = response.json()
-        assert data["version"] == "0.2.0"
+        assert data["version"] == __version__
 
 
 class TestDreamEndpoint:
@@ -202,9 +207,11 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
+
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
+
         auth_client = TestClient(reloaded_app)
         response = auth_client.get("/api/v1/health")
         assert response.status_code == 200
@@ -226,9 +233,11 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
+
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
+
         auth_client = TestClient(reloaded_app)
         response = auth_client.post(
             "/api/v1/generate/dream",
@@ -244,9 +253,11 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
+
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
+
         auth_client = TestClient(reloaded_app)
         response = auth_client.post(
             "/api/v1/generate/dream",
@@ -263,9 +274,11 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
+
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
+
         auth_client = TestClient(reloaded_app)
         response = auth_client.post(
             "/api/v1/generate/dream",
@@ -567,7 +580,10 @@ class TestUploadEndpoint:
         assert "Unsupported file type" in response.json()["detail"]
 
     def test_upload_rejects_too_large(self, monkeypatch):
-        import nightmarenet.api.app as api_module
+        import importlib
+
+        api_module = importlib.import_module("nightmarenet.api.app")
+
         monkeypatch.setattr(api_module, "_MAX_UPLOAD_BYTES", 10)
         response = client.post(
             "/api/v1/upload/text",
@@ -664,9 +680,7 @@ class TestLearnedAdversarialIntegration:
         """At strength < 0.5, should use default config without learned adversarial."""
         from nightmarenet.api.app import _apply_nightmare_distortions
 
-        result = _apply_nightmare_distortions(
-            "Test text at low strength.", strength=0.3, seed=42
-        )
+        result = _apply_nightmare_distortions("Test text at low strength.", strength=0.3, seed=42)
         assert isinstance(result, str)
 
     def test_nightmare_custom_config_preserved(self):
@@ -697,6 +711,78 @@ class TestOpenAPINewEndpoints:
         response = client.get("/openapi.json")
         data = response.json()
         assert "/api/v1/demo" in data["paths"]
+
+    def test_openapi_includes_pipeline_runs(self):
+        response = client.get("/openapi.json")
+        data = response.json()
+        assert "/api/v1/pipeline/runs" in data["paths"]
+
+
+class TestPipelineRunsEndpoint:
+    """Test the pipeline runs list endpoint with pagination."""
+
+    def test_list_runs_default_pagination(self):
+        """Default pagination returns first 50 runs with metadata."""
+        response = client.get("/api/v1/pipeline/runs")
+        assert response.status_code == 200
+        data = response.json()
+        assert "runs" in data
+        assert "total" in data
+        assert "offset" in data
+        assert "limit" in data
+        assert data["offset"] == 0
+        assert data["limit"] == 50
+        assert isinstance(data["runs"], list)
+        assert isinstance(data["total"], int)
+
+    def test_list_runs_custom_offset(self):
+        """Custom offset skips the specified number of runs."""
+        response = client.get("/api/v1/pipeline/runs?offset=5")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["offset"] == 5
+
+    def test_list_runs_custom_limit(self):
+        """Custom limit returns the specified number of runs."""
+        response = client.get("/api/v1/pipeline/runs?limit=10")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["limit"] == 10
+        assert len(data["runs"]) <= 10
+
+    def test_list_runs_combined_pagination(self):
+        """Combined offset and limit work correctly."""
+        response = client.get("/api/v1/pipeline/runs?offset=2&limit=5")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["offset"] == 2
+        assert data["limit"] == 5
+
+    def test_list_runs_limit_enforced_max(self):
+        """Limit cap of 200 is enforced."""
+        response = client.get("/api/v1/pipeline/runs?limit=300")
+        # Should return 422 for invalid limit
+        assert response.status_code == 422
+
+    def test_list_runs_negative_offset_rejected(self):
+        """Negative offset is rejected."""
+        response = client.get("/api/v1/pipeline/runs?offset=-1")
+        assert response.status_code == 422
+
+    def test_list_runs_zero_limit_rejected(self):
+        """Zero limit is rejected."""
+        response = client.get("/api/v1/pipeline/runs?limit=0")
+        assert response.status_code == 422
+
+    def test_list_runs_response_structure(self):
+        """Each run in the list has the expected structure."""
+        response = client.get("/api/v1/pipeline/runs")
+        assert response.status_code == 200
+        data = response.json()
+        for run in data["runs"]:
+            assert "run_id" in run
+            assert "status" in run
+            assert "is_running" in run
 
 
 class TestDemoEndpoint:
@@ -737,8 +823,7 @@ class TestDemoEndpoint:
             "/api/v1/demo",
             json={
                 "text": (
-                    "A sufficiently long sentence to produce"
-                    " meaningful distortion differences."
+                    "A sufficiently long sentence to produce meaningful distortion differences."
                 ),
             },
         )
@@ -801,8 +886,94 @@ class TestDemoEndpoint:
         )
         data = response.json()
         insight_lower = data["insight"].lower()
-        assert any(
-            w in insight_lower
-            for w in ["resilient", "vulnerable"]
-        )
+        assert any(w in insight_lower for w in ["resilient", "vulnerable"])
 
+
+def test_get_compliance_report(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    results = Path("results")
+    results.mkdir(exist_ok=True)
+
+    report = {
+        "generated_at": "today",
+        "model": {"name": "demo"},
+    }
+
+    with open(results / "run123_compliance_report.json", "w") as f:
+        json.dump(report, f)
+
+    response = client.get("/api/v1/compliance/report/run123")
+
+    assert response.status_code == 200
+    assert response.json()["model"]["name"] == "demo"
+
+
+def test_missing_compliance_report(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    response = client.get("/api/v1/compliance/report/does_not_exist")
+
+    assert response.status_code == 404
+
+
+class TestAPIVersionHeader:
+    """Test that all API responses include the X-API-Version header."""
+
+    def test_health_has_version_header(self):
+        from nightmarenet import __version__
+
+        response = client.get("/api/v1/health")
+        assert response.status_code == 200
+        assert response.headers.get("X-API-Version") == __version__
+
+    def test_dream_has_version_header(self):
+        from nightmarenet import __version__
+
+        response = client.post(
+            "/api/v1/generate/dream",
+            json={"text": "Hello world.", "strength": 0.3},
+        )
+        assert response.status_code == 200
+        assert response.headers.get("X-API-Version") == __version__
+
+    def test_validation_error_has_version_header(self):
+        from nightmarenet import __version__
+
+        response = client.post(
+            "/api/v1/generate/dream",
+            json={"text": "", "strength": 0.3},  # Empty text triggers validation error
+        )
+        assert response.status_code == 422
+        assert response.headers.get("X-API-Version") == __version__
+
+    def test_unauthorized_has_version_header(self, monkeypatch):
+        import importlib
+
+        app_module = importlib.import_module("nightmarenet.api.app")
+        from nightmarenet import __version__
+
+        monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
+
+        try:
+            importlib.reload(app_module)
+            from nightmarenet.api.app import app as reloaded_app
+
+            auth_client = TestClient(reloaded_app)
+            response = auth_client.post(
+                "/api/v1/generate/dream",
+                json={"text": "Auth test.", "strength": 0.1},
+            )
+            assert response.status_code == 401
+            assert response.headers.get("X-API-Version") == __version__
+        finally:
+            # Cleanup
+            monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+            importlib.reload(app_module)
+
+    def test_not_found_has_version_header(self):
+        from nightmarenet import __version__
+
+        response = client.get("/api/v1/nonexistent-route")
+        assert response.status_code == 404
+        assert response.headers.get("X-API-Version") == __version__

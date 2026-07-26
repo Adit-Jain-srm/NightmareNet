@@ -60,8 +60,8 @@ def main():
         "--tracker",
         type=str,
         default=None,
-        choices=["none", "wandb", "tensorboard"],
-        help="Override tracking backend (none, wandb, tensorboard).",
+        choices=["none", "wandb", "tensorboard", "mlflow"],
+        help="Override tracking backend (none, wandb, tensorboard, mlflow).",
     )
     args = parser.parse_args()
 

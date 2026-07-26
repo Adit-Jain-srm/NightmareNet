@@ -65,7 +65,7 @@ class CallbackManager:
 
     Usage:
         mgr = CallbackManager()
-        mgr.on(EventType.STEP, lambda e: print(e.progress_pct))
+        mgr.on(EventType.STEP, lambda e: None)
         mgr.emit(TrainingEvent(event_type=EventType.STEP, phase="wake", step=10, total_steps=100))
     """
 

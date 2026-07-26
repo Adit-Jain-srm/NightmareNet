@@ -2,13 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 
 import torch
-
-from nightmarenet.distributed.checkpoint import compute_config_hash
 
 logger = logging.getLogger(__name__)
 
@@ -20,48 +17,29 @@ class ResumeManager:
         self.resume_dir = resume_dir
 
     def verify_and_load(
-        self,
-        model: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
-        current_config: dict
+        self, model: torch.nn.Module, optimizer: torch.optim.Optimizer, current_config: dict
     ) -> dict:
         """Loads state into model and optimizer and returns metadata."""
-        if not os.path.exists(self.resume_dir):
-            raise FileNotFoundError(f"Resume directory {self.resume_dir} not found.")
+        from nightmarenet.distributed.checkpoint import (
+            load_model_weights,
+            validate_checkpoint_integrity,
+        )
 
-        sentinel_path = os.path.join(self.resume_dir, ".complete")
-        if not os.path.exists(sentinel_path):
-            raise RuntimeError(
-                f"Checkpoint at {self.resume_dir} is incomplete (.complete missing)."
-            )
+        # 1. Run the dedicated validation check (structural + checksum + version checking)
+        metadata = validate_checkpoint_integrity(self.resume_dir, current_config)
 
-        meta_path = os.path.join(self.resume_dir, "metadata.json")
-        if not os.path.exists(meta_path):
-            raise RuntimeError(f"Metadata missing in {self.resume_dir}.")
+        # 2. Load Model
+        has_params = list(model.parameters())
+        device = next(model.parameters()).device if has_params else torch.device("cpu")
+        load_model_weights(model, self.resume_dir, device)
 
-        with open(meta_path) as f:
-            metadata = json.load(f)
-
-        expected_hash = compute_config_hash(current_config)
-        if metadata.get("config_hash") != expected_hash:
-            logger.warning(
-                "Config hash mismatch on resume. Training configuration may have changed."
-            )
-
-        # Load Model
-        model_file = os.path.join(self.resume_dir, "model.pt")
-        if os.path.exists(model_file):
-            model_to_load = model.module if hasattr(model, "module") else model
-            model_to_load.load_state_dict(torch.load(model_file, map_location="cpu"))
-            logger.info("Loaded model weights from checkpoint.")
-
-        # Load Optimizer
+        # 3. Load Optimizer
         opt_file = os.path.join(self.resume_dir, "optimizer.pt")
         if os.path.exists(opt_file):
             optimizer.load_state_dict(torch.load(opt_file, map_location="cpu"))
             logger.info("Loaded optimizer state from checkpoint.")
 
-        # Load RNG
+        # 4. Load RNG
         rng_file = os.path.join(self.resume_dir, "rng_state.pt")
         if os.path.exists(rng_file):
             rng_states = torch.load(rng_file)

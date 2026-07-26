@@ -1,0 +1,28 @@
+---
+description: "Self-review every code change before presenting — catch bugs before the user sees them"
+globs: ["**/*.ts", "**/*.tsx", "**/*.js"]
+alwaysApply: true
+---
+
+## Self-Review Protocol
+
+After writing or modifying code, review BEFORE presenting. The user should never see a first draft.
+
+### The Checklist (run mentally, fix inline)
+
+1. RE-READ what you wrote (don't trust memory of intent)
+2. CHECK: Does this solve THE thing asked? (not a related thing)
+3. BUGS: Off-by-one? Null/undefined? Race condition? Unclosed resource?
+4. EDGE CASES: Empty input? Very large input? Concurrent access?
+5. CONSISTENCY: Matches existing code style? Same naming conventions?
+6. IMPORTS: Everything imported? Nothing unused? Circular dependency?
+7. TYPES: Type-safe? No `any` where there shouldn't be?
+8. ERROR HANDLING: What can throw? Is it caught? Useful error message?
+9. SECURITY: User input validated? SQL injection? XSS?
+
+### Rules
+
+- Fix issues SILENTLY — don't announce "I found a bug"
+- Never skip review for "small changes" — small changes have bugs too
+- Review surrounding context, not just changed lines
+- Present REVIEWED work, not first drafts

@@ -24,7 +24,7 @@ function DefaultIllustration() {
       viewBox="0 0 280 160"
       width="280"
       height="160"
-      role="img"
+      role="group"
       aria-hidden="true"
       className="select-none"
     >

@@ -37,9 +37,7 @@ class TestValidateColumnMapping:
 
     def test_validates_against_dataset_columns(self):
         with pytest.raises(ValueError, match="does not exist"):
-            _validate_column_mapping(
-                {"prompt": "missing"}, dataset_columns=["text", "label"]
-            )
+            _validate_column_mapping({"prompt": "missing"}, dataset_columns=["text", "label"])
 
     def test_context_list_validated_against_columns(self):
         with pytest.raises(ValueError, match="does not exist"):
@@ -147,9 +145,9 @@ class TestAdaptionOptimizerWithMockClient:
         ds.__len__ = MagicMock(return_value=2)
         ds.column_names = ["text", "label"]
         ds.select.return_value = ds
-        ds.__iter__ = MagicMock(return_value=iter(
-            [{"text": "hello", "label": "1"}, {"text": "world", "label": "0"}]
-        ))
+        ds.__iter__ = MagicMock(
+            return_value=iter([{"text": "hello", "label": "1"}, {"text": "world", "label": "0"}])
+        )
         return ds
 
     @pytest.fixture
@@ -162,9 +160,7 @@ class TestAdaptionOptimizerWithMockClient:
             estimated_credits_consumed=2.5,
             estimated_minutes=1.0,
         )
-        client.datasets.wait_for_completion.return_value = MagicMock(
-            status="succeeded"
-        )
+        client.datasets.wait_for_completion.return_value = MagicMock(status="succeeded")
         client.datasets.download.return_value = "https://example.com/out.csv"
         client.datasets.get_status.return_value = MagicMock(
             row_count=2, status="succeeded", quality_score=0.85
@@ -191,17 +187,13 @@ class TestAdaptionOptimizerWithMockClient:
         call_kwargs = mock_client.datasets.run.call_args
         assert call_kwargs[1].get("brand_controls") == brand
 
-    def test_optimize_passes_recipe_specification(
-        self, mock_dataset, mock_client, monkeypatch
-    ):
+    def test_optimize_passes_recipe_specification(self, mock_dataset, mock_client, monkeypatch):
         monkeypatch.setenv("ADAPTION_API_KEY", "test-key")
         recipe = {"recipes": {"reasoning_traces": True, "deduplication": True}}
 
         with patch("nightmarenet.data.adaption.Adaption", MagicMock(return_value=mock_client)):
             with patch("nightmarenet.data.adaption.HFDataset") as hf_ds:
-                hf_ds.from_csv.return_value = MagicMock(
-                    __len__=lambda _: 2, column_names=["text"]
-                )
+                hf_ds.from_csv.return_value = MagicMock(__len__=lambda _: 2, column_names=["text"])
                 with patch("urllib.request.urlretrieve"):
                     optimizer = AdaptionOptimizer()
                     optimizer.optimize_dataset(
@@ -213,16 +205,12 @@ class TestAdaptionOptimizerWithMockClient:
         call_kwargs = mock_client.datasets.run.call_args
         assert call_kwargs[1].get("recipe_specification") == recipe
 
-    def test_optimize_adds_idempotency_key(
-        self, mock_dataset, mock_client, monkeypatch
-    ):
+    def test_optimize_adds_idempotency_key(self, mock_dataset, mock_client, monkeypatch):
         monkeypatch.setenv("ADAPTION_API_KEY", "test-key")
 
         with patch("nightmarenet.data.adaption.Adaption", MagicMock(return_value=mock_client)):
             with patch("nightmarenet.data.adaption.HFDataset") as hf_ds:
-                hf_ds.from_csv.return_value = MagicMock(
-                    __len__=lambda _: 2, column_names=["text"]
-                )
+                hf_ds.from_csv.return_value = MagicMock(__len__=lambda _: 2, column_names=["text"])
                 with patch("urllib.request.urlretrieve"):
                     optimizer = AdaptionOptimizer()
                     optimizer.optimize_dataset(
@@ -235,17 +223,13 @@ class TestAdaptionOptimizerWithMockClient:
         assert "idempotency_key" in job_spec
         assert job_spec["idempotency_key"].startswith("nn-")
 
-    def test_estimate_cost_with_brand_controls(
-        self, mock_dataset, mock_client, monkeypatch
-    ):
+    def test_estimate_cost_with_brand_controls(self, mock_dataset, mock_client, monkeypatch):
         monkeypatch.setenv("ADAPTION_API_KEY", "test-key")
         brand = {"length": "detailed"}
 
         with patch("nightmarenet.data.adaption.Adaption", MagicMock(return_value=mock_client)):
             optimizer = AdaptionOptimizer()
-            result = optimizer.estimate_cost(
-                mock_dataset, {"prompt": "text"}, brand_controls=brand
-            )
+            result = optimizer.estimate_cost(mock_dataset, {"prompt": "text"}, brand_controls=brand)
 
         assert result is not None
         assert "credits" in result
@@ -255,9 +239,7 @@ class TestAdaptionOptimizerWithMockClient:
 
     def test_huggingface_import(self, mock_client, monkeypatch):
         monkeypatch.setenv("ADAPTION_API_KEY", "test-key")
-        mock_client.datasets.create_from_huggingface.return_value = MagicMock(
-            dataset_id="ds-hf-1"
-        )
+        mock_client.datasets.create_from_huggingface.return_value = MagicMock(dataset_id="ds-hf-1")
 
         with patch("nightmarenet.data.adaption.Adaption", MagicMock(return_value=mock_client)):
             optimizer = AdaptionOptimizer()
@@ -275,9 +257,7 @@ class TestAdaptionOptimizerWithMockClient:
 
     def test_kaggle_import(self, mock_client, monkeypatch):
         monkeypatch.setenv("ADAPTION_API_KEY", "test-key")
-        mock_client.datasets.create_from_kaggle.return_value = MagicMock(
-            dataset_id="ds-kg-1"
-        )
+        mock_client.datasets.create_from_kaggle.return_value = MagicMock(dataset_id="ds-kg-1")
 
         with patch("nightmarenet.data.adaption.Adaption", MagicMock(return_value=mock_client)):
             optimizer = AdaptionOptimizer()
@@ -325,9 +305,7 @@ class TestPipelinePhaseAwareOptimize:
             },
         }
 
-    def test_estimate_gating_skips_when_over_budget(
-        self, pipeline_config, monkeypatch
-    ):
+    def test_estimate_gating_skips_when_over_budget(self, pipeline_config, monkeypatch):
         monkeypatch.setenv("ADAPTION_API_KEY", "test-key")
         pipeline_config["adaption"]["max_credits"] = 1
 
@@ -346,9 +324,7 @@ class TestPipelinePhaseAwareOptimize:
 
         mock_optimizer.optimize_dataset.assert_not_called()
 
-    def test_phase_controls_call_optimizer_per_phase(
-        self, pipeline_config, monkeypatch
-    ):
+    def test_phase_controls_call_optimizer_per_phase(self, pipeline_config, monkeypatch):
         monkeypatch.setenv("ADAPTION_API_KEY", "test-key")
         pipeline_config["adaption"]["estimate_first"] = False
 
@@ -378,4 +354,4 @@ class TestPipelinePhaseAwareOptimize:
         pipe = Pipeline(pipeline_config)
         pipe._dataset = MagicMock()
         pipe.optimize()
-        assert pipe._wake_dataset is None
+        assert pipe._context.wake_dataset is None

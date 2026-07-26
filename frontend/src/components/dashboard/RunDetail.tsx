@@ -209,6 +209,10 @@ function ReRunMenu({ config }: { config: RunConfig }) {
     setLoading(true);
     try {
       const next = preset.mutate(config);
+    if (loading) return;
+    setLoading(true);
+    const next = preset.mutate(config);
+    try {
       const res = await createPipeline({
         source_type: next.sourceType,
         model_name: next.modelName,

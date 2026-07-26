@@ -12,6 +12,7 @@ import FileUpload from "@/components/FileUpload";
 import ModelViewer from "@/components/ModelViewer";
 import Status from "@/components/Status";
 import Footer from "@/components/Footer";
+import ScrollNavigator from "@/components/ScrollNavigator";
 
 export default function Home() {
   return (
@@ -20,61 +21,84 @@ export default function Home() {
       <Navbar />
       <main className="relative z-10">
         {/* 1. Hero — instant first impression */}
-        <Hero />
+        <section id="hero">
+          <Hero />
+        </section>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 2. Guided Demo — the "aha moment" */}
-        <GuidedDemo />
+        <section id="demo">
+          <GuidedDemo />
+        </section>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 3. Architecture — how the 4 phases work */}
-        <Architecture />
+        <section id="architecture">
+          <Architecture />
+        </section>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 4. Quick Start — get started in 3 lines */}
-        <QuickStart />
+        <section id="quickstart">
+          <QuickStart />
+        </section>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 5. Full Playground — deeper exploration */}
         <div className="neural-grid">
-          <Playground />
+          <section id="playground">
+            <Playground />
+          </section>
 
           <div className="section-glow-line max-w-5xl mx-auto" />
 
           {/* 6. Resilience Lab — measure robustness */}
-          <ResilienceLab />
+          <section id="resilience">
+            <ResilienceLab />
+          </section>
         </div>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 7. Training Lab — advanced configuration */}
         <div className="mesh-gradient">
-          <TrainingLab />
+          <section id="training">
+            <TrainingLab />
+          </section>
         </div>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 8. Pipeline Lab — end-to-end training */}
-        <PipelineLab />
+        <section id="pipeline">
+          <PipelineLab />
+        </section>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 9. Advanced tools */}
-        <FileUpload />
+        <section id="upload">
+          <FileUpload />
+        </section>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
-        <ModelViewer />
+        <section id="viewer">
+          <ModelViewer />
+        </section>
 
         <div className="section-glow-line max-w-5xl mx-auto" />
 
         {/* 9. System status */}
-        <Status />
+        <section id="status">
+          <Status />
+        </section>
       </main>
+      <ScrollNavigator />
       <Footer />
     </>
   );

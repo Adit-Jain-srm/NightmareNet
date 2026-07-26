@@ -127,6 +127,8 @@ export function DistortionPreview() {
             <span className="font-mono normal-case text-slate-400">{text.length} chars</span>
           </div>
           <textarea
+            id="distortion-source-text"
+            aria-label="Source text to distort"
             value={text}
             onChange={(e) => setText(e.target.value)}
             rows={3}
@@ -135,8 +137,10 @@ export function DistortionPreview() {
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="text-[10px] uppercase tracking-widest text-slate-400">Strength</label>
+          <label htmlFor="distortion-strength" className="text-[10px] uppercase tracking-widest text-slate-400">Strength</label>
           <input
+            id="distortion-strength"
+            aria-label="Distortion strength"
             type="range"
             min={0.1}
             max={0.95}

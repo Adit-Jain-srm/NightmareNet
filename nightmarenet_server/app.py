@@ -147,6 +147,19 @@ def _attach_api_key_routes(app: Any) -> None:
     app.include_router(router)
 
 
+def _attach_search(app: Any) -> None:
+    try:
+        from nightmarenet_server.search.endpoints import build_search_router
+    except ImportError:
+        logger.info("Search router unavailable; skipping.")
+        return
+    router = build_search_router()
+    if router is None:
+        logger.info("Search router not constructed (missing optional deps).")
+        return
+    app.include_router(router)
+
+
 def _init_db_safe() -> None:
     """Best-effort init_db; never crash app startup."""
     try:
@@ -209,6 +222,7 @@ def create_app() -> Optional[Any]:
     _attach_oauth(app)
     _attach_realtime(app)
     _attach_api_key_routes(app)
+    _attach_search(app)
 
     if core_app is not None:
         app.mount("/", core_app)

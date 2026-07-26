@@ -1,0 +1,20 @@
+# GitHub CODEOWNERS file
+# Specify automatic code reviewers for all changes
+
+# Default owner - only Adit-Jain-srm required
+* @Adit-Jain-srm
+
+# Backend code and tests
+nightmarenet/ @Adit-Jain-srm
+tests/ @Adit-Jain-srm
+
+# Frontend code
+frontend/ @Adit-Jain-srm
+
+# Workflows and CI configuration
+.github/workflows/ @Adit-Jain-srm
+.github/ @Adit-Jain-srm
+
+# Configuration files
+pyproject.toml @Adit-Jain-srm
+setup.py @Adit-Jain-srm

@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../ui/Button";
 import { IconCommand, IconLayers, IconRadar, IconWand } from "./icons";
 import type { DashboardSectionKey } from "./Sidebar";
+import { useDialogFocus } from "../a11y/useDialogFocus";
 
 const STORAGE_KEY = "nightmarenet.onboarding.dismissed.v1";
 
@@ -53,6 +54,7 @@ interface OnboardingOverlayProps {
 export function OnboardingOverlay({ onNavigate }: OnboardingOverlayProps) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -62,14 +64,17 @@ export function OnboardingOverlay({ onNavigate }: OnboardingOverlayProps) {
     }
   }, []);
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     try {
       window.localStorage.setItem(STORAGE_KEY, "true");
     } catch {
       /* sandboxed storage; ignore */
     }
     setOpen(false);
-  };
+  }, []);
+
+  const getInitialFocus = useCallback(() => closeButtonRef.current, []);
+  const dialogRef = useDialogFocus(open, dismiss, getInitialFocus);
 
   const tryItNow = () => {
     onNavigate("distortions");
@@ -88,16 +93,19 @@ export function OnboardingOverlay({ onNavigate }: OnboardingOverlayProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
           className="fixed inset-0 z-[60] flex items-center justify-center px-4"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="onboarding-title"
         >
-          <div
-            className="absolute inset-0 bg-void/85 backdrop-blur-md"
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default bg-void/85 backdrop-blur-md"
             onClick={dismiss}
-            aria-hidden="true"
+            aria-label="Dismiss onboarding tour"
           />
           <motion.div
+            ref={dialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="onboarding-title"
+            tabIndex={-1}
             initial={{ opacity: 0, y: 14, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.97 }}
@@ -110,6 +118,7 @@ export function OnboardingOverlay({ onNavigate }: OnboardingOverlayProps) {
                   Welcome · {step + 1} / {STEPS.length}
                 </span>
                 <button
+                  ref={closeButtonRef}
                   type="button"
                   onClick={dismiss}
                   className="cursor-pointer rounded-md px-2 py-1 text-[11px] text-slate-400 hover:bg-white/5 hover:text-slate-300"
@@ -136,7 +145,7 @@ export function OnboardingOverlay({ onNavigate }: OnboardingOverlayProps) {
                       {current.title}
                     </h2>
                     <p className="text-sm leading-relaxed text-slate-400">{current.body}</p>
-                    <p className="pt-1.5 text-[10px] uppercase tracking-widest text-slate-600">
+                    <p className="pt-1.5 text-[10px] uppercase tracking-widest text-slate-300">
                       Find it in: <span className="text-slate-400">{current.highlight}</span>
                     </p>
                   </div>

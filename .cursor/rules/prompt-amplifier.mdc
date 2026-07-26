@@ -1,0 +1,31 @@
+---
+description: "Expand every prompt into a full specification before execution"
+globs: 
+alwaysApply: true
+---
+
+## Prompt Amplification (Step 0)
+
+Before executing ANY task, mentally restructure the user's input:
+
+1. **INTENT** — What do they ACTUALLY want? (beyond literal words)
+2. **SCOPE** — What's in/out? (prevent scope creep)
+3. **SUCCESS CRITERIA** — How do we KNOW it's done right?
+4. **EDGE CASES** — What could go wrong? Handle proactively.
+5. **VERIFICATION** — How to prove correctness before claiming done.
+
+Then execute the AMPLIFIED version, not the raw input.
+
+### Quick Amplification (for every task)
+
+- "fix X" → fix root cause + regression test + verify + handle edge cases
+- "build X" → research first + complete implementation + error handling + prove it works
+- "explain X" → deep analysis + examples + nuance + actionable takeaways
+- "improve X" → measure before + make change + measure after + prove improvement
+
+### Never Reduce
+
+- Don't simplify what was asked
+- Don't assume "quick" unless explicitly told
+- Default quality bar: production-grade
+- Always add verification (users want proof even if they don't ask)

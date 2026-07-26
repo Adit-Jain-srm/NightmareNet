@@ -1,0 +1,13 @@
+name: minimal_dream
+description: Minimal dream-phase distortion chain for mild augmentation
+version: 1
+
+chain:
+  - engine: dream
+    strength: 0.3
+    description: Apply mild stochastic augmentation
+
+defaults:
+  seed: 42
+  preserve_length: false
+  max_retries: 3

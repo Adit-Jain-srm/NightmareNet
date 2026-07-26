@@ -1,0 +1,36 @@
+---
+description: "Validate against best-in-class, self-check quality, search for improvements"
+globs:
+alwaysApply: false
+---
+
+## Skill-Forge Quality Loop
+
+### Self-Check After Every Major Action
+
+After completing any significant implementation:
+
+1. Did I deliver QUALITY? Not "does it work" — is it EXCELLENT?
+2. What could be better? (There is ALWAYS something)
+3. If I compare this to the BEST version that exists — am I close?
+4. What would someone critique? Fix it BEFORE shipping.
+
+### Validate Against Best
+
+Before shipping anything:
+- Find the BEST existing solution in that domain
+- Identify what makes it the best
+- Ask: "Is my version CLEARLY BETTER?"
+- If not → find what's missing, add it, re-compare
+
+### Search Broader
+
+- Don't just search GitHub — search for PAIN POINTS
+- "developers frustrated with X" > "X solution"
+- Latest FIRST — what's trending this week
+- If you find a better pattern anywhere → ADOPT it immediately
+
+### Never Ship "Good Enough"
+
+- "Good enough" = lazy = quality damage
+- Only ship what would make someone switch from their current approach

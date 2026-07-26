@@ -1,0 +1,26 @@
+---
+description: "Mandatory skill orchestration — check which skills apply and USE them"
+globs:
+alwaysApply: true
+---
+
+## Skill Orchestration
+
+Before responding to ANY non-trivial task, check which installed skills apply and USE them.
+
+| Situation | Action |
+|-----------|--------|
+| About to write/modify code | Run self-review after |
+| About to build something new | Grill first (resolve decisions) |
+| Bug or unexpected behavior | Reproduce → hypothesise → fix |
+| About to claim "done" | Prove it with evidence |
+| Complex task (3+ steps) | Plan first |
+| UI/frontend changes | Precision over ambition |
+| External API calls | Retry, circuit breakers, error handling |
+
+### Red Flags (you're skipping skills)
+
+- Writing code without self-review → STOP, review before presenting
+- Claiming "done" without running verification → prove it
+- Fixing a bug by guessing → follow the diagnose loop
+- Starting to build without asking questions → grill first

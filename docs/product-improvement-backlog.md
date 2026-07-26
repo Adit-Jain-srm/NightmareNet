@@ -34,7 +34,7 @@ Tracked through the `consumer-product-improvement` skill's *Analyze → Critique
 - **[shipped]** WebSocket live progress — `/ws/runs/{run_id}` endpoint in OSS app, PipelineLab auto-upgrades from polling to WS.
 - **[shipped]** 18 code review fixes — critical runtime crash, stale metrics, dead code, license mismatch, deprecated APIs.
 - **[shipped]** Repo cleanup — removed 8,400+ lines of junk (duplicate skill dirs, compiled JS in source, dead components, stale docs).
-- **[shipped]** README rewrite — real benchmark results, 434+ test badge, frontend section, removed stale PyPI badge.
+- **[shipped]** README rewrite — real benchmark results, 660+ test badge, frontend section, removed stale PyPI badge.
 
 ## Top of backlog (next iteration)
 

@@ -36,9 +36,7 @@ class DDPWrapper:
                     f"DDP initialized on rank {dist.get_rank()} with backend {self.backend}"
                 )
             else:
-                logger.warning(
-                    "Not launched via torchrun (RANK not found in env). DDP disabled."
-                )
+                logger.warning("Not launched via torchrun (RANK not found in env). DDP disabled.")
 
     def wrap_model(self, model: torch.nn.Module) -> torch.nn.Module:
         """Wrap the model in DistributedDataParallel if initialized."""

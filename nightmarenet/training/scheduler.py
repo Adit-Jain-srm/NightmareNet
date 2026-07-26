@@ -37,6 +37,8 @@ class CyclicScheduler:
         dream_epochs: int = 2,
         nightmare_epochs: int = 1,
         compression_rounds: int = 1,
+        start_cycle: int = 0,
+        start_phase: Optional[str] = None,
     ):
         validate_positive_int(num_cycles, "num_cycles")
         validate_positive_int(wake_epochs, "wake_epochs", allow_zero=True)
@@ -48,6 +50,8 @@ class CyclicScheduler:
         self.dream_epochs = dream_epochs
         self.nightmare_epochs = nightmare_epochs
         self.compression_rounds = compression_rounds
+        self.start_cycle = start_cycle
+        self.start_phase = start_phase
         self._current_cycle = 0
         self._current_phase_idx = 0
 
@@ -83,10 +87,16 @@ class CyclicScheduler:
         Yields:
             Tuple of (cycle_number, phase_name, num_epochs).
         """
+        skip = self.start_phase is not None
         for cycle in range(self.num_cycles):
             self._current_cycle = cycle
             for phase_idx, phase in enumerate(self.PHASE_ORDER):
                 self._current_phase_idx = phase_idx
+                if skip:
+                    if cycle == self.start_cycle and phase == self.start_phase:
+                        skip = False
+                    continue
+
                 epochs = self.get_epochs_for_phase(phase)
                 logger.info(
                     "Schedule: Cycle %d/%d - Phase: %s (%d epochs/rounds)",
@@ -194,20 +204,14 @@ class AdaptiveScheduler:
                 self.max_epochs,
                 max(
                     1,
-                    int(
-                        self.base_scheduler.dream_epochs
-                        * (1 + self.adjustment_factor)
-                    ),
+                    int(self.base_scheduler.dream_epochs * (1 + self.adjustment_factor)),
                 ),
             )
             self.base_scheduler.nightmare_epochs = min(
                 self.max_epochs,
                 max(
                     1,
-                    int(
-                        self.base_scheduler.nightmare_epochs
-                        * (1 + self.adjustment_factor)
-                    ),
+                    int(self.base_scheduler.nightmare_epochs * (1 + self.adjustment_factor)),
                 ),
             )
             logger.info(

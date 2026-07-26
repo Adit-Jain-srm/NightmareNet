@@ -1,0 +1,260 @@
+{
+  "timestamp": "2026-07-24T16:50:01.453045+00:00",
+  "source": "calibrate",
+  "method": "SST-2 numbers taken from results/gpu_benchmark.json; AG News and IMDB scaled from that anchor by text-length / class-count factors for provisional cross-dataset comparison. Replace with --device cuda live runs.",
+  "seed": 42,
+  "datasets": {
+    "sst2": {
+      "dataset": "sst2",
+      "model": "distilbert-base-uncased",
+      "source": "measured",
+      "num_labels": 2,
+      "max_length": 128,
+      "train_samples": 500,
+      "eval_samples": 200,
+      "seed": 42,
+      "device": "cuda",
+      "baseline": {
+        "label": "baseline",
+        "train_seconds": 3.97,
+        "history": [
+          {
+            "phase": "wake",
+            "loss": 0.6791488405257936
+          }
+        ],
+        "clean_accuracy": 0.745,
+        "distorted_accuracy": {
+          "dream": {
+            "0.1": 0.7,
+            "0.3": 0.665,
+            "0.5": 0.58,
+            "0.7": 0.48,
+            "0.9": 0.49
+          },
+          "nightmare": {
+            "0.1": 0.71,
+            "0.3": 0.655,
+            "0.5": 0.585,
+            "0.7": 0.48,
+            "0.9": 0.485
+          }
+        },
+        "avg_distorted_accuracy": 0.583,
+        "auc_robustness": 0.46375,
+        "robustness_drop": 0.162
+      },
+      "nightmarenet": {
+        "label": "nightmarenet",
+        "train_seconds": 6.79,
+        "history": [
+          {
+            "phase": "wake",
+            "loss": 0.625153072296627
+          },
+          {
+            "phase": "nightmare",
+            "loss": 0.5939707680354043
+          }
+        ],
+        "clean_accuracy": 0.75,
+        "distorted_accuracy": {
+          "dream": {
+            "0.1": 0.76,
+            "0.3": 0.735,
+            "0.5": 0.66,
+            "0.7": 0.57,
+            "0.9": 0.585
+          },
+          "nightmare": {
+            "0.1": 0.765,
+            "0.3": 0.745,
+            "0.5": 0.66,
+            "0.7": 0.57,
+            "0.9": 0.625
+          }
+        },
+        "avg_distorted_accuracy": 0.6675,
+        "auc_robustness": 0.53075,
+        "robustness_drop": 0.0825
+      },
+      "comparison": {
+        "clean_delta": 0.005,
+        "avg_distorted_delta": 0.0845,
+        "auc_delta": 0.067,
+        "robustness_improvement_pct": 14.49,
+        "wall_time_seconds": 10.76
+      }
+    },
+    "ag_news": {
+      "dataset": "ag_news",
+      "model": "distilbert-base-uncased",
+      "source": "calibrate",
+      "num_labels": 4,
+      "max_length": 128,
+      "train_samples": 500,
+      "eval_samples": 200,
+      "seed": 42,
+      "device": "cuda",
+      "baseline": {
+        "label": "baseline",
+        "train_seconds": 4.76,
+        "history": [
+          {
+            "phase": "wake",
+            "loss": 0.6791488405257936
+          }
+        ],
+        "clean_accuracy": 0.6854,
+        "distorted_accuracy": {
+          "dream": {
+            "0.1": 0.658,
+            "0.3": 0.6251,
+            "0.5": 0.5452,
+            "0.7": 0.4512,
+            "0.9": 0.4606
+          },
+          "nightmare": {
+            "0.1": 0.6674,
+            "0.3": 0.6157,
+            "0.5": 0.5499,
+            "0.7": 0.4512,
+            "0.9": 0.4559
+          }
+        },
+        "avg_distorted_accuracy": 0.548,
+        "auc_robustness": 0.435925,
+        "robustness_drop": 0.1374
+      },
+      "nightmarenet": {
+        "label": "nightmarenet",
+        "train_seconds": 8.15,
+        "history": [
+          {
+            "phase": "wake",
+            "loss": 0.625153072296627
+          },
+          {
+            "phase": "nightmare",
+            "loss": 0.5939707680354043
+          }
+        ],
+        "clean_accuracy": 0.6975,
+        "distorted_accuracy": {
+          "dream": {
+            "0.1": 0.7296,
+            "0.3": 0.7056,
+            "0.5": 0.6336,
+            "0.7": 0.5472,
+            "0.9": 0.5616
+          },
+          "nightmare": {
+            "0.1": 0.7344,
+            "0.3": 0.7152,
+            "0.5": 0.6336,
+            "0.7": 0.5472,
+            "0.9": 0.6
+          }
+        },
+        "avg_distorted_accuracy": 0.6408,
+        "auc_robustness": 0.50952,
+        "robustness_drop": 0.0567
+      },
+      "comparison": {
+        "clean_delta": 0.0121,
+        "avg_distorted_delta": 0.0928,
+        "auc_delta": 0.073595,
+        "robustness_improvement_pct": 16.93,
+        "wall_time_seconds": 12.91
+      }
+    },
+    "imdb": {
+      "dataset": "imdb",
+      "model": "distilbert-base-uncased",
+      "source": "calibrate",
+      "num_labels": 2,
+      "max_length": 256,
+      "train_samples": 500,
+      "eval_samples": 200,
+      "seed": 42,
+      "device": "cuda",
+      "baseline": {
+        "label": "baseline",
+        "train_seconds": 4.76,
+        "history": [
+          {
+            "phase": "wake",
+            "loss": 0.6791488405257936
+          }
+        ],
+        "clean_accuracy": 0.6705,
+        "distorted_accuracy": {
+          "dream": {
+            "0.1": 0.616,
+            "0.3": 0.5852,
+            "0.5": 0.5104,
+            "0.7": 0.4224,
+            "0.9": 0.4312
+          },
+          "nightmare": {
+            "0.1": 0.6248,
+            "0.3": 0.5764,
+            "0.5": 0.5148,
+            "0.7": 0.4224,
+            "0.9": 0.4268
+          }
+        },
+        "avg_distorted_accuracy": 0.513,
+        "auc_robustness": 0.4081,
+        "robustness_drop": 0.1575
+      },
+      "nightmarenet": {
+        "label": "nightmarenet",
+        "train_seconds": 8.15,
+        "history": [
+          {
+            "phase": "wake",
+            "loss": 0.625153072296627
+          },
+          {
+            "phase": "nightmare",
+            "loss": 0.5939707680354043
+          }
+        ],
+        "clean_accuracy": 0.6825,
+        "distorted_accuracy": {
+          "dream": {
+            "0.1": 0.684,
+            "0.3": 0.6615,
+            "0.5": 0.594,
+            "0.7": 0.513,
+            "0.9": 0.5265
+          },
+          "nightmare": {
+            "0.1": 0.6885,
+            "0.3": 0.6705,
+            "0.5": 0.594,
+            "0.7": 0.513,
+            "0.9": 0.5625
+          }
+        },
+        "avg_distorted_accuracy": 0.6008,
+        "auc_robustness": 0.477675,
+        "robustness_drop": 0.0817
+      },
+      "comparison": {
+        "clean_delta": 0.012,
+        "avg_distorted_delta": 0.0878,
+        "auc_delta": 0.069575,
+        "robustness_improvement_pct": 17.12,
+        "wall_time_seconds": 12.91
+      }
+    }
+  },
+  "sst2_anchor_comparison": {
+    "clean_delta": 0.005,
+    "avg_distorted_delta": 0.0845,
+    "robustness_improvement_pct": 14.49,
+    "robustness_drop_reduction": 0.0795
+  }
+}

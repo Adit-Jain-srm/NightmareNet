@@ -151,6 +151,37 @@ describe("API module", () => {
     });
   });
 
+  describe("searchExperiments", () => {
+    it("posts natural-language queries to /api/v1/search", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          results: [{ run_id: "exp-47", relevance_score: 0.87, summary: "match", metadata: {} }],
+          filters: { status: "completed" },
+          backend: "faiss",
+        }),
+      });
+
+      const { searchExperiments } = await import("@/lib/api");
+      const result = await searchExperiments("robustness improved", 5, {
+        status: "completed",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/v1/search",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            query: "robustness improved",
+            top_k: 5,
+            filters: { status: "completed" },
+          }),
+        })
+      );
+      expect(result.results[0].run_id).toBe("exp-47");
+    });
+  });
+
   describe("error handling", () => {
     it("extracts detail from error response", async () => {
       mockFetch.mockResolvedValueOnce({
