@@ -580,7 +580,9 @@ class TestUploadEndpoint:
         assert "Unsupported file type" in response.json()["detail"]
 
     def test_upload_rejects_too_large(self, monkeypatch):
-        import nightmarenet.api.app as api_module
+        import sys
+
+        api_module = sys.modules["nightmarenet.api.app"]
 
         monkeypatch.setattr(api_module, "_MAX_UPLOAD_BYTES", 10)
         response = client.post(
