@@ -4,10 +4,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { retryLazy } from "../lib/retryLazy";
 
 class TestErrorBoundary extends React.Component<
-  { children: React.ReactNode; fallback?: React.ReactNode },
+  { children?: React.ReactNode; fallback?: React.ReactNode },
   { hasError: boolean; error: Error | null }
 > {
-  constructor(props: { children: React.ReactNode; fallback?: React.ReactNode }) {
+  constructor(props: { children?: React.ReactNode; fallback?: React.ReactNode }) {
     super(props);
     this.state = { hasError: false, error: null };
   }
