@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/distortions/nightmare.py
+# hypothesis_version: 6.141.1
+
+[0.2, 0.3, 0.4, 0.5, 'adversarial', 'ambiguity', 'contradiction', 'cross_domain', 'learned', 'misleading_context', 'semantic', 'text']

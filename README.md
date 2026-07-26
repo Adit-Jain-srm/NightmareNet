@@ -192,8 +192,8 @@ docker compose up api frontend
 
 This starts only:
 
-- ✅ `api`
-- ✅ `frontend`
+- `api`
+- `frontend`
 
 ### Hosted profile (planned infrastructure)
 
@@ -395,6 +395,23 @@ The API also exposes generated reports:
 
 Four top-level commands cover the full workflow.
 
+### Common CLI Commands
+
+The table below provides a quick reference for the most commonly used NightmareNet CLI commands.
+
+| Task | Command |
+|------|---------|
+| Install | `pip install nightmarenet` |
+| Train | `nightmarenet train --config configs/benchmark_sst2.yaml` |
+| Evaluate | `nightmarenet evaluate --model ./output/model` |
+| Distort Text | `nightmarenet distort --type nightmare --strength 0.7 --text "Hello World"` |
+| Benchmark | `nightmarenet benchmark --suite standard` |
+| Run Tests | `pytest tests/` |
+| Lint | `ruff check .` |
+| Type Check | `mypy nightmarenet/` |
+
+> **Tip:** Run these commands from the project root directory unless otherwise noted.
+
 ### `nightmarenet train`
 
 Run the full 4-phase cycle from a YAML config.
@@ -563,9 +580,13 @@ If you use NightmareNet in academic work, please cite:
 
 ## Community
 
-- **GitHub Discussions** - `https://github.com/Adit-Jain-srm/NightmareNet/discussions` for design questions, RFC proposals, paper review threads
-- **Issues** - bug reports and feature requests welcome
-- **Contributing** — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for local dev setup, architecture pointers, plugin authoring, and the PR checklist
+- **[GitHub Discussions](https://github.com/Adit-Jain-srm/NightmareNet/discussions)** — questions, ideas, show-and-tell, and research chat
+  - [Q&A](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/q-a) — how-to questions (prefer this over Issues for usage help)
+  - [Ideas](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/ideas) — RFCs and feature proposals
+  - [Show and tell](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/show-and-tell) — demos, experiments, write-ups
+  - [General](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/general) — welcome thread and community chat
+- **[Issues](https://github.com/Adit-Jain-srm/NightmareNet/issues)** — bug reports and concrete feature work
+- **[Contributing](CONTRIBUTING.md)** — local setup, architecture pointers, plugin authoring, and the PR checklist
 - **Sponsors** — GitHub Sponsors and OpenCollective links go here once the project moves out of pre-release
 
 > [!IMPORTANT]

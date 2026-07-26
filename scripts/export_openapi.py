@@ -81,17 +81,26 @@ def main() -> int:
             return 1
         committed = args.output.read_text(encoding="utf-8")
         if committed != text:
+            import difflib
+            diff = difflib.unified_diff(
+                committed.splitlines(keepends=True),
+                text.splitlines(keepends=True),
+                fromfile=str(args.output),
+                tofile="generated"
+            )
             print(
                 f"OpenAPI drift detected: {args.output} is out of date.",
                 file=sys.stderr,
             )
+            print("".join(diff), file=sys.stderr)
             print("Run: make openapi  (or python scripts/export_openapi.py)", file=sys.stderr)
             return 1
         print(f"OpenAPI spec is up to date: {args.output}")
         return 0
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(text, encoding="utf-8")
+    with open(args.output, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
     print(f"Wrote {args.output}")
     return 0
 

@@ -268,3 +268,186 @@ def test_pdf_builder_get_version():
     version = _get_version()
     assert isinstance(version, str)
     assert len(version) > 0
+
+
+def test_pdf_signature_verification(
+    sample_config,
+    sample_comparison,
+    sample_model_file,
+    tmp_path,
+):
+    """Test that generated PDF contains a valid pyHanko signature dictionary."""
+    try:
+        from pyhanko.pdf_utils.reader import PdfFileReader
+
+        from nightmarenet.compliance.pdf_builder import (
+            PYHANKO_AVAILABLE,
+            REPORTLAB_AVAILABLE,
+        )
+    except ImportError:
+        pytest.skip("PDF builder/pyhanko not available")
+
+    if not (REPORTLAB_AVAILABLE and PYHANKO_AVAILABLE):
+        pytest.skip("PDF dependencies not installed")
+
+    output_dir = str(tmp_path / "output")
+    pdf_path = generate_pdf(
+        config=sample_config,
+        comparison=sample_comparison,
+        model_path=sample_model_file,
+        output_dir=output_dir,
+    )
+
+    with open(pdf_path, "rb") as f:
+        reader = PdfFileReader(f)
+        sigs = reader.embedded_signatures
+        assert len(sigs) >= 1
+        sig = sigs[0]
+        assert sig.field_name == "Signature1"
+        assert sig.sig_object["/Reason"] == "EU AI Act Article 15 Compliance Report"
+
+
+def test_pdf_signing_custom_certificate(
+    sample_config,
+    sample_comparison,
+    sample_model_file,
+    tmp_path,
+):
+    """Test PDF signing using a custom user-provided certificate."""
+    try:
+        import datetime
+
+        from cryptography import x509
+        from cryptography.hazmat.primitives import hashes, serialization
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from pyhanko.pdf_utils.reader import PdfFileReader
+
+        from nightmarenet.compliance.pdf_builder import (
+            PYHANKO_AVAILABLE,
+            REPORTLAB_AVAILABLE,
+        )
+    except ImportError:
+        pytest.skip("PDF builder/pyhanko not available")
+
+    if not (REPORTLAB_AVAILABLE and PYHANKO_AVAILABLE):
+        pytest.skip("PDF dependencies not installed")
+
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    subject = issuer = x509.Name(
+        [
+            x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, "Custom Org Compliance"),
+        ]
+    )
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (
+        x509.CertificateBuilder()
+        .subject_name(subject)
+        .issuer_name(issuer)
+        .public_key(key.public_key())
+        .serial_number(x509.random_serial_number())
+        .not_valid_before(now)
+        .not_valid_after(now + datetime.timedelta(days=365))
+        .sign(key, hashes.SHA256())
+    )
+
+    cert_pem = cert.public_bytes(serialization.Encoding.PEM)
+    key_pem = key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+
+    combined_pem = tmp_path / "custom_cert.pem"
+    combined_pem.write_bytes(key_pem + b"\n" + cert_pem)
+
+    config_with_cert = dict(sample_config)
+    config_with_cert["tracking"] = {
+        "compliance": {
+            "signing_cert_path": str(combined_pem),
+        }
+    }
+
+    output_dir = str(tmp_path / "output_custom")
+    pdf_path = generate_pdf(
+        config=config_with_cert,
+        comparison=sample_comparison,
+        model_path=sample_model_file,
+        output_dir=output_dir,
+    )
+
+    assert Path(pdf_path).exists()
+    with open(pdf_path, "rb") as f:
+        reader = PdfFileReader(f)
+        sigs = reader.embedded_signatures
+        assert len(sigs) >= 1
+
+
+def test_pdf_signing_fallback_when_pyhanko_unavailable(
+    sample_config,
+    sample_comparison,
+    sample_model_file,
+    tmp_path,
+    monkeypatch,
+):
+    """Test that PDF generation succeeds and returns unsigned PDF when pyHanko is unavailable."""
+    import nightmarenet.compliance.pdf_builder as pdf_builder
+
+    try:
+        from nightmarenet.compliance.pdf_builder import REPORTLAB_AVAILABLE
+    except ImportError:
+        pytest.skip("PDF builder not available")
+
+    if not REPORTLAB_AVAILABLE:
+        pytest.skip("reportlab not installed")
+
+    monkeypatch.setattr(pdf_builder, "PYHANKO_AVAILABLE", False)
+
+    output_dir = str(tmp_path / "output_fallback")
+    pdf_path = generate_pdf(
+        config=sample_config,
+        comparison=sample_comparison,
+        model_path=sample_model_file,
+        output_dir=output_dir,
+    )
+
+    assert Path(pdf_path).exists()
+    assert Path(pdf_path).stat().st_size > 0
+
+
+def test_pdf_signing_fallback_on_signing_error(
+    sample_config,
+    sample_comparison,
+    sample_model_file,
+    tmp_path,
+    monkeypatch,
+):
+    """Test that PDF generation logs warning and returns unsigned PDF when signing fails."""
+    import nightmarenet.compliance.pdf_builder as pdf_builder
+
+    try:
+        from nightmarenet.compliance.pdf_builder import (
+            PYHANKO_AVAILABLE,
+            REPORTLAB_AVAILABLE,
+        )
+    except ImportError:
+        pytest.skip("PDF builder not available")
+
+    if not (REPORTLAB_AVAILABLE and PYHANKO_AVAILABLE):
+        pytest.skip("PDF dependencies not installed")
+
+    def mock_add_digital_signature_failure(*args, **kwargs):
+        raise RuntimeError("Simulated HSM signing failure")
+
+    monkeypatch.setattr(pdf_builder, "_generate_ephemeral_cert", mock_add_digital_signature_failure)
+
+    output_dir = str(tmp_path / "output_error")
+    pdf_path = generate_pdf(
+        config=sample_config,
+        comparison=sample_comparison,
+        model_path=sample_model_file,
+        output_dir=output_dir,
+    )
+
+    assert Path(pdf_path).exists()
+    assert Path(pdf_path).stat().st_size > 0
+

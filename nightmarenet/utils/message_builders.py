@@ -5,6 +5,17 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 
+def _get_event_emoji(event_type: str) -> str:
+    """Get emoji for event type (shared across message builders)."""
+    emoji_map = {
+        "run_complete": "✅",
+        "regression_detected": "⚠️",
+        "alert": "🚨",
+        "deploy": "🚀",
+    }
+    return emoji_map.get(event_type, "ℹ️")
+
+
 class SlackMessageBuilder:
     """Builds Slack Block Kit messages for webhook notifications."""
 
@@ -108,6 +119,7 @@ class SlackMessageBuilder:
     @staticmethod
     def _get_emoji(event_type: str) -> str:
         """Get emoji for event type."""
+        return _get_event_emoji(event_type)
         emoji_map = {
             "run_complete": "✅",
             "regression_detected": "⚠️",
@@ -182,6 +194,7 @@ class DiscordMessageBuilder:
     @staticmethod
     def _get_emoji(event_type: str) -> str:
         """Get emoji for event type."""
+        return _get_event_emoji(event_type)
         emoji_map = {
             "run_complete": "✅",
             "regression_detected": "⚠️",

@@ -681,3 +681,34 @@ export function saveWebhooks(body: WebhookSettingsRequest): Promise<WebhookSetti
     body: JSON.stringify(body),
   });
 }
+
+// --- Experiment Management ---
+
+export interface ExperimentDeleteResponse {
+  run_id: string;
+  deleted: boolean;
+}
+
+export function deleteExperiment(runId: string): Promise<ExperimentDeleteResponse> {
+  return apiFetch<ExperimentDeleteResponse>(`/api/v1/experiments/${runId}`, {
+    method: "DELETE",
+  });
+}
+
+export function exportExperiment(runId: string, format: string): Promise<Blob> {
+  return fetch(`${getApiBase()}/api/v1/pipeline/${runId}/export?format=${format}`, {
+    headers: authHeaders(),
+  }).then(async (res) => {
+    if (!res.ok) {
+      throw new Error(`Export failed (${res.status})`);
+    }
+    return res.blob();
+  });
+}
+
+export function updateExperiment(runId: string, data: { name: string }): Promise<{ success: boolean; id: string; name: string }> {
+  return apiFetch(`/api/v1/experiments/${runId}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+}

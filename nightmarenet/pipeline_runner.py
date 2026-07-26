@@ -14,10 +14,12 @@ import threading
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 from nightmarenet.exceptions import PipelinePhaseError
-from nightmarenet.pipeline import Pipeline
+
+if TYPE_CHECKING:
+    from nightmarenet.pipeline import Pipeline
 
 try:
     from opentelemetry import context as otel_context

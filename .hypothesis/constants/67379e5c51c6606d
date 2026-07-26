@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/distortions/dsl/parser.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.5, 1.0, 100, 10000, ' -> ', '\'"', '(', ')', ',', ', ', '->', '=', '^[a-zA-Z0-9_\\-]+$', 'always', 'condition=']

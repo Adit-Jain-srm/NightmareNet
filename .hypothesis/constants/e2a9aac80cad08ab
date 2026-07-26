@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/failure_export.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.2, '%Y%m%d_%H%M%S', 'confidence_drop', 'csv', 'distorted_prediction', 'json', 'original_prediction', 'w']

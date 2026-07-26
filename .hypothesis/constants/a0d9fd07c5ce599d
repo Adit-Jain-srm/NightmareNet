@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/pareto_analysis.py
+# hypothesis_version: 6.141.1
+
+['latency', 'params', 'robustness']

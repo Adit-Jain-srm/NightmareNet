@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/transfer/fine_tune.py
+# hypothesis_version: 6.141.1
+
+[0.0, 'Unfroze all layers.', 'avg_loss', 'base_model', 'encoder', 'final_epoch_loss', 'h', 'layer', 'layers_frozen', 'loss', 'per_epoch_losses', 'transformer']
