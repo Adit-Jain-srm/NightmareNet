@@ -32,6 +32,7 @@ import {
   IconPlus,
   IconSearch,
   IconSpinner,
+  IconX,
 } from "./icons";
 
 interface Experiment {
@@ -396,6 +397,7 @@ export function ExperimentList({
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | Experiment["status"]>("all");
+  const [modelFilter, setModelFilter] = useState<string>("all");
   const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
   const [semanticPending, setSemanticPending] = useState(false);
   const [semanticError, setSemanticError] = useState(false);
@@ -414,6 +416,11 @@ export function ExperimentList({
       localNames[exp.id] ? { ...exp, name: localNames[exp.id] } : exp
     );
   }, [experiments, localNames]);
+
+  const uniqueModels = useMemo(() => {
+    const models = new Set(source.map((r) => r.model).filter(Boolean));
+    return Array.from(models).sort();
+  }, [source]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -461,6 +468,7 @@ export function ExperimentList({
         if (filter !== "all" && r.status !== filter) return false;
         // Date range filter (AND logic)
         if (!isInDateRange(r.createdAt, dateRange)) return false;
+        if (modelFilter !== "all" && r.model !== modelFilter) return false;
         // Text / semantic search filter
         if (!query.trim()) return true;
         if (semanticRank.has(r.id)) return true;
@@ -479,7 +487,7 @@ export function ExperimentList({
         if (bRank === undefined) return -1;
         return aRank - bRank;
       });
-  }, [query, filter, dateRange, source, semanticIds]);
+  }, [query, filter, dateRange, modelFilter, source, semanticIds]);
 
   const sourceEmpty = source.length === 0;
 
@@ -771,6 +779,27 @@ export function ExperimentList({
             ]}
           />
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+          <Select
+            size="sm"
+            value={modelFilter}
+            onChange={(v) => setModelFilter(v)}
+            className="w-36"
+            options={[
+              { value: "all", label: "All models" },
+              ...uniqueModels.map((m) => ({ value: m, label: m })),
+            ]}
+          />
+          {modelFilter !== "all" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Clear model filter"
+              onClick={() => setModelFilter("all")}
+              title="Clear model filter"
+            >
+              <IconX size={12} />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" aria-label="Filter" onClick={() => setFilter(filter === "all" ? "running" : "all")} title="Toggle running filter">
             <IconFilter size={12} />
           </Button>
