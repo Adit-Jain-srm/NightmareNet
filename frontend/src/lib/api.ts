@@ -713,13 +713,3 @@ export function updateExperiment(runId: string, data: { name: string }): Promise
     body: JSON.stringify(data),
   });
 }
-
-export interface ExperimentExportResponse {
-  run_id: string;
-  format: string;
-  data: string;
-}
-
-export function exportExperiment(runId: string, format: "csv" | "json" = "csv"): Promise<ExperimentExportResponse> {
-  return apiFetch<ExperimentExportResponse>(`/api/v1/experiments/${runId}/export?format=${format}`);
-}
