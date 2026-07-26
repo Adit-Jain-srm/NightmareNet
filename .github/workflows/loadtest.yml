@@ -33,9 +33,9 @@ jobs:
           timeout 30s bash -c 'until curl -s http://127.0.0.1:8000/api/v1/health | grep -q "ok"; do sleep 1; done'
 
       - name: Run k6 Load Test
-        uses: grafana/k6-action@v0.5.0
+        uses: grafana/run-k6-action@v1
         with:
-          filename: scripts/loadtest.js
+          path: scripts/loadtest.js
         env:
           BASE_URL: http://127.0.0.1:8000
 
