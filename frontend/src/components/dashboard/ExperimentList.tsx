@@ -423,6 +423,12 @@ export function ExperimentList({
   }, [source]);
 
   useEffect(() => {
+    if (modelFilter !== "all" && !uniqueModels.includes(modelFilter)) {
+      setModelFilter("all");
+    }
+  }, [uniqueModels, modelFilter]);
+
+  useEffect(() => {
     const trimmed = query.trim();
     setSemanticIds(null);
     if (trimmed.length < 3) {
