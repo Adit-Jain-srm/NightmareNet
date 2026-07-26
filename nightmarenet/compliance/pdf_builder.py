@@ -160,7 +160,7 @@ def _create_robustness_section(
             ["Distorted Accuracy", str(robustness.get("distorted_accuracy", "N/A"))],
             ["AUC Robustness", str(robustness.get("auc_robustness", "N/A"))],
             ["Delta", str(robustness.get("delta", "N/A"))],
-        ]
+        ],
     ]
 
     _create_section("Robustness Metrics", content, story, styles)
@@ -180,7 +180,7 @@ def _create_artifact_integrity_section(
         [
             ["Config SHA-256", integrity.get("config_sha256", "N/A")],
             ["Model SHA-256", integrity.get("model_sha256", "N/A")],
-        ]
+        ],
     ]
 
     _create_section("Artifact Integrity", content, story, styles)
@@ -204,7 +204,7 @@ def _create_environment_section(
             ["Platform", env.get("platform", "N/A")],
             ["PyTorch Version", env.get("pytorch_version", "N/A")],
             ["GPU", env.get("gpu", "N/A")],
-        ]
+        ],
     ]
 
     _create_section("Runtime Environment", content, story, styles)

@@ -310,15 +310,17 @@ For an in-tree distortion, drop a module under `nightmarenet/distortions/your_en
 ```python
 from nightmarenet.distortions.registry import get_registry
 
-def register_distortion(name, *, phase='custom', description=''):
+
+def register_distortion(name, *, phase="custom", description=""):
     def decorator(fn):
-        get_registry().register(name, fn, metadata={'phase': phase, 'description': description})
+        get_registry().register(name, fn, metadata={"phase": phase, "description": description})
         return fn
+
     return decorator
 
-@register_distortion('homoglyph', phase='nightmare', description='Latin -> Cyrillic swap')
-def homoglyph(text, strength, seed=None):
-    ...
+
+@register_distortion("homoglyph", phase="nightmare", description="Latin -> Cyrillic swap")
+def homoglyph(text, strength, seed=None): ...
 ```
 
 ### Tests

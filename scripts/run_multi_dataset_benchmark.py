@@ -266,9 +266,7 @@ def _train_and_eval(
     t0 = time.time()
 
     history: List[dict] = []
-    wake_loss = _train_epoch(
-        model, tokenizer, train, device, batch_size, lr, use_amp, max_length
-    )
+    wake_loss = _train_epoch(model, tokenizer, train, device, batch_size, lr, use_amp, max_length)
     history.append({"phase": "wake", "loss": wake_loss})
 
     if nightmare:
@@ -527,9 +525,7 @@ def calibrate_from_sst2() -> dict:
                     nightmarenet["clean_accuracy"] - baseline["clean_accuracy"], 4
                 ),
                 "avg_distorted_delta": round(avg_delta, 4),
-                "auc_delta": round(
-                    nightmarenet["auc_robustness"] - baseline["auc_robustness"], 6
-                ),
+                "auc_delta": round(nightmarenet["auc_robustness"] - baseline["auc_robustness"], 6),
                 "robustness_improvement_pct": round(rel, 2),
                 "wall_time_seconds": round(
                     baseline["train_seconds"] + nightmarenet["train_seconds"], 2

@@ -169,9 +169,7 @@ app.add_middleware(APIKeyMiddleware)  # type: ignore[arg-type]
 
 # --- CORS ---
 _cors_origins = [
-    o.strip()
-    for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "").split(",")
-    if o.strip()
+    o.strip() for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "").split(",") if o.strip()
 ]
 if not _cors_origins:
     logger.warning(
@@ -411,18 +409,16 @@ async def evaluate_robustness(
             }
             scores["nightmare"][str(strength)] = {
                 "similarity": round(_char_similarity(body.text, nightmare_result), 4),
-                "length_ratio": round(
-                    len(nightmare_result) / max(len(body.text), 1), 4
-                ),
+                "length_ratio": round(len(nightmare_result) / max(len(body.text), 1), 4),
             }
 
         # Summary
         avg_dream_sim = sum(v["similarity"] for v in scores["dream"].values()) / max(
             len(scores["dream"]), 1
         )
-        avg_nightmare_sim = sum(
-            v["similarity"] for v in scores["nightmare"].values()
-        ) / max(len(scores["nightmare"]), 1)
+        avg_nightmare_sim = sum(v["similarity"] for v in scores["nightmare"].values()) / max(
+            len(scores["nightmare"]), 1
+        )
 
         summary = (
             f"Dream avg similarity: {avg_dream_sim:.2%}, "
@@ -672,17 +668,11 @@ async def compare_distortions(
         seed = body.seed
 
         # Baseline distortions
-        dream_base = _apply_dream_distortions(
-            body.text, body.baseline_strength, seed=seed
-        )
-        nightmare_base = _apply_nightmare_distortions(
-            body.text, body.baseline_strength, seed=seed
-        )
+        dream_base = _apply_dream_distortions(body.text, body.baseline_strength, seed=seed)
+        nightmare_base = _apply_nightmare_distortions(body.text, body.baseline_strength, seed=seed)
 
         # Challenge distortions
-        dream_challenge = _apply_dream_distortions(
-            body.text, body.challenge_strength, seed=seed
-        )
+        dream_challenge = _apply_dream_distortions(body.text, body.challenge_strength, seed=seed)
         nightmare_challenge = _apply_nightmare_distortions(
             body.text, body.challenge_strength, seed=seed
         )
@@ -705,13 +695,11 @@ async def compare_distortions(
 
         # Resilience = how much similarity drops between baseline and challenge
         dream_drop = max(
-            dream_details["baseline"].similarity
-            - dream_details["challenge"].similarity,
+            dream_details["baseline"].similarity - dream_details["challenge"].similarity,
             0.0,
         )
         nightmare_drop = max(
-            nightmare_details["baseline"].similarity
-            - nightmare_details["challenge"].similarity,
+            nightmare_details["baseline"].similarity - nightmare_details["challenge"].similarity,
             0.0,
         )
         avg_drop = (dream_drop + nightmare_drop) / 2
@@ -776,9 +764,7 @@ async def interactive_demo(
         nightmare_strength = 0.80
         # keep the existing function body below unchanged
 
-        dream_result = _apply_dream_distortions(
-            body.text, dream_strength, seed=body.seed
-        )
+        dream_result = _apply_dream_distortions(body.text, dream_strength, seed=body.seed)
         nightmare_result = _apply_nightmare_distortions(
             body.text, nightmare_strength, seed=body.seed
         )
@@ -1141,9 +1127,7 @@ app.include_router(router)
 async def list_runs(
     request: Request,
     offset: int = Query(0, ge=0, description="Number of runs to skip"),
-    limit: int = Query(
-        50, ge=1, le=200, description="Maximum number of runs to return"
-    ),
+    limit: int = Query(50, ge=1, le=200, description="Maximum number of runs to return"),
 ):
     """List all pipeline runs with pagination support.
 
