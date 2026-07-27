@@ -542,9 +542,9 @@ export function ExperimentList({
 
   const handleConfirmDelete = useCallback(async () => {
     if (!experimentToDelete) return;
-    
+
     setLoadingActions((prev) => new Set(prev).add(experimentToDelete));
-    
+
     try {
       await deleteExperiment(experimentToDelete);
       toast.push({
@@ -573,7 +573,7 @@ export function ExperimentList({
 
   const handleRerun = useCallback(async (row: Experiment) => {
     setLoadingActions((prev) => new Set(prev).add(row.id));
-    
+
     try {
       const baseConfig = row.config || {
         source_type: "text" as const,
@@ -584,14 +584,14 @@ export function ExperimentList({
         dream_strength: 0.25,
         nightmare_strength: 0.8,
       };
-      
+
       // Apply 1.2x strength multiplier for re-run
       const config = {
         ...baseConfig,
         dream_strength: (baseConfig.dream_strength ?? 0.25) * 1.2,
         nightmare_strength: (baseConfig.nightmare_strength ?? 0.8) * 1.2,
       };
-      
+
       await createPipeline(config);
       toast.push({
         title: "Re-run queued",
@@ -615,7 +615,7 @@ export function ExperimentList({
 
   const handleExport = useCallback(async (id: string) => {
     setLoadingActions((prev) => new Set(prev).add(id));
-    
+
     try {
       const response = await exportExperiment(id, "csv");
       const url = URL.createObjectURL(response);
@@ -624,7 +624,7 @@ export function ExperimentList({
       a.download = `${id}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      
+
       toast.push({
         title: "Export prepared",
         description: `${id}.csv downloaded successfully.`,
