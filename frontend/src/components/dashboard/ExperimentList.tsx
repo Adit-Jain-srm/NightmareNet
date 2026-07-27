@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Panel } from "./Panel";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
@@ -22,6 +22,7 @@ import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { InlineEdit } from "@/components/InlineEdit";
+import { DateRangePicker, type DateRange, isInDateRange } from "./DateRangePicker";
 import { searchExperiments, deleteExperiment, updateExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
 import {
   IconBeaker,
@@ -353,6 +354,46 @@ export function ExperimentList({
   onSectionChange,
   experiments,
 }: ExperimentListProps = {}) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Initialise date range from URL params for shareable filter state.
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const preset = (searchParams.get("dateRange") ?? "all") as DateRange["preset"];
+    return {
+      preset,
+      startDate: searchParams.get("startDate") ?? undefined,
+      endDate: searchParams.get("endDate") ?? undefined,
+    };
+  });
+
+  // Persist date range selection in URL query params.
+  const handleDateRangeChange = useCallback(
+    (range: DateRange) => {
+      setDateRange(range);
+      const params = new URLSearchParams(searchParams.toString());
+      if (range.preset === "all") {
+        params.delete("dateRange");
+        params.delete("startDate");
+        params.delete("endDate");
+      } else {
+        params.set("dateRange", range.preset);
+        if (range.preset === "custom") {
+          if (range.startDate) params.set("startDate", range.startDate);
+          else params.delete("startDate");
+          if (range.endDate) params.set("endDate", range.endDate);
+          else params.delete("endDate");
+        } else {
+          params.delete("startDate");
+          params.delete("endDate");
+        }
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, pathname, router],
+  );
+
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | Experiment["status"]>("all");
   const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
@@ -416,7 +457,11 @@ export function ExperimentList({
     const semanticRank = new Map((semanticIds ?? []).map((id, idx) => [id, idx]));
     return source
       .filter((r) => {
+        // Status filter
         if (filter !== "all" && r.status !== filter) return false;
+        // Date range filter (AND logic)
+        if (!isInDateRange(r.createdAt, dateRange)) return false;
+        // Text / semantic search filter
         if (!query.trim()) return true;
         if (semanticRank.has(r.id)) return true;
         const q = query.toLowerCase();
@@ -434,7 +479,7 @@ export function ExperimentList({
         if (bRank === undefined) return -1;
         return aRank - bRank;
       });
-  }, [query, filter, source, semanticIds]);
+  }, [query, filter, dateRange, source, semanticIds]);
 
   const sourceEmpty = source.length === 0;
 
@@ -725,6 +770,7 @@ export function ExperimentList({
               { value: "queued", label: "Queued" },
             ]}
           />
+          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
           <Button variant="ghost" size="sm" aria-label="Filter" onClick={() => setFilter(filter === "all" ? "running" : "all")} title="Toggle running filter">
             <IconFilter size={12} />
           </Button>
