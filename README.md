@@ -10,6 +10,8 @@
 [![Adversarial Robustness](https://img.shields.io/badge/Adversarial_Robustness-Training-EE4C2C?logo=pytorch&logoColor=white)](https://arxiv.org/abs/1706.06083)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/Adit-Jain-srm/NightmareNet)](https://github.com/Adit-Jain-srm/NightmareNet)
+[![codecov](https://codecov.io/gh/Adit-Jain-srm/NightmareNet/branch/main/graph/badge.svg)](https://app.codecov.io/gh/Adit-Jain-srm/NightmareNet)
+
 
 *A cyclic adversarial training platform that continuously strengthens model robustness through the Wake → Dream → Nightmare → Compress learning cycle.*
 
