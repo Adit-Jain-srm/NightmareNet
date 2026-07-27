@@ -100,7 +100,7 @@ const TABS: { key: PhaseTab; label: string; tone: "neural" | "dream" | "nightmar
   { key: "compress", label: "Compress", tone: "warning" },
 ];
 
-const PHASE_DATA: Record
+const PHASE_DATA: Record<
   PhaseTab,
   { lossStart: number; lossEnd: number; epochs: number; samples: number; description: string; metrics: { label: string; value: string }[] }
 > = {
