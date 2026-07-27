@@ -100,7 +100,7 @@ const TABS: { key: PhaseTab; label: string; tone: "neural" | "dream" | "nightmar
   { key: "compress", label: "Compress", tone: "warning" },
 ];
 
-const PHASE_DATA: Record<
+const PHASE_DATA: Record
   PhaseTab,
   { lossStart: number; lossEnd: number; epochs: number; samples: number; description: string; metrics: { label: string; value: string }[] }
 > = {
@@ -209,10 +209,6 @@ function ReRunMenu({ config }: { config: RunConfig }) {
     setLoading(true);
     try {
       const next = preset.mutate(config);
-    if (loading) return;
-    setLoading(true);
-    const next = preset.mutate(config);
-    try {
       const res = await createPipeline({
         source_type: next.sourceType,
         model_name: next.modelName,
