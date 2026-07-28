@@ -150,6 +150,12 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   };
 
   const res = await withRetry(() => fetch(url, requestOptions));
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) ?? {};
+    const error = new Error(body.detail || body.error || `API error ${res.status}`);
+    Object.assign(error, { status: res.status });
+    throw error;
+  }
   return res.json() as Promise<T>;
 }
 
@@ -203,7 +209,9 @@ export async function uploadTextFile(file: File): Promise<UploadResponse> {
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `Upload failed (${res.status})`);
+    const error = new Error(body.detail || body.error || `Upload failed (${res.status})`);
+    Object.assign(error, { status: res.status });
+    throw error;
   }
   return res.json();
 }
@@ -385,7 +393,9 @@ export async function* askCopilot(
     } catch {
       // body wasn't JSON; keep status code message
     }
-    throw new Error(detail);
+    const error = new Error(detail);
+    Object.assign(error, { status: res.status });
+    throw error;
   }
   if (!res.body) {
     throw new Error("Copilot returned no stream body");
@@ -534,7 +544,9 @@ export async function* optimizeDataStream(
     } catch {
       // non-JSON response
     }
-    throw new Error(detail);
+    const error = new Error(detail);
+    Object.assign(error, { status: res.status });
+    throw error;
   }
   if (!res.body) {
     throw new Error("No stream body returned");
