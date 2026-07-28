@@ -400,7 +400,7 @@ export function ExperimentList({
   const [modelFilter, setModelFilter] = useState<string>("all");
   const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
   const [semanticPending, setSemanticPending] = useState(false);
-  const [semanticError, setSemanticError] = useState(false);
+  const [semanticError, setSemanticError] = useState<false | "rate_limit" | "generic">(false);
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [experimentToDelete, setExperimentToDelete] = useState<string | null>(null);
@@ -422,11 +422,9 @@ export function ExperimentList({
     return Array.from(models).sort();
   }, [source]);
 
-  useEffect(() => {
-    if (modelFilter !== "all" && !uniqueModels.includes(modelFilter)) {
-      setModelFilter("all");
-    }
-  }, [uniqueModels, modelFilter]);
+  if (modelFilter !== "all" && !uniqueModels.includes(modelFilter)) {
+    setModelFilter("all");
+  }
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -450,15 +448,16 @@ export function ExperimentList({
           if (cancelled) return;
           setSemanticIds(response.results.map((result) => result.run_id));
         })
-        .catch(() => {
+        .catch((err) => {
           if (cancelled) return;
           setSemanticIds(null);
-          setSemanticError(true);
+          const isRateLimited = err?.status === 429 || err?.message?.includes("429");
+          setSemanticError(isRateLimited ? "rate_limit" : "generic");
         })
         .finally(() => {
           if (!cancelled) setSemanticPending(false);
         });
-    }, 250);
+    }, 400);
 
     return () => {
       cancelled = true;
@@ -835,7 +834,9 @@ export function ExperimentList({
         <div className="border-b border-white/[0.06] px-4 py-2 text-[11px] text-slate-400">
           {semanticPending
             ? "Searching experiment meaning..."
-            : "Semantic search unavailable; using local matches."}
+            : semanticError === "rate_limit"
+              ? "Too many requests (429). Using local matches while cooling down."
+              : "Semantic search unavailable; using local matches."}
         </div>
       ) : null}
       {loading ? (
