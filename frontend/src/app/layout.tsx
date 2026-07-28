@@ -1,9 +1,9 @@
-import type { Metadata, Viewport } from "next";
-import Script from "next/script";
-import { ThemeProvider } from "@/lib/theme";
 import SkipLink from "@/components/a11y/SkipLink";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
+import { ThemeProvider } from "@/lib/theme";
+import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -15,7 +15,7 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://frontend-aj5.vercel.app"
+    "https://frontend-aj5.vercel.app"
   ),
 
   title: "NightmareNet — Autonomous AI Self-Improvement Platform",
@@ -71,41 +71,46 @@ export default function RootLayout({
         className="scanlines min-h-full flex flex-col bg-void text-text font-sans"
         suppressHydrationWarning
       >
-      <OfflineBanner />
+        <OfflineBanner />
 
-  <ErrorBoundary
-    fallbackTitle="NightmareNet encountered an unexpected error"
-    fallbackMessage="The application could not continue. Retry the page content or report the problem."
-  >
-        <Script
-          id="theme-initializer"
-          strategy="beforeInteractive"
+        <ErrorBoundary
+          fallbackTitle="NightmareNet encountered an unexpected error"
+          fallbackMessage="The application could not continue. Retry the page content or report the problem."
         >
-          {`
+          <Script
+            id="theme-initializer"
+            strategy="beforeInteractive"
+          >
+            {`
             (function () {
               try {
-                var theme = localStorage.getItem("nightmarenet-theme");
-                var root = document.documentElement;
+               var stored = localStorage.getItem("nightmarenet-theme");
+               var root = document.documentElement;
+               var resolved;
 
-                if (theme === "light") {
-                  root.classList.add("light");
-                  root.classList.remove("dark");
-                } else {
-                  root.classList.add("dark");
-                  root.classList.remove("light");
-                }
+               if (stored === "light" || stored === "dark") {
+               resolved = stored;
+               } else {
+                resolved = window.matchMedia("(prefers-color-scheme: dark)").matches
+               ? "dark"
+                : "light";
+               }
+
+              root.classList.add(resolved);
+              root.classList.remove(resolved === "dark" ? "light" : "dark");
               } catch (error) {
-                document.documentElement.classList.add("dark");
+                  document.documentElement.classList.remove("light");
+                  document.documentElement.classList.add("dark");
               }
             })();
           `}
-        </Script>
+          </Script>
 
-        <SkipLink />
+          <SkipLink />
 
-        <ThemeProvider>
-          {children}
-        </ThemeProvider>
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </ErrorBoundary>
       </body>
     </html>

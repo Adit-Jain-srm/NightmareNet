@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Panel } from "./Panel";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { useToast } from "@/components/ui/Toast";
+import { getWebhooks, saveWebhooks, testWebhook } from "@/lib/api";
 import { useSounds } from "@/lib/sounds";
-import { IconKey, IconSettings, IconShield, IconWand, IconBell, IconHome } from "./icons";
-import { testWebhook, getWebhooks, saveWebhooks } from "@/lib/api";
+import { useTheme } from "@/lib/theme";
+import { useEffect, useState } from "react";
+import { IconBell, IconHome, IconKey, IconSettings, IconShield, IconWand } from "./icons";
+import { Panel } from "./Panel";
 
 type Tab = "keys" | "model" | "distortion" | "integrations" | "notifications" | "preferences";
 
@@ -58,6 +59,7 @@ export function SettingsPanel() {
   const [wandbKey, setWandbKey] = useState("");
   const toast = useToast();
   const sounds = useSounds();
+  const { theme, setTheme } = useTheme();
 
   const [webhooks, setWebhooks] = useState<WebhookConfig[]>([]);
 
@@ -455,17 +457,27 @@ export function SettingsPanel() {
       )}
 
       {tab === "preferences" && (
-        <div className="space-y-4">
-          <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
-            <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Sidebar Layout</p>
-            <p className="text-[11px] text-slate-400 mb-3">Reset the personalized dashboard section ordering back to the default state. This removes custom ordering and visit statistics.</p>
-            <Button variant="danger" size="sm" onClick={() => {
-              window.dispatchEvent(new CustomEvent("reset-sidebar-prefs"));
-              toast.push({ title: "Sidebar layout reset", variant: "info" });
-            }}>
-              Reset to default order
-            </Button>
-          </div>
+         <div className="space-y-4">
+    <div className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-3">
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-slate-400">Appearance</p>
+      <p className="text-[11px] text-slate-400 mb-3">Choose light, dark, or match your system setting.</p>
+      <div className="flex items-center gap-1 rounded-lg border border-white/[0.06] p-1 w-fit">
+        {(["light", "dark", "system"] as const).map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            aria-pressed={theme === opt}
+            onClick={() => setTheme(opt)}
+            className={[
+              "rounded-md px-2.5 py-1 text-[11px] capitalize transition-colors",
+              theme === opt ? "bg-neural/[0.08] text-neural" : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-300",
+            ].join(" ")}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
+    </div>
         </div>
       )}
     </Panel>
