@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
+
+logger = logging.getLogger(__name__)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
@@ -40,7 +43,7 @@ def calculate_metrics(orig: str, distortions: List[str]) -> Dict[str, float]:
     if not distortions:
         return {"semantic_preservation": 0.0, "grammaticality": 0.0, "diversity": 0.0}
 
-    # 1. Semantic preservation (Jaccard word similarity with original)
+    # 1. Semantic preservation (word-level Jaccard similarity relative to clean input)
     orig_words = set(orig.lower().split())
     sem_scores = []
     for dist in distortions:
@@ -50,7 +53,7 @@ def calculate_metrics(orig: str, distortions: List[str]) -> Dict[str, float]:
         sem_scores.append(len(inter) / max(len(union), 1))
     sem_pres = sum(sem_scores) / len(sem_scores)
 
-    # 2. Grammaticality (length ratio preservation relative to clean input)
+    # 2. Grammaticality (word-length ratio preservation relative to clean input sentence)
     gram_scores = []
     orig_len = max(len(orig.split()), 1)
     for dist in distortions:
@@ -59,7 +62,7 @@ def calculate_metrics(orig: str, distortions: List[str]) -> Dict[str, float]:
         gram_scores.append(ratio)
     gram_score = sum(gram_scores) / len(gram_scores)
 
-    # 3. Diversity (unique n-grams ratio across generated distortions)
+    # 3. Diversity (unique unigram vocabulary ratio across generated distortions)
     all_tokens = [w for d in distortions for w in d.lower().split()]
     diversity = len(set(all_tokens)) / max(len(all_tokens), 1)
 
@@ -166,7 +169,7 @@ def run_study(calibrate: bool = False, device: str = "cpu") -> Dict[str, Any]:
     for spec in MODEL_SPECS:
         size, name = spec["size"], spec["name"]
         if calibrate:
-            metrics = calibrated_defaults[size]
+            metrics = {**calibrated_defaults[size], "source": "calibrated", "is_fallback": False}
         else:
             try:
                 from nightmarenet.distortions.learned import LearnedAdversarialGenerator
@@ -184,9 +187,23 @@ def run_study(calibrate: bool = False, device: str = "cpu") -> Dict[str, Any]:
                     "grammaticality": round(gram, 4),
                     "diversity": round(div, 4),
                     "overall": round((sem + gram + div) / 3, 4),
+                    "source": "measured",
+                    "is_fallback": False,
                 }
-            except Exception:
-                metrics = calibrated_defaults[size]
+            except Exception as exc:
+                logger.warning(
+                    "Live distortion generation failed for model '%s' (%s): %s. "
+                    "Substituting calibrated fallback values.",
+                    name,
+                    size,
+                    exc,
+                )
+                metrics = {
+                    **calibrated_defaults[size],
+                    "source": "calibrated_fallback",
+                    "is_fallback": True,
+                    "fallback_reason": str(exc),
+                }
 
         results[size] = {**spec, **metrics}
 

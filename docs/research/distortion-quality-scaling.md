@@ -37,9 +37,9 @@ This study systematically measures the correlation between generator model size 
 
 We evaluate generator models across four scale tiers (`tiny`, `small`, `base`, `large`) using three core quality metrics:
 
-1. **Semantic Preservation Score (`0.0 - 1.0`):** Measures retention of core sentence meaning using token overlap / similarity metrics against the un-distorted input text.
-2. **Grammaticality Score (`0.0 - 1.0`):** Evaluates structural coherence, word-length preservation, and syntactic validity.
-3. **Diversity Score (`0.0 - 1.0`):** Measures the vocabulary variety and unique n-gram ratio across generated distortions across multiple seeds.
+1. **Semantic Preservation Score (`0.0 - 1.0`):** Measures word-level Jaccard similarity relative to the original un-distorted input text.
+2. **Grammaticality Score (`0.0 - 1.0`):** Evaluates word-length ratio preservation relative to the clean input sentence.
+3. **Diversity Score (`0.0 - 1.0`):** Measures the unique unigram vocabulary ratio across generated distortion outputs across multiple seeds.
 
 The overall quality score is defined as the arithmetic mean of all three metrics:
 $$\text{Overall Score} = \frac{\text{Semantic Preservation} + \text{Grammaticality} + \text{Diversity}}{3}$$
