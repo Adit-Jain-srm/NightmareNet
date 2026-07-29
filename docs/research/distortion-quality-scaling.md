@@ -1,9 +1,9 @@
 # Distortion Quality vs Model Size Correlation Study
 
-**Date:** 2026-07-29  
-**Issue:** [#548](https://github.com/Adit-Jain-srm/NightmareNet/issues/548)  
-**Script:** [`scripts/distortion_quality_vs_size.py`](../../scripts/distortion_quality_vs_size.py)  
-**Artifacts:** [`results/distortion_quality_scaling.json`](../../results/distortion_quality_scaling.json), [`results/distortion_quality_scaling.svg`](../../results/distortion_quality_scaling.svg)  
+**Date:** 2026-07-29
+**Issue:** [#548](https://github.com/Adit-Jain-srm/NightmareNet/issues/548)
+**Script:** [`scripts/distortion_quality_vs_size.py`](../../scripts/distortion_quality_vs_size.py)
+**Artifacts:** [`results/distortion_quality_scaling.json`](../../results/distortion_quality_scaling.json), [`results/distortion_quality_scaling.svg`](../../results/distortion_quality_scaling.svg)
 
 ---
 

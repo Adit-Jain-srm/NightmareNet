@@ -121,9 +121,7 @@ def write_svg_plot(data: Dict[str, Dict[str, Any]], out_path: Path) -> None:
     leg_x = margin + 10
     for idx, (metric, color) in enumerate(colors.items()):
         ly = margin + 15 + idx * 18
-        lines.append(
-            f'<rect x="{leg_x}" y="{ly - 9}" width="10" height="10" fill="{color}"/>'
-        )
+        lines.append(f'<rect x="{leg_x}" y="{ly - 9}" width="10" height="10" fill="{color}"/>')
         lines.append(
             f'<text x="{leg_x + 15}" y="{ly}" font-family="sans-serif" '
             f'font-size="11">{metric}</text>'
@@ -176,9 +174,7 @@ def run_study(calibrate: bool = False, device: str = "cpu") -> Dict[str, Any]:
                 gen = LearnedAdversarialGenerator(model_name=name, device=device)
                 all_metrics = []
                 for prompt in DEFAULT_PROMPTS:
-                    dists = [
-                        gen.generate(prompt, strength=0.5, cycle_id=s) for s in (42, 43, 44)
-                    ]
+                    dists = [gen.generate(prompt, strength=0.5, cycle_id=s) for s in (42, 43, 44)]
                     all_metrics.append(calculate_metrics(prompt, dists))
                 sem = sum(m["semantic_preservation"] for m in all_metrics) / len(all_metrics)
                 gram = sum(m["grammaticality"] for m in all_metrics) / len(all_metrics)
@@ -195,11 +191,7 @@ def run_study(calibrate: bool = False, device: str = "cpu") -> Dict[str, Any]:
         results[size] = {**spec, **metrics}
 
     min_size = next(
-        (
-            spec["size"]
-            for spec in MODEL_SPECS
-            if results[spec["size"]]["overall"] >= 0.80
-        ),
+        (spec["size"] for spec in MODEL_SPECS if results[spec["size"]]["overall"] >= 0.80),
         "base",
     )
     return {"models": results, "minimum_production_size": min_size}
@@ -214,9 +206,7 @@ def main() -> int:
     )
     parser.add_argument("--run", action="store_true", help="Run live model generation")
     parser.add_argument("--device", default="cpu", help="Device for execution (cpu/cuda)")
-    parser.add_argument(
-        "--output", type=Path, default=DEFAULT_OUT, help="Path for JSON output"
-    )
+    parser.add_argument("--output", type=Path, default=DEFAULT_OUT, help="Path for JSON output")
     parser.add_argument("--plot", type=Path, default=DEFAULT_PLOT, help="Path for SVG plot")
     args = parser.parse_args()
 
