@@ -208,7 +208,7 @@ export async function uploadTextFile(file: File): Promise<UploadResponse> {
     body: formData,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
+    const body = (await res.json().catch(() => ({}))) ?? {};
     const error = new Error(body.detail || body.error || `Upload failed (${res.status})`);
     Object.assign(error, { status: res.status });
     throw error;
