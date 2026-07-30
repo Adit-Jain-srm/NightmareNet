@@ -108,12 +108,12 @@ describe("retryLazy", () => {
         TestErrorBoundary,
         {
           fallback: React.createElement("div", null, "Boundary caught: Permanent CDN Failure"),
-          children: React.createElement(
-            Suspense,
-            { fallback: React.createElement("div", null, "Loading...") },
-            React.createElement(LazyPanel),
-          ),
         },
+        React.createElement(
+          Suspense,
+          { fallback: React.createElement("div", null, "Loading...") },
+          React.createElement(LazyPanel),
+        ),
       ),
     );
 
