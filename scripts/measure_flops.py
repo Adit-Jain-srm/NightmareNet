@@ -15,12 +15,14 @@ import torch
 # Try to import fvcore or torchprofile
 try:
     from fvcore.nn import FlopCountAnalysis
+
     HAS_FVCORE = True
 except ImportError:
     HAS_FVCORE = False
 
 try:
     from torchprofile import profile_macs
+
     HAS_TORCHPROFILE = True
 except ImportError:
     HAS_TORCHPROFILE = False
@@ -30,6 +32,7 @@ from transformers import AutoConfig, AutoModelForSequenceClassification
 
 class HFModelWrapper(torch.nn.Module):
     """Wrapper to expose keyword inputs as positional inputs for JIT tracing."""
+
     def __init__(self, model):
         super().__init__()
         self.model = model
@@ -120,9 +123,7 @@ def main():
         raise SystemExit("error: --pruning-ratio must be between 0.0 and 1.0")
 
     has_cuda = torch.cuda.is_available()
-    device = torch.device(
-        args.device if has_cuda or args.device == "cpu" else "cpu"
-    )
+    device = torch.device(args.device if has_cuda or args.device == "cpu" else "cpu")
     print(f"Profiling on device: {device}")
 
     if not HAS_FVCORE and not HAS_TORCHPROFILE:
@@ -131,9 +132,7 @@ def main():
 
     print(f"Loading model '{args.model}'...")
     try:
-        model = AutoModelForSequenceClassification.from_pretrained(
-            args.model, num_labels=2
-        )
+        model = AutoModelForSequenceClassification.from_pretrained(args.model, num_labels=2)
     except Exception as e:
         print(
             f"Warning: Failed to load pretrained weights for '{args.model}' ({e}). "
@@ -162,6 +161,7 @@ def main():
         try:
             # Silence internal warnings
             import logging
+
             logging.getLogger("fvcore").setLevel(logging.ERROR)
             analysis = FlopCountAnalysis(wrapper, inputs)
             forward_flops = analysis.total()
@@ -217,20 +217,16 @@ def main():
     cycle_flops_wake = args.wake_epochs * steps_per_epoch * step_flops_wake
     cycle_flops_dream = args.dream_epochs * steps_per_epoch * step_flops_dream
     cycle_flops_nightmare = args.nightmare_epochs * steps_per_epoch * step_flops_nightmare
-    cycle_flops_compress_dense = (
-        args.compress_epochs * steps_per_epoch * step_flops_compress_dense
-    )
+    cycle_flops_compress_dense = args.compress_epochs * steps_per_epoch * step_flops_compress_dense
     cycle_flops_compress_sparse = (
         args.compress_epochs * steps_per_epoch * step_flops_compress_sparse
     )
 
     cycle_total_dense = (
-        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare
-        + cycle_flops_compress_dense
+        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare + cycle_flops_compress_dense
     )
     cycle_total_sparse = (
-        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare
-        + cycle_flops_compress_sparse
+        cycle_flops_wake + cycle_flops_dream + cycle_flops_nightmare + cycle_flops_compress_sparse
     )
 
     total_dense = args.num_cycles * cycle_total_dense
@@ -249,9 +245,7 @@ def main():
     print(f"Nightmare Epoch FLOPs: {nightmare_tflops:.4f} TFLOPs")
     compress_dense_tflops = steps_per_epoch * step_flops_compress_dense / to_tflops
     print(f"Compress Epoch FLOPs (dense): {compress_dense_tflops:.4f} TFLOPs")
-    compress_sparse_tflops = (
-        steps_per_epoch * step_flops_compress_sparse / to_tflops
-    )
+    compress_sparse_tflops = steps_per_epoch * step_flops_compress_sparse / to_tflops
     print(f"Compress Epoch FLOPs (sparse effective): {compress_sparse_tflops:.4f} TFLOPs")
 
     print(f"\nTotal per Cycle (Dense): {cycle_total_dense / to_tflops:.4f} TFLOPs")
@@ -301,7 +295,7 @@ def main():
         "(Gradient-based PGD)"
     )
     print(
-        f"NightmareNet Cycle vs. Standard AT Compute Ratio: {1/savings_nn_vs_at:.2f}x "
+        f"NightmareNet Cycle vs. Standard AT Compute Ratio: {1 / savings_nn_vs_at:.2f}x "
         f"(saves {savings_nn_vs_at:.2f}x compute)"
     )
 
@@ -341,7 +335,6 @@ def main():
     print(row_trades)
     print(row_nn1)
     print(row_nn3)
-
 
 
 if __name__ == "__main__":
