@@ -149,9 +149,7 @@ class TestCalculateCycleFlops:
 
         assert result["phases"]["wake"] == 0
         assert result["total"] == (
-            result["phases"]["dream"]
-            + result["phases"]["nightmare"]
-            + result["phases"]["compress"]
+            result["phases"]["dream"] + result["phases"]["nightmare"] + result["phases"]["compress"]
         )
 
 

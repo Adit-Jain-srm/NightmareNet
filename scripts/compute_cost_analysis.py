@@ -111,12 +111,8 @@ def calculate_cycle_flops(
     if flops_per_sample is None:
         flops_per_sample = get_flops_per_sample(model_name)
 
-    wake_flops = calculate_phase_flops(
-        model_name, num_samples, wake_epochs, flops_per_sample
-    )
-    dream_flops = calculate_phase_flops(
-        model_name, num_samples, dream_epochs, flops_per_sample
-    )
+    wake_flops = calculate_phase_flops(model_name, num_samples, wake_epochs, flops_per_sample)
+    dream_flops = calculate_phase_flops(model_name, num_samples, dream_epochs, flops_per_sample)
     nightmare_flops = calculate_phase_flops(
         model_name, num_samples, nightmare_epochs, flops_per_sample
     )
@@ -331,9 +327,7 @@ def main() -> int:
     config = load_config(args.config)
 
     # Get values from config or override
-    model_name = args.model or config.get("model", {}).get(
-        "name", "distilbert-base-uncased"
-    )
+    model_name = args.model or config.get("model", {}).get("name", "distilbert-base-uncased")
     num_samples = args.samples or config.get("dataset", {}).get("max_samples", 500)
     num_cycles = config.get("training", {}).get("num_cycles", 3)
     wake_epochs = config.get("training", {}).get("wake_epochs", 3)

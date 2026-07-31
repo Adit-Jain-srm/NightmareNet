@@ -195,4 +195,3 @@ strict_concatenate = true
 include = ["nightmarenet*", "nightmarenet_server*", "scripts"]
 [tool.setuptools.package-data]
 nightmarenet = ["py.typed"]
-
