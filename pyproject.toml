@@ -109,6 +109,9 @@ export = [
 art = [
     "adversarial-robustness-toolbox>=1.15.0",
 ]
+benchmark = [
+    "fvcore>=0.1.5",
+]
 
 [project.urls]
 Homepage = "https://github.com/Adit-Jain-srm/NightmareNet"
