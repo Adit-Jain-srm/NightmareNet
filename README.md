@@ -656,8 +656,7 @@ from nightmarenet.hub import pull_model
 
 # Download the model artifacts to a local directory
 model_dir = pull_model(
-    repo_id="username/hardened-robust-model",
-    local_dir="./models/hardened-robust-model"
+    repo_id="username/hardened-robust-model", local_dir="./models/hardened-robust-model"
 )
 print(f"Model successfully loaded at: {model_dir}")
 ```
