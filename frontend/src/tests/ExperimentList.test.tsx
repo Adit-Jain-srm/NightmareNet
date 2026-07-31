@@ -31,7 +31,7 @@ vi.mock("@/components/ui/Toast", () => ({
 
 // Mock API
 vi.mock("@/lib/api", async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     deleteExperiment: vi.fn(),
