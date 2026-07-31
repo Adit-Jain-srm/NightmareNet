@@ -4,6 +4,8 @@ Covers MagnitudePruner, BottleneckWrapper, and apply_bottleneck_to_model.
 Uses a tiny hand-built model fixture — no downloads, no GPU needed.
 """
 
+from unittest.mock import patch
+
 import pytest
 import torch
 import torch.nn as nn
@@ -168,3 +170,57 @@ class TestBottleneckWrapper:
         out = tiny_block(x)
         assert out.shape == (4, 16)
         assert torch.isfinite(out).all()
+
+# ---------------------------------------------------------------------------
+# CompressionPhase integration
+# ---------------------------------------------------------------------------
+
+
+class TestCompressionPhaseBottleneck:
+    def test_bottleneck_method_is_applied_and_preserves_forward_pass(self, tiny_block):
+        from nightmarenet.training.phases import CompressionPhase
+
+        phase = CompressionPhase(
+            model=tiny_block,
+            config={
+                "pruning_method": "bottleneck",
+                "bottleneck_rank_ratio": 0.25,
+                "finetune_after_prune": False,
+            },
+        )
+
+        stats = phase.run()
+
+        assert stats["method"] == "bottleneck"
+        assert stats["wrapped_count"] == 1
+        assert stats["rank_ratio"] == 0.25
+        assert isinstance(tiny_block.mlp, BottleneckWrapper)
+
+        output = tiny_block(torch.randn(4, 16))
+        assert output.shape == (4, 16)
+        assert torch.isfinite(output).all()
+
+    def test_bottleneck_success_allows_distillation(self, tiny_block):
+        from nightmarenet.training.phases import CompressionPhase
+
+        optimizer = torch.optim.SGD(tiny_block.parameters(), lr=0.01)
+        phase = CompressionPhase(
+            model=tiny_block,
+            config={
+                "pruning_method": "bottleneck",
+                "bottleneck_rank_ratio": 0.5,
+                "distillation": True,
+                "finetune_after_prune": False,
+            },
+        )
+
+        with patch(
+            "nightmarenet.compression.distillation.run_distillation",
+            return_value={"distillation_loss": 0.1},
+        ) as mock_distill:
+            stats = phase.run(dataloader=[{}], optimizer=optimizer)
+
+        mock_distill.assert_called_once()
+        assert stats["wrapped_count"] == 1
+        assert stats["distillation_loss"] == 0.1
+

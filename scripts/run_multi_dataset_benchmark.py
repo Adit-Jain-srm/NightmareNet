@@ -214,7 +214,7 @@ def _evaluate(
     return correct / max(total, 1)
 
 
-def _build_distorter(distortion: str, strength: float, seed: int = 42):
+def _build_distorter(distortion: str, strength: float, seed: int):
     from nightmarenet.distortions import dream as dream_mod
     from nightmarenet.distortions import nightmare as nightmare_mod
 
@@ -266,9 +266,7 @@ def _train_and_eval(
     t0 = time.time()
 
     history: List[dict] = []
-    wake_loss = _train_epoch(
-        model, tokenizer, train, device, batch_size, lr, use_amp, max_length
-    )
+    wake_loss = _train_epoch(model, tokenizer, train, device, batch_size, lr, use_amp, max_length)
     history.append({"phase": "wake", "loss": wake_loss})
 
     if nightmare:
@@ -307,7 +305,7 @@ def _train_and_eval(
     for d_type in ("dream", "nightmare"):
         per: Dict[str, float] = {}
         for s in STRENGTHS:
-            fn = _build_distorter(d_type, strength=s)
+            fn = _build_distorter(d_type, strength=s, seed=seed)
             acc = _evaluate(model, tokenizer, val, device, batch_size, max_length, distort_fn=fn)
             per[f"{s:.1f}"] = round(acc, 4)
         distorted[d_type] = per
@@ -527,9 +525,7 @@ def calibrate_from_sst2() -> dict:
                     nightmarenet["clean_accuracy"] - baseline["clean_accuracy"], 4
                 ),
                 "avg_distorted_delta": round(avg_delta, 4),
-                "auc_delta": round(
-                    nightmarenet["auc_robustness"] - baseline["auc_robustness"], 6
-                ),
+                "auc_delta": round(nightmarenet["auc_robustness"] - baseline["auc_robustness"], 6),
                 "robustness_improvement_pct": round(rel, 2),
                 "wall_time_seconds": round(
                     baseline["train_seconds"] + nightmarenet["train_seconds"], 2

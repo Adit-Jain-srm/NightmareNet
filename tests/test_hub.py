@@ -67,11 +67,7 @@ def test_pull_model_execution(mock_snapshot, tmp_path):
 def test_generate_model_card_null_hub_config():
     """Verify that a null 'hub' config does not crash generate_model_card."""
     repo_id = "test-org/robust-model"
-    metadata = {
-        "config": {
-            "hub": None
-        }
-    }
+    metadata = {"config": {"hub": None}}
     # Should not raise an exception
     card_content = generate_model_card(repo_id, metadata)
     assert "NightmareNet Hardened Model" in card_content
@@ -80,13 +76,6 @@ def test_generate_model_card_null_hub_config():
 def test_generate_model_card_path_traversal():
     """Verify that generate_model_card rejects templates outside the project directory."""
     repo_id = "test-org/robust-model"
-    metadata = {
-        "config": {
-            "hub": {
-                "model_card_template": "/etc/passwd"
-            }
-        }
-    }
+    metadata = {"config": {"hub": {"model_card_template": "/etc/passwd"}}}
     with pytest.raises(ValueError, match="Template path escapes the project directory"):
         generate_model_card(repo_id, metadata)
-

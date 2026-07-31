@@ -445,10 +445,7 @@ class Evaluator:
         conf_before, preds_before = probs_before.max(dim=-1)
 
         ece_before = compute_ece(
-            conf_before.numpy(),
-            preds_before.numpy(),
-            test_labels.numpy(),
-            n_bins=ece_bins
+            conf_before.numpy(), preds_before.numpy(), test_labels.numpy(), n_bins=ece_bins
         )
 
         # Compute calibrated/final ECE and reliability data on test split
@@ -456,17 +453,11 @@ class Evaluator:
         conf_after, preds_after = probs_after.max(dim=-1)
 
         ece_after = compute_ece(
-            conf_after.numpy(),
-            preds_after.numpy(),
-            test_labels.numpy(),
-            n_bins=ece_bins
+            conf_after.numpy(), preds_after.numpy(), test_labels.numpy(), n_bins=ece_bins
         )
 
         rel_data = reliability_diagram_data(
-            conf_after.numpy(),
-            preds_after.numpy(),
-            test_labels.numpy(),
-            n_bins=ece_bins
+            conf_after.numpy(), preds_after.numpy(), test_labels.numpy(), n_bins=ece_bins
         )
 
         return {

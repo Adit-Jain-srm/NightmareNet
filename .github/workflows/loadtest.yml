@@ -1,0 +1,47 @@
+name: API Load Test
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Run at 3:00 AM UTC every day
+  workflow_dispatch:      # Allow manual triggering
+
+jobs:
+  load-test:
+    name: Run k6 API Load Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install API dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,api]"
+
+      - name: Start API Server
+        run: |
+          RATELIMIT_ENABLED=false uvicorn nightmarenet.api.app:app --host 127.0.0.1 --port 8000 &
+          timeout 30s bash -c 'until curl -s http://127.0.0.1:8000/api/v1/health | grep -q "ok"; do sleep 1; done'
+
+      - name: Run k6 Load Test
+        uses: grafana/run-k6-action@v1
+        with:
+          path: scripts/loadtest.js
+        env:
+          BASE_URL: http://127.0.0.1:8000
+
+      - name: Upload load test results artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: loadtest-results
+          path: loadtest-results.json
