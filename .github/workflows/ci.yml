@@ -88,6 +88,16 @@ jobs:
           NPM_CONFIG_FETCH_TIMEOUT: 300000
         run: npm ci
 
+      - name: Lint frontend
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check frontend
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npx tsc --noEmit
+
       - name: Run frontend unit tests
         if: matrix.python-version == '3.12'
         working-directory: frontend
@@ -105,16 +115,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           directory: frontend
           skip_step: build
-
-      - name: Lint frontend
-        if: matrix.python-version == '3.12'
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Type-check frontend
-        if: matrix.python-version == '3.12'
-        working-directory: frontend
-        run: npx tsc --noEmit
 
       - name: Install Playwright Chromium
         if: matrix.python-version == '3.12'
