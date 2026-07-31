@@ -20,7 +20,11 @@ def unwrap_model(model: nn.Module) -> nn.Module:
 
 
 def apply_phase_strategy(
-    phase: str, model: nn.Module, device_pool: DevicePool, ddp_wrapper: DDPWrapper
+    phase: str,
+    model: nn.Module,
+    device_pool: DevicePool,
+    ddp_wrapper: DDPWrapper,
+    distributed_enabled: bool,
 ) -> nn.Module:
     """Applies the correct distributed strategy based on the phase.
 
@@ -29,6 +33,8 @@ def apply_phase_strategy(
     Compress: Single GPU
     """
     model = unwrap_model(model)
+    if not distributed_enabled:
+        return model
     num_devices = device_pool.get_num_devices()
 
     if num_devices <= 1:
