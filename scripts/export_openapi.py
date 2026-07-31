@@ -31,9 +31,17 @@ def _normalize_descriptions(obj):
     if isinstance(obj, dict):
         new_obj = {}
         for k, v in obj.items():
-            if k == "422" and isinstance(v, dict) and v.get("description") == "Unprocessable Content":
+            if (
+                k == "422"
+                and isinstance(v, dict)
+                and v.get("description") == "Unprocessable Content"
+            ):
                 v = {**v, "description": "Unprocessable Entity"}
-            elif k == "413" and isinstance(v, dict) and v.get("description") == "Content Too Large":
+            elif (
+                k == "413"
+                and isinstance(v, dict)
+                and v.get("description") == "Content Too Large"
+            ):
                 v = {**v, "description": "Request Entity Too Large"}
             new_obj[k] = _normalize_descriptions(v)
         return new_obj
