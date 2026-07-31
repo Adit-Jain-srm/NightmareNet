@@ -422,9 +422,11 @@ export function ExperimentList({
     return Array.from(models).sort();
   }, [source]);
 
-  if (modelFilter !== "all" && !uniqueModels.includes(modelFilter)) {
-    setModelFilter("all");
-  }
+  useEffect(() => {
+    if (modelFilter !== "all" && !uniqueModels.includes(modelFilter)) {
+      setModelFilter("all");
+    }
+  }, [modelFilter, uniqueModels]);
 
   useEffect(() => {
     const trimmed = query.trim();
