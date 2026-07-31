@@ -46,6 +46,7 @@ try:
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
+    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
     from nightmarenet.api.schemas import (
         CompareRequest,
         CompareResponse,
@@ -56,17 +57,12 @@ try:
         DistortionResponse,
         ErrorResponse,
         HealthResponse,
-        PipelineCancelRequest,
         PipelineCreateRequest,
-        PipelineEvaluateRequest,
         PipelineReportResponse,
         PipelineRunsListResponse,
         PipelineStatusResponse,
-        # Adding the missing schemas for validation
-        PipelineTrainRequest,
         RobustnessRequest,
         RobustnessResponse,
-        SettingsWebhooksRequest,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
@@ -224,11 +220,6 @@ def _char_similarity(a: str, b: str) -> float:
 # --- Cached test count ---
 _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
-
-
-WEBHOOKS_FILE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
-)
 
 
 def _get_test_count() -> Optional[int]:
@@ -897,46 +888,6 @@ async def upload_text_file(request: Request, file: UploadFile) -> UploadResponse
 # ===================================================================
 
 _PIPELINE_BODY = Body(...)
-
-
-# ADDED MISSING ENDPOINTS TO SATISFY PR REQUIREMENTS
-@app.post("/api/v1/pipeline/train", response_model=dict, tags=["pipeline"])
-async def train_pipeline_endpoint(request: PipelineTrainRequest):
-    """Start pipeline training phase."""
-    return {"status": "ok", "message": "Training started", "model": request.model_name}
-
-
-@app.post("/api/v1/pipeline/evaluate", response_model=dict, tags=["pipeline"])
-async def evaluate_pipeline_endpoint(request: PipelineEvaluateRequest):
-    """Evaluate pipeline robustness."""
-    return {
-        "status": "ok",
-        "message": "Evaluation started",
-        "model": request.model_name,
-    }
-
-
-@app.post("/api/v1/pipeline/cancel", response_model=dict, tags=["pipeline"])
-async def cancel_pipeline_post_endpoint(request: PipelineCancelRequest):
-    """Cancel pipeline run via POST body (Legacy/Alternative)."""
-    return {
-        "status": "ok",
-        "message": "Pipeline cancelled",
-        "pipeline_id": request.pipeline_id,
-    }
-
-
-@app.post("/settings/webhooks", response_model=dict, tags=["settings"])
-async def update_webhooks_endpoint(request: SettingsWebhooksRequest):
-    """Update configured webhooks."""
-    return {
-        "status": "ok",
-        "message": "Webhooks updated",
-        "webhooks_count": len(request.webhooks),
-    }
-
-
-# END MISSING ENDPOINTS
 
 
 @app.post(
