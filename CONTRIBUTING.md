@@ -391,6 +391,7 @@ All PRs that change user-facing behavior **must** update relevant documentation:
 - **Distortion changes** → Update the README distortion table + `docs/research/paper-draft.md`
 - **Frontend changes** → Update component inventory in README if adding panels
 - **Breaking changes** → Add migration note at the top of PR description
+- **Architecture changes** → If a pull request modifies the system architecture, module dependencies, training pipeline, or data flow, update the Mermaid diagrams in `docs/architecture/TRD.md` to keep them synchronized with the implementation.
 
 Good documentation is as important as good code. If you're unsure what to update, ask in the PR description and we'll guide you.
 
