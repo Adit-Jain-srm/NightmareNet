@@ -59,6 +59,13 @@ jobs:
         if: matrix.python-version == '3.12'
         run: PYTHONPATH=. python scripts/export_openapi.py --check
 
+      - name: Validate Alembic migrations (upgrade head → downgrade base)
+        if: matrix.python-version == '3.12'
+        run: |
+          pip install "alembic>=1.13" "sqlalchemy>=2.0"
+          pip install -e ".[dev,api]"
+          python scripts/check_migrations.py
+
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
