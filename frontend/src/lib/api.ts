@@ -247,6 +247,7 @@ export interface PipelineCreateRequest {
   learning_rate?: number;
   batch_size?: number;
   max_samples?: number;
+  seed?: number;
   dream_strength?: number;
   nightmare_strength?: number;
   webhooks?: { url: string; events: string[] }[];
@@ -420,7 +421,7 @@ export async function* askCopilot(
         }
       }
     }
-    } finally {
+  } finally {
     try {
       reader.releaseLock();
     } catch {
