@@ -54,15 +54,10 @@ jobs:
           --cov=nightmarenet
           --cov-report=xml
           --cov-report=term-missing
-          -q
-
-      - name: Check OpenAPI spec drift
-        if: matrix.python-version == '3.12'
-        run: PYTHONPATH=. python scripts/export_openapi.py --check
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
@@ -70,6 +65,10 @@ jobs:
           name: nightmarenet-coverage
           fail_ci_if_error: false
           verbose: true
+
+      - name: Check OpenAPI spec drift
+        if: matrix.python-version == '3.12'
+        run: PYTHONPATH=. python scripts/export_openapi.py --check
 
       - name: Set up Node.js
         if: matrix.python-version == '3.12'
