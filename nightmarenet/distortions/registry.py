@@ -33,11 +33,11 @@ if TYPE_CHECKING:
     import torch as _torch
 
     VisionDistortionFn = Callable[[_torch.Tensor, float, Optional[int]], _torch.Tensor]
-    VisionApplyReturn = _torch.Tensor
 else:
     # Runtime: keep flexible when torch is optional / missing at import time.
     VisionDistortionFn = Callable[..., Any]
-    VisionApplyReturn = Any
+
+VisionApplyReturn = Any
 
 logger = logging.getLogger(__name__)
 
