@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import { render, screen, act, fireEvent } from "@testing-library/react";
 import React from "react";
 
 // ---------------------------------------------------------------------------
@@ -118,10 +117,9 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
   });
 
   it("announces toast title after debounce when toast is pushed", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWithProvider("Export complete", "success");
 
-    await user.click(screen.getByTestId("push-toast"));
+    fireEvent.click(screen.getByTestId("push-toast"));
     // Advance past the 150 ms debounce
     act(() => { vi.advanceTimersByTime(200); });
 
@@ -130,10 +128,9 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
   });
 
   it("includes description in announcement when provided", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWithProvider("Pipeline started", "info", "Run will take ~10 minutes");
 
-    await user.click(screen.getByTestId("push-toast"));
+    fireEvent.click(screen.getByTestId("push-toast"));
     act(() => { vi.advanceTimersByTime(200); });
 
     const region = document.getElementById("toast-live-region");
@@ -141,10 +138,9 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
   });
 
   it("uses role=alert and aria-live=assertive for error toasts", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWithProvider("API Error", "error", "Connection refused");
 
-    await user.click(screen.getByTestId("push-toast"));
+    fireEvent.click(screen.getByTestId("push-toast"));
     act(() => { vi.advanceTimersByTime(200); });
 
     const region = document.getElementById("toast-live-region");
@@ -154,10 +150,9 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
   });
 
   it("uses role=status and aria-live=polite for non-error toasts", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderWithProvider("Re-run queued", "success");
 
-    await user.click(screen.getByTestId("push-toast"));
+    fireEvent.click(screen.getByTestId("push-toast"));
     act(() => { vi.advanceTimersByTime(200); });
 
     const region = document.getElementById("toast-live-region");
@@ -166,8 +161,6 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
   });
 
   it("debounces rapid pushes — only the latest message is announced", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-
     function MultiPush() {
       const toast = useToast();
       return (
@@ -190,7 +183,7 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
       </ToastProvider>,
     );
 
-    await user.click(screen.getByTestId("multi-push"));
+    fireEvent.click(screen.getByTestId("multi-push"));
     // Before debounce — region should still be empty (debounce pending)
     const regionBefore = document.getElementById("toast-live-region");
     expect(regionBefore?.textContent).toBe("");
