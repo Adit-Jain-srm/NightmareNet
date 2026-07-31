@@ -46,6 +46,7 @@ try:
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
+    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
     from nightmarenet.api.schemas import (
         CompareRequest,
         CompareResponse,
@@ -56,17 +57,12 @@ try:
         DistortionResponse,
         ErrorResponse,
         HealthResponse,
-        PipelineCancelRequest,
         PipelineCreateRequest,
-        PipelineEvaluateRequest,
         PipelineReportResponse,
         PipelineRunsListResponse,
         PipelineStatusResponse,
-        # Adding the missing schemas for validation
-        PipelineTrainRequest,
         RobustnessRequest,
         RobustnessResponse,
-        SettingsWebhooksRequest,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
@@ -149,7 +145,13 @@ async def telemetry_middleware(request: Request, call_next):
 
 
 # --- Rate limiting ---
-limiter = Limiter(key_func=get_remote_address)
+_rate_limit_enabled = os.environ.get("RATELIMIT_ENABLED", "true").lower() not in (
+    "false",
+    "0",
+    "off",
+    "no",
+)
+limiter = Limiter(key_func=get_remote_address, enabled=_rate_limit_enabled)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
@@ -169,9 +171,7 @@ app.add_middleware(APIKeyMiddleware)  # type: ignore[arg-type]
 
 # --- CORS ---
 _cors_origins = [
-    o.strip()
-    for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "").split(",")
-    if o.strip()
+    o.strip() for o in os.environ.get("NIGHTMARENET_CORS_ORIGINS", "").split(",") if o.strip()
 ]
 if not _cors_origins:
     logger.warning(
@@ -226,11 +226,6 @@ def _char_similarity(a: str, b: str) -> float:
 # --- Cached test count ---
 _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
-
-
-WEBHOOKS_FILE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
-)
 
 
 def _get_test_count() -> Optional[int]:
@@ -411,18 +406,16 @@ async def evaluate_robustness(
             }
             scores["nightmare"][str(strength)] = {
                 "similarity": round(_char_similarity(body.text, nightmare_result), 4),
-                "length_ratio": round(
-                    len(nightmare_result) / max(len(body.text), 1), 4
-                ),
+                "length_ratio": round(len(nightmare_result) / max(len(body.text), 1), 4),
             }
 
         # Summary
         avg_dream_sim = sum(v["similarity"] for v in scores["dream"].values()) / max(
             len(scores["dream"]), 1
         )
-        avg_nightmare_sim = sum(
-            v["similarity"] for v in scores["nightmare"].values()
-        ) / max(len(scores["nightmare"]), 1)
+        avg_nightmare_sim = sum(v["similarity"] for v in scores["nightmare"].values()) / max(
+            len(scores["nightmare"]), 1
+        )
 
         summary = (
             f"Dream avg similarity: {avg_dream_sim:.2%}, "
@@ -672,17 +665,11 @@ async def compare_distortions(
         seed = body.seed
 
         # Baseline distortions
-        dream_base = _apply_dream_distortions(
-            body.text, body.baseline_strength, seed=seed
-        )
-        nightmare_base = _apply_nightmare_distortions(
-            body.text, body.baseline_strength, seed=seed
-        )
+        dream_base = _apply_dream_distortions(body.text, body.baseline_strength, seed=seed)
+        nightmare_base = _apply_nightmare_distortions(body.text, body.baseline_strength, seed=seed)
 
         # Challenge distortions
-        dream_challenge = _apply_dream_distortions(
-            body.text, body.challenge_strength, seed=seed
-        )
+        dream_challenge = _apply_dream_distortions(body.text, body.challenge_strength, seed=seed)
         nightmare_challenge = _apply_nightmare_distortions(
             body.text, body.challenge_strength, seed=seed
         )
@@ -705,13 +692,11 @@ async def compare_distortions(
 
         # Resilience = how much similarity drops between baseline and challenge
         dream_drop = max(
-            dream_details["baseline"].similarity
-            - dream_details["challenge"].similarity,
+            dream_details["baseline"].similarity - dream_details["challenge"].similarity,
             0.0,
         )
         nightmare_drop = max(
-            nightmare_details["baseline"].similarity
-            - nightmare_details["challenge"].similarity,
+            nightmare_details["baseline"].similarity - nightmare_details["challenge"].similarity,
             0.0,
         )
         avg_drop = (dream_drop + nightmare_drop) / 2
@@ -776,9 +761,7 @@ async def interactive_demo(
         nightmare_strength = 0.80
         # keep the existing function body below unchanged
 
-        dream_result = _apply_dream_distortions(
-            body.text, dream_strength, seed=body.seed
-        )
+        dream_result = _apply_dream_distortions(body.text, dream_strength, seed=body.seed)
         nightmare_result = _apply_nightmare_distortions(
             body.text, nightmare_strength, seed=body.seed
         )
@@ -911,46 +894,6 @@ async def upload_text_file(request: Request, file: UploadFile) -> UploadResponse
 # ===================================================================
 
 _PIPELINE_BODY = Body(...)
-
-
-# ADDED MISSING ENDPOINTS TO SATISFY PR REQUIREMENTS
-@app.post("/api/v1/pipeline/train", response_model=dict, tags=["pipeline"])
-async def train_pipeline_endpoint(request: PipelineTrainRequest):
-    """Start pipeline training phase."""
-    return {"status": "ok", "message": "Training started", "model": request.model_name}
-
-
-@app.post("/api/v1/pipeline/evaluate", response_model=dict, tags=["pipeline"])
-async def evaluate_pipeline_endpoint(request: PipelineEvaluateRequest):
-    """Evaluate pipeline robustness."""
-    return {
-        "status": "ok",
-        "message": "Evaluation started",
-        "model": request.model_name,
-    }
-
-
-@app.post("/api/v1/pipeline/cancel", response_model=dict, tags=["pipeline"])
-async def cancel_pipeline_post_endpoint(request: PipelineCancelRequest):
-    """Cancel pipeline run via POST body (Legacy/Alternative)."""
-    return {
-        "status": "ok",
-        "message": "Pipeline cancelled",
-        "pipeline_id": request.pipeline_id,
-    }
-
-
-@app.post("/settings/webhooks", response_model=dict, tags=["settings"])
-async def update_webhooks_endpoint(request: SettingsWebhooksRequest):
-    """Update configured webhooks."""
-    return {
-        "status": "ok",
-        "message": "Webhooks updated",
-        "webhooks_count": len(request.webhooks),
-    }
-
-
-# END MISSING ENDPOINTS
 
 
 @app.post(
@@ -1141,9 +1084,7 @@ app.include_router(router)
 async def list_runs(
     request: Request,
     offset: int = Query(0, ge=0, description="Number of runs to skip"),
-    limit: int = Query(
-        50, ge=1, le=200, description="Maximum number of runs to return"
-    ),
+    limit: int = Query(50, ge=1, le=200, description="Maximum number of runs to return"),
 ):
     """List all pipeline runs with pagination support.
 

@@ -597,6 +597,20 @@ class CompressionPhase:
                 logger.error("Compression Phase - Failed to apply pruning: %s", exc)
                 stats = {"pruned_params": 0, "total_params": 0}
                 pruning_succeeded = False
+        elif method == "bottleneck":
+            rank_ratio = self.config.get("bottleneck_rank_ratio", 0.5)
+            try:
+                from nightmarenet.compression.pruning import apply_bottleneck_to_model
+
+                stats = apply_bottleneck_to_model(
+                    self.model,
+                    rank_ratio=rank_ratio,
+                )
+                pruning_succeeded = True
+            except Exception as exc:
+                logger.error("Compression Phase - Failed to apply bottleneck: %s", exc)
+                stats = {"wrapped_count": 0, "rank_ratio": rank_ratio}
+                pruning_succeeded = False
         else:
             logger.warning("Unknown pruning method '%s'; skipping.", method)
             stats = {"pruned_params": 0, "total_params": 0}

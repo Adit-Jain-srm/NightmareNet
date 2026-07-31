@@ -6,6 +6,51 @@
 **Owner**: NightmareNet Core Team
 
 ---
+## Architecture Overview
+
+The diagram below provides a high-level view of NightmareNet's architecture,
+showing the primary system components, training pipeline, and overall data flow.
+Refer to the detailed sections below for implementation details.
+```mermaid
+flowchart LR
+
+subgraph Components
+    API[API]
+    Runner[PipelineRunner]
+    Pipeline[Pipeline]
+    Wake[Wake]
+    Dream[Dream]
+    Nightmare[Nightmare]
+    Compress[Compress]
+    Evaluator[Evaluator]
+
+    API --> Runner
+    Runner --> Pipeline
+
+    Pipeline --> Wake
+    Pipeline --> Dream
+    Pipeline --> Nightmare
+    Pipeline --> Compress
+
+    Wake --> Evaluator
+    Dream --> Evaluator
+    Nightmare --> Evaluator
+    Compress --> Evaluator
+end
+
+subgraph DataFlow
+    Config[Config]
+    Ingest[Ingest]
+    Training[Training]
+    Evaluation[Evaluation]
+    Results[Results]
+
+    Config --> Ingest
+    Ingest --> Training
+    Training --> Evaluation
+    Evaluation --> Results
+end
+```
 
 ## 1. System Architecture
 

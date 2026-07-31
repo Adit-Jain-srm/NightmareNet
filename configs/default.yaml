@@ -36,7 +36,7 @@ training:
   early_stopping: false         # Stop training when loss plateaus
   early_stopping_patience: 3    # Phases without improvement before stopping
   early_stopping_min_delta: 0.0001  # Minimum loss decrease to count as improvement
-  distributed: false            # Multi-GPU via HuggingFace Accelerate
+  distributed: false            # Enable multi-GPU training using NightmareNet DDP
   save_every_phase: true
   checkpoint_dir: "checkpoints"
   log_dir: "logs"

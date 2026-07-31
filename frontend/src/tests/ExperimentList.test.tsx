@@ -31,7 +31,7 @@ vi.mock("@/components/ui/Toast", () => ({
 
 // Mock API
 vi.mock("@/lib/api", async (importOriginal) => {
-  const actual = await importOriginal();
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     deleteExperiment: vi.fn(),
@@ -154,7 +154,7 @@ describe("ExperimentList Row Actions", () => {
   });
 
   it("Confirm delete calls deleteExperiment(id) and shows success toast", async () => {
-    vi.mocked(api.deleteExperiment).mockResolvedValueOnce(undefined);
+    vi.mocked(api.deleteExperiment).mockResolvedValueOnce({ run_id: "1", deleted: true });
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("test-experiment");
 

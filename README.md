@@ -223,6 +223,141 @@ This starts:
 > - `.nvmrc` (Node.js 20)
 >
 > If you use `pyenv`, `asdf`, or `mise`, your Python version can be selected automatically when entering the repository. If you use `nvm`, run `nvm use` to switch to Node.js 20.
+
+---
+
+## Troubleshooting
+
+If you encounter issues while setting up or running NightmareNet, the following solutions may help.
+
+### Python version mismatch
+
+**Problem:** Installation or dependency errors caused by an unsupported Python version.
+
+**Solution:**
+
+- NightmareNet recommends **Python 3.12**.
+- Verify your Python version:
+
+```bash
+python --version
+```
+
+- If necessary, create a new virtual environment using Python 3.12.
+
+---
+
+### Docker is not running
+
+**Problem:** Docker containers fail to start or `docker compose` returns connection errors.
+
+**Solution:**
+
+- Make sure Docker Desktop is running.
+- Verify the installation:
+
+```bash
+docker --version
+docker compose version
+```
+
+- Restart Docker Desktop if required before running:
+
+```bash
+docker compose up
+```
+
+---
+
+### Port already in use
+
+**Problem:** The API or frontend fails to start because ports such as **3000** or **8000** are already occupied.
+
+**Solution:**
+
+Windows:
+
+```bash
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+```
+
+Linux/macOS:
+
+```bash
+lsof -i :3000
+kill -9 <PID>
+```
+
+Repeat the same steps for port **8000** if needed.
+
+---
+
+### Missing `.env` configuration
+
+**Problem:** Environment variables are missing, causing startup failures.
+
+**Solution:**
+
+Create the required environment files:
+
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+Then update the values according to your local environment.
+
+---
+
+### `make` command not found (Windows)
+
+**Problem:** Windows cannot recognize the `make` command.
+
+**Solution:**
+
+Use **Git Bash**, **WSL**, or run the equivalent commands manually.
+
+For example, instead of:
+
+```bash
+make dev
+```
+
+follow the corresponding setup steps described throughout this README.
+
+### Dependency installation failures
+
+**Problem:** Python packages fail to install.
+
+**Solution:**
+
+Upgrade pip and reinstall dependencies:
+
+```bash
+python -m pip install --upgrade pip
+pip install -e .
+```
+
+If the issue persists, recreate the virtual environment and try again.
+
+---
+
+### GPU / CUDA not detected
+
+**Problem:** CUDA or GPU acceleration is unavailable.
+
+**Solution:**
+
+- Ensure NVIDIA drivers are installed.
+- Verify CUDA installation:
+
+```bash
+nvidia-smi
+```
+
+- If no compatible GPU is available, run NightmareNet in CPU mode.
+
 ## What's Inside — 20 Panels of Capability
 
 NightmareNet ships as a unified workspace where every concern gets its own first-class panel. This is a feature-dense, information-rich product — not a sparse landing page.
@@ -523,8 +658,7 @@ from nightmarenet.hub import pull_model
 
 # Download the model artifacts to a local directory
 model_dir = pull_model(
-    repo_id="username/hardened-robust-model",
-    local_dir="./models/hardened-robust-model"
+    repo_id="username/hardened-robust-model", local_dir="./models/hardened-robust-model"
 )
 print(f"Model successfully loaded at: {model_dir}")
 ```

@@ -1,3 +1,5 @@
+import { withRetry } from "./retry";
+
 /**
  * API origin for browser/SSR fetches.
  * - If `NEXT_PUBLIC_API_URL` is set, it wins (e.g. split domains or e2e).
@@ -137,19 +139,18 @@ function authHeaders(): Record<string, string> {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${getApiBase()}${path}`, {
+  const url = `${getApiBase()}${path}`;
+  const requestOptions: RequestInit = {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
       ...options?.headers,
     },
-  });
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `API error ${res.status}`);
-  }
-  return res.json();
+  };
+
+  const res = await withRetry(() => fetch(url, requestOptions));
+  return res.json() as Promise<T>;
 }
 
 export function getHealth(): Promise<HealthResponse> {
@@ -246,6 +247,7 @@ export interface PipelineCreateRequest {
   learning_rate?: number;
   batch_size?: number;
   max_samples?: number;
+  seed?: number;
   dream_strength?: number;
   nightmare_strength?: number;
   webhooks?: { url: string; events: string[] }[];
@@ -419,7 +421,7 @@ export async function* askCopilot(
         }
       }
     }
-    } finally {
+  } finally {
     try {
       reader.releaseLock();
     } catch {

@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-24T16:50:01.453045+00:00",
+  "timestamp": "2026-07-26T13:05:22.863648+00:00",
   "source": "calibrate",
   "method": "SST-2 numbers taken from results/gpu_benchmark.json; AG News and IMDB scaled from that anchor by text-length / class-count factors for provisional cross-dataset comparison. Replace with --device cuda live runs.",
   "seed": 42,
