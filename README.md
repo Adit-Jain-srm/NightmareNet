@@ -760,15 +760,15 @@ The FLOP analysis estimates total floating-point operations for:
 
 ### Important Notes
 
-- FLOP comparisons are only meaningful when comparing equal epoch counts. \[^1\]
+- FLOP comparisons are only meaningful when comparing equal epoch counts. [^1]
 - The default sample count is 500 (configurable via `dataset.max_samples`)
 - FLOP estimates are approximate and model-dependent
 
 ### Example Output
 
-```
+```text
 ================================================================================
-NEURALENET FLOP ANALYSIS
+NIGHTMARENET FLOP ANALYSIS
 ================================================================================
 
 MODEL CONFIGURATION

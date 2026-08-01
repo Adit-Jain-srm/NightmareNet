@@ -48,10 +48,17 @@ def get_flops_per_sample(model_name: str) -> float:
     if model_lower in FLOPS_PER_SAMPLE_PER_EPOCH:
         return FLOPS_PER_SAMPLE_PER_EPOCH[model_lower]
 
-    # Check if any lookup key is contained in the model name
+    # Check if any lookup key is contained in the model name (prefer longest key)
+    best_match = None
+    best_key_length = 0
     for key, value in FLOPS_PER_SAMPLE_PER_EPOCH.items():
         if key in model_lower:
-            return value
+            if len(key) > best_key_length:
+                best_key_length = len(key)
+                best_match = value
+
+    if best_match is not None:
+        return best_match
 
     # Check if model name is contained in any lookup key (for "bert" matching "bert-base-uncased")
     for key, value in FLOPS_PER_SAMPLE_PER_EPOCH.items():
@@ -251,7 +258,7 @@ def print_analysis(analysis: dict) -> None:
     comparison = analysis["comparison"]
 
     print("=" * 70)
-    print("NEURALENET FLOP ANALYSIS")
+    print("NIGHTMARENET FLOP ANALYSIS")
     print("=" * 70)
     print()
     print("MODEL CONFIGURATION")
@@ -328,7 +335,9 @@ def main() -> int:
 
     # Get values from config or override
     model_name = args.model or config.get("model", {}).get("name", "distilbert-base-uncased")
-    num_samples = args.samples or config.get("dataset", {}).get("max_samples", 500)
+    num_samples = (
+        config.get("dataset", {}).get("max_samples", 500) if args.samples is None else args.samples
+    )
     num_cycles = config.get("training", {}).get("num_cycles", 3)
     wake_epochs = config.get("training", {}).get("wake_epochs", 3)
     dream_epochs = config.get("training", {}).get("dream_epochs", 2)
