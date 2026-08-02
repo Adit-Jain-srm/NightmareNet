@@ -82,11 +82,12 @@ def main() -> int:
         committed = args.output.read_text(encoding="utf-8")
         if committed != text:
             import difflib
+
             diff = difflib.unified_diff(
                 committed.splitlines(keepends=True),
                 text.splitlines(keepends=True),
                 fromfile=str(args.output),
-                tofile="generated"
+                tofile="generated",
             )
             print(
                 f"OpenAPI drift detected: {args.output} is out of date.",

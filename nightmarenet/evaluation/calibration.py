@@ -55,7 +55,7 @@ def compute_ece(
         # Samples falling into the current bin
         in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
         if i == 0:
-            in_bin |= (confidences == bin_lower)
+            in_bin |= confidences == bin_lower
 
         bin_size = np.sum(in_bin)
 
@@ -103,7 +103,7 @@ def reliability_diagram_data(
         # Samples falling into the current bin
         in_bin = (confidences > bin_lower) & (confidences <= bin_upper)
         if i == 0:
-            in_bin |= (confidences == bin_lower)
+            in_bin |= confidences == bin_lower
 
         bin_size = int(np.sum(in_bin))
         bin_counts.append(bin_size)

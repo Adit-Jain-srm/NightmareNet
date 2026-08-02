@@ -136,17 +136,11 @@ class TestSlackMessageBuilder:
         assert "🚀" in payload["blocks"][0]["text"]["text"]
 
     def test_color_selection(self):
+        assert SlackMessageBuilder._get_color("alert") == SlackMessageBuilder.COLOR_ERROR
         assert (
-            SlackMessageBuilder._get_color("alert") == SlackMessageBuilder.COLOR_ERROR
+            SlackMessageBuilder._get_color("regression_detected") == SlackMessageBuilder.COLOR_ERROR
         )
-        assert (
-            SlackMessageBuilder._get_color("regression_detected")
-            == SlackMessageBuilder.COLOR_ERROR
-        )
-        assert (
-            SlackMessageBuilder._get_color("run_complete")
-            == SlackMessageBuilder.COLOR_SUCCESS
-        )
+        assert SlackMessageBuilder._get_color("run_complete") == SlackMessageBuilder.COLOR_SUCCESS
         assert SlackMessageBuilder._get_color("deploy") == SlackMessageBuilder.COLOR_INFO
 
 
@@ -184,16 +178,13 @@ class TestDiscordMessageBuilder:
         assert "🚀" in payload["embeds"][0]["title"]
 
     def test_color_selection(self):
-        assert (
-            DiscordMessageBuilder._get_color("alert") == DiscordMessageBuilder.COLOR_ERROR
-        )
+        assert DiscordMessageBuilder._get_color("alert") == DiscordMessageBuilder.COLOR_ERROR
         assert (
             DiscordMessageBuilder._get_color("regression_detected")
             == DiscordMessageBuilder.COLOR_ERROR
         )
         assert (
-            DiscordMessageBuilder._get_color("run_complete")
-            == DiscordMessageBuilder.COLOR_SUCCESS
+            DiscordMessageBuilder._get_color("run_complete") == DiscordMessageBuilder.COLOR_SUCCESS
         )
         assert DiscordMessageBuilder._get_color("deploy") == DiscordMessageBuilder.COLOR_INFO
 
@@ -239,7 +230,9 @@ class TestBuildWebhookPayload:
 
     def test_dashboard_url_passed_to_builders(self):
         payload = build_webhook_payload(
-            "https://hooks.slack.com/services/T/B/x", "run_complete", "Test", dashboard_url="https://dash.com"
+            "https://hooks.slack.com/services/T/B/x",
+            "run_complete",
+            "Test",
+            dashboard_url="https://dash.com",
         )
         assert any(block.get("type") == "actions" for block in payload["blocks"])
-

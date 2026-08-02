@@ -10,6 +10,7 @@ from nightmarenet.hub.utils import require_hf_hub
 
 logger = logging.getLogger(__name__)
 
+
 @require_hf_hub
 def push_model(model_dir: str, repo_id: str, metadata_path: Optional[str] = None) -> None:
     """Uploads a local model directory to the HuggingFace Hub."""

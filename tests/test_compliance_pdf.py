@@ -450,4 +450,3 @@ def test_pdf_signing_fallback_on_signing_error(
 
     assert Path(pdf_path).exists()
     assert Path(pdf_path).stat().st_size > 0
-

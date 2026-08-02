@@ -310,15 +310,17 @@ For an in-tree distortion, drop a module under `nightmarenet/distortions/your_en
 ```python
 from nightmarenet.distortions.registry import get_registry
 
-def register_distortion(name, *, phase='custom', description=''):
+
+def register_distortion(name, *, phase="custom", description=""):
     def decorator(fn):
-        get_registry().register(name, fn, metadata={'phase': phase, 'description': description})
+        get_registry().register(name, fn, metadata={"phase": phase, "description": description})
         return fn
+
     return decorator
 
-@register_distortion('homoglyph', phase='nightmare', description='Latin -> Cyrillic swap')
-def homoglyph(text, strength, seed=None):
-    ...
+
+@register_distortion("homoglyph", phase="nightmare", description="Latin -> Cyrillic swap")
+def homoglyph(text, strength, seed=None): ...
 ```
 
 ### Tests
@@ -391,6 +393,7 @@ All PRs that change user-facing behavior **must** update relevant documentation:
 - **Distortion changes** → Update the README distortion table + `docs/research/paper-draft.md`
 - **Frontend changes** → Update component inventory in README if adding panels
 - **Breaking changes** → Add migration note at the top of PR description
+- **Architecture changes** → If a pull request modifies the system architecture, module dependencies, training pipeline, or data flow, update the Mermaid diagrams in `docs/architecture/TRD.md` to keep them synchronized with the implementation.
 
 Good documentation is as important as good code. If you're unsure what to update, ask in the PR description and we'll guide you.
 

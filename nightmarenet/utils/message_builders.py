@@ -181,9 +181,7 @@ class DiscordMessageBuilder:
         # Add details as fields if present
         if details:
             for key, value in details.items():
-                embed["fields"].append(
-                    {"name": key, "value": str(value), "inline": True}
-                )
+                embed["fields"].append({"name": key, "value": str(value), "inline": True})
 
         # Add dashboard URL if provided
         if dashboard_url:
