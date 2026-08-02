@@ -114,6 +114,16 @@ jobs:
         working-directory: frontend
         run: npm run lint
 
+      - name: Debug file state
+        if: always()
+        working-directory: frontend
+        run: |
+          echo "Current SHA: $(git rev-parse HEAD)"
+          echo "File contents:"
+          cat src/tests/LiveRegionToast.test.tsx
+          echo "Searching for userEvent in repo:"
+          grep -r "userEvent" . || true
+
       - name: Type-check frontend
         if: matrix.python-version == '3.12'
         working-directory: frontend
