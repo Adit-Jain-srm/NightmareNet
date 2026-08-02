@@ -29,7 +29,8 @@ DISTORTION_TYPES = ("dream", "nightmare", "text")
 
 
 def validate_config(config_path: Path) -> Dict[str, Any]:
-    from nightmarenet.utils.config import load_config, validate_config as _validate
+    from nightmarenet.utils.config import load_config
+    from nightmarenet.utils.config import validate_config as _validate
 
     cfg = load_config(str(config_path))
     errors = _validate(cfg)
@@ -201,10 +202,15 @@ def run_live(
         )
         history = [{"phase": "wake", "loss": wake_loss}]
         if do_cycle:
-            dream_fn = lambda t: dream_mod.distort(t, strength=0.25, seed=42)
-            night_fn = lambda t: nightmare_mod.distort(
-                t, strength=0.75, seed=42, config=night_cfg
-            )
+
+            def dream_fn(t: str) -> str:
+                return dream_mod.distort(t, strength=0.25, seed=42)
+
+            def night_fn(t: str) -> str:
+                return nightmare_mod.distort(
+                    t, strength=0.75, seed=42, config=night_cfg
+                )
+
             dream_loss = _train_causal_epoch(
                 model,
                 tokenizer,
@@ -408,16 +414,17 @@ def main() -> int:
         parser.error("Specify --validate, --calibrate, and/or --run")
 
     out = args.out if args.out.is_absolute() else REPO_ROOT / args.out
+    config = args.config if args.config.is_absolute() else REPO_ROOT / args.config
 
     if args.validate:
-        validate_config(args.config)
+        validate_config(config)
 
     if args.calibrate:
-        validate_config(args.config)
+        validate_config(config)
         calibrate(out=out)
 
     if args.run:
-        validate_config(args.config)
+        validate_config(config)
         run_live(
             device=args.device,
             train_n=args.train_samples,
