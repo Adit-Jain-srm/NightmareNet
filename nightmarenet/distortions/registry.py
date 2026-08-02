@@ -18,7 +18,7 @@ Usage:
 
 import importlib.metadata
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeAlias
 
 try:
     import torch
@@ -33,11 +33,11 @@ if TYPE_CHECKING:
     import torch as _torch
 
     VisionDistortionFn = Callable[[_torch.Tensor, float, Optional[int]], _torch.Tensor]
-    VisionApplyReturn = _torch.Tensor
+    VisionApplyReturn: TypeAlias = _torch.Tensor
 else:
     # Runtime: keep flexible when torch is optional / missing at import time.
     VisionDistortionFn = Callable[..., Any]
-    VisionApplyReturn = Any
+    VisionApplyReturn: TypeAlias = Any
 
 logger = logging.getLogger(__name__)
 
