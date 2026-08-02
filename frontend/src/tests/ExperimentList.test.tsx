@@ -8,6 +8,8 @@ import * as api from "@/lib/api";
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/",
 }));
 
 // Mock sounds

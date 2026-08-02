@@ -18,7 +18,12 @@ Usage:
 
 import importlib.metadata
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, TypeAlias
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+
+try:
+    from typing import TypeAlias
+except ImportError:
+    from typing_extensions import TypeAlias
 
 try:
     import torch
