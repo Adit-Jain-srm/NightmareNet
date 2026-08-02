@@ -122,6 +122,7 @@ def run_model(
     seed: int,
     use_amp: bool,
     label: str,
+    gradient_accumulation_steps: int = 1,
 ) -> Dict[str, Any]:
     """Wake-only baseline + wake+nightmare NightmareNet pass with peak memory."""
     import torch
@@ -133,6 +134,7 @@ def run_model(
         print("CUDA not available; falling back to CPU")
         device = "cpu"
     use_amp = bool(use_amp and device == "cuda")
+    grad_accum = max(1, int(gradient_accumulation_steps))
 
     bench._set_seed(seed)
     raw = load_dataset("glue", "sst2")
@@ -140,6 +142,52 @@ def run_model(
     val = raw["validation"].shuffle(seed=seed).select(
         range(min(eval_n, len(raw["validation"])))
     )
+
+    def _train_epoch(
+        model: Any,
+        tokenizer: Any,
+        examples: Any,
+        *,
+        batch_size: int,
+        lr: float,
+        distort_fn: Any = None,
+    ) -> float:
+        """Micro-batch train with optional gradient accumulation (effective batch)."""
+        model.train()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
+        scaler = torch.amp.GradScaler("cuda") if (use_amp and device == "cuda") else None
+        total_loss = 0.0
+        steps = 0
+        optimizer.zero_grad()
+
+        for i in range(0, len(examples), batch_size):
+            batch = examples[i : i + batch_size]
+            texts = [row["sentence"] for row in batch]
+            if distort_fn is not None:
+                texts = [distort_fn(t) for t in texts]
+            labels = torch.tensor([row["label"] for row in batch], device=device)
+            enc = bench._tokenize_batch(tokenizer, texts, device)
+
+            if scaler is not None:
+                with torch.amp.autocast("cuda", dtype=torch.float16):
+                    loss = model(**enc, labels=labels).loss / grad_accum
+                scaler.scale(loss).backward()
+            else:
+                loss = model(**enc, labels=labels).loss / grad_accum
+                loss.backward()
+
+            total_loss += float(loss.item()) * grad_accum
+            steps += 1
+
+            if steps % grad_accum == 0 or i + batch_size >= len(examples):
+                if scaler is not None:
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    optimizer.step()
+                optimizer.zero_grad()
+
+        return total_loss / max(steps, 1)
 
     def _one_pass(do_nightmare: bool) -> Dict[str, Any]:
         _reset_peak_mem(device)
@@ -152,20 +200,18 @@ def run_model(
         if hasattr(model, "gradient_checkpointing_enable"):
             model.gradient_checkpointing_enable()
 
-        wake_loss = bench._train_epoch(
-            model, tokenizer, train, device, batch_size, lr, use_amp
+        wake_loss = _train_epoch(
+            model, tokenizer, train, batch_size=batch_size, lr=lr
         )
         history = [{"phase": "wake", "loss": wake_loss}]
         if do_nightmare:
             night_fn = bench._build_distorter("nightmare", strength=0.75)
-            night_loss = bench._train_epoch(
+            night_loss = _train_epoch(
                 model,
                 tokenizer,
                 train,
-                device,
-                batch_size,
-                lr * 0.5,
-                use_amp,
+                batch_size=batch_size,
+                lr=lr * 0.5,
                 distort_fn=night_fn,
             )
             history.append({"phase": "nightmare", "loss": night_loss})
@@ -182,6 +228,7 @@ def run_model(
             "train_samples": train_n,
             "eval_samples": eval_n,
             "batch_size": batch_size,
+            "gradient_accumulation_steps": grad_accum,
             "use_amp": use_amp,
             "gradient_checkpointing": True,
             "wall_time_seconds": wall,
@@ -325,12 +372,13 @@ def main() -> int:
         parser.error("Specify --validate, --calibrate, and/or --run")
 
     out = args.out if args.out.is_absolute() else REPO_ROOT / args.out
+    config = args.config if args.config.is_absolute() else REPO_ROOT / args.config
 
     if args.validate:
-        validate_bert_config(args.config)
+        validate_bert_config(config)
 
     if args.calibrate:
-        validate_bert_config(args.config)
+        validate_bert_config(config)
         record = calibrate()
         write_out(record, out)
         bb = record["bert_base"]
@@ -343,10 +391,10 @@ def main() -> int:
         )
 
     if args.run:
-        validate_bert_config(args.config)
+        validate_bert_config(config)
         from nightmarenet.utils.config import load_config
 
-        cfg = load_config(str(args.config))
+        cfg = load_config(str(config))
         training = cfg["training"]
         bert = run_model(
             model_name=cfg["model"]["name"],
@@ -358,6 +406,9 @@ def main() -> int:
             seed=args.seed,
             use_amp=bool(training.get("use_amp", True)),
             label="bert-base",
+            gradient_accumulation_steps=int(
+                training.get("gradient_accumulation_steps", 1)
+            ),
         )
         # DistilBERT row from published JSON when present
         distil_row: Dict[str, Any]
@@ -387,13 +438,17 @@ def main() -> int:
 
         nn = bert["nightmarenet"]
         cmp_ = bert["comparison"]
+        try:
+            config_rel = str(config.relative_to(REPO_ROOT))
+        except ValueError:
+            config_rel = str(config)
         record = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
-            "source": "gpu_run" if args.device == "cuda" else "cpu_run",
+            "source": "gpu_run" if bert["device"] == "cuda" else "cpu_run",
             "seed": args.seed,
             "train_samples": args.train_samples,
             "eval_samples": args.eval_samples,
-            "config": str(args.config.relative_to(REPO_ROOT)),
+            "config": config_rel,
             "distilbert": distil_row,
             "bert_base": {
                 "model": cfg["model"]["name"],

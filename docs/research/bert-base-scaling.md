@@ -55,7 +55,7 @@ Validated memory fields: `batch_size=4`, `gradient_accumulation_steps=4`, `use_a
 | Source | measured GPU | calibrate → replace with `--run` |
 | Clean accuracy (NightmareNet) | 0.750 | 0.762 |
 | Avg distorted accuracy | 0.6675 | 0.6775 |
-| Clean Δ (vs wake baseline) | +0.005 | +0.010 |
+| Clean Δ (vs wake baseline) | +0.005 | +0.007 |
 | Avg distorted Δ | +0.0845 | +0.0865 |
 | Robustness improvement | **+14.49%** | **+14.64%** |
 | Wall time (baseline + NN metrics pass) | 10.76 s | ~19.9 s (scaled) |
