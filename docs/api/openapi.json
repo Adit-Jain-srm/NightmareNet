@@ -2599,7 +2599,7 @@
                 }
               }
             },
-            "description": "Unprocessable Entity"
+            "description": "Unprocessable Content"
           },
           "500": {
             "content": {
@@ -3069,7 +3069,7 @@
                 }
               }
             },
-            "description": "Request Entity Too Large"
+            "description": "Content Too Large"
           },
           "422": {
             "content": {
