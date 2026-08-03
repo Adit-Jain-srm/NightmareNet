@@ -26,7 +26,7 @@ Distortion quality scales non-linearly with generator model size. Generator mode
 
 In NightmareNet, Dream and Nightmare generators apply targeted text mutations to force target models to learn invariant representations. Previously, it was unclear how distortion quality scales with generator model parameter size:
 
-- **Underpowered generators** (`tiny`, `small`) risk producing ungrammatical nonsense or failing to preserve core semantics.
+- **Underpowered generators** (`tiny`, `small`) have lower measured preservation and diversity scores in this study.
 - **Overpowered generators** (`large`) incur heavy compute overhead with marginal quality gains.
 
 This study systematically measures the correlation between generator model size and distortion quality to establish production model selection guidelines.
@@ -38,8 +38,10 @@ This study systematically measures the correlation between generator model size 
 We evaluate generator models across four scale tiers (`tiny`, `small`, `base`, `large`) using three core quality metrics:
 
 1. **Semantic Preservation Score (`0.0 - 1.0`):** Measures word-level Jaccard similarity relative to the original un-distorted input text.
-2. **Grammaticality Score (`0.0 - 1.0`):** Evaluates word-length ratio preservation relative to the clean input sentence.
-3. **Diversity Score (`0.0 - 1.0`):** Measures the unique unigram vocabulary ratio across generated distortion outputs across multiple seeds.
+2. **Grammaticality Score, implemented as word-count length-ratio preservation (`0.0 - 1.0`):** Compares the number of whitespace-separated words in each distortion with the clean input using `min(distortion_words, original_words) / max(distortion_words, original_words)`. It does not perform grammaticality, fluency, or syntactic analysis.
+3. **Diversity Score, implemented as a unique-unigram vocabulary ratio (`0.0 - 1.0`):** Divides the number of distinct whitespace-separated tokens across all generated distortions by the total token count. It does not measure bigram or trigram diversity.
+
+These are lightweight heuristics for comparing the calibrated runs, not language-model quality scores or linguistic evaluations. The implementation is in [`calculate_metrics()`](../../scripts/distortion_quality_vs_size.py#L41-L73).
 
 The overall quality score is defined as the arithmetic mean of all three metrics:
 $$\text{Overall Score} = \frac{\text{Semantic Preservation} + \text{Grammaticality} + \text{Diversity}}{3}$$
@@ -52,9 +54,9 @@ Production-quality distortions require an **Overall Score $\ge 0.80$**.
 
 ![Distortion Quality Scaling](../../results/distortion_quality_scaling.svg)
 
-- **`tiny` (4.4M params):** Overall score **0.5500**. Produces high distortion rates but lacks syntactic awareness and semantic stability.
-- **`small` (29.0M params):** Overall score **0.7333**. Improves fluency but falls short of the $0.80$ production quality threshold.
-- **`base` (66.0M params):** Overall score **0.8533**. Reaches the elbow of the scaling curve, delivering high semantic preservation ($0.8800$) and strong grammaticality ($0.8600$).
+- **`tiny` (4.4M params):** Overall score **0.5500**. Has the lowest measured semantic-preservation, word-count, and vocabulary-ratio scores.
+- **`small` (29.0M params):** Overall score **0.7333**. Scores higher on the measured heuristics but falls short of the $0.80$ production quality threshold.
+- **`base` (66.0M params):** Overall score **0.8533**. Reaches the elbow of the scaling curve, delivering high semantic preservation ($0.8800$) and word-count length-ratio preservation ($0.8600$).
 - **`large` (335.0M params):** Overall score **0.8900**. Yields only a $+0.0367$ quality improvement over `base` despite a $5\times$ increase in parameter count and inference latency.
 
 ---
@@ -63,7 +65,7 @@ Production-quality distortions require an **Overall Score $\ge 0.80$**.
 
 1. **Minimum Model Size:** **`base` (66.0M params)** is the minimum model size capable of generating production-quality distortions.
 2. **Default Pipeline Setting:** Configure `LearnedAdversarialGenerator` with `distilbert-base-uncased` as the default generator model.
-3. **Resource-Constrained Environments:** Avoid dropping below `small` (29.0M), as lower tiers corrupt sentence structure without providing meaningful adversarial challenge.
+3. **Resource-Constrained Environments:** Avoid dropping below `small` (29.0M), as the lower tiers have weaker scores under these heuristics without providing a meaningful adversarial challenge in this study.
 
 ---
 
