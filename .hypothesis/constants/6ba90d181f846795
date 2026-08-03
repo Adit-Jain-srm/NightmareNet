@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/phases/train.py
-# hypothesis_version: 6.141.1
-
-[0.005, 0.5, 128, 'Training failed.', 'auto_terminate', 'batch_size', 'convergence_patience', 'cycle', 'cycle_end', 'cycle_metrics', 'dataset', 'event', 'history', 'max_length', 'model', 'model.name', 'name', 'num_cycles', 'phase', 'text', 'text_column', 'train', 'training', 'training.num_cycles', 'unknown']

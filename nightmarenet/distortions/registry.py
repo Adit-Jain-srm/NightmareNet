@@ -18,26 +18,14 @@ Usage:
 
 import importlib.metadata
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
-try:
-    import torch
-except ImportError:
-    torch = None  # type: ignore[assignment]
+import torch
 
 from nightmarenet.distortions.base import BaseDistortion
 
 DistortionFn = Callable[[str, float, Optional[int]], str]
-
-if TYPE_CHECKING:
-    import torch as _torch
-
-    VisionDistortionFn = Callable[[_torch.Tensor, float, Optional[int]], _torch.Tensor]
-else:
-    # Runtime: keep flexible when torch is optional / missing at import time.
-    VisionDistortionFn = Callable[..., Any]
-
-VisionApplyReturn = Any
+VisionDistortionFn = Callable[[torch.Tensor, float, Optional[int]], torch.Tensor]
 
 logger = logging.getLogger(__name__)
 
@@ -324,10 +312,10 @@ class VisionDistortionRegistry:
     def apply(
         self,
         name: str,
-        image: Any,
+        image: torch.Tensor,
         strength: float = 0.3,
         seed: Optional[int] = None,
-    ) -> VisionApplyReturn:
+    ) -> torch.Tensor:
         """Apply a named vision distortion to an image tensor."""
         if name not in self._engines:
             available = ", ".join(sorted(self._engines.keys()))

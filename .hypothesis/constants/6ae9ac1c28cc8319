@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/transfer/__init__.py
-# hypothesis_version: 6.141.1
-
-['FoundationRegistry', 'TransferFineTuner', 'get_registry']

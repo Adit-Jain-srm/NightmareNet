@@ -730,7 +730,85 @@ If you use NightmareNet in academic work, please cite:
 
 ---
 
+## FLOP Benchmarking & Compute Cost Analysis
+
+NightmareNet includes a FLOP analysis tool to estimate computational costs across training cycles. This helps researchers understand the tradeoffs between training duration, model size, and robustness gains.
+
+### Usage
+
+```bash
+# Basic usage with default config
+python scripts/compute_cost_analysis.py
+
+# Custom config file
+python scripts/compute_cost_analysis.py --config configs/benchmark_sst2_full_cycle.yaml
+
+# Override specific values
+python scripts/compute_cost_analysis.py --model distilbert-base-uncased --samples 2000
+
+# Output to JSON file
+python scripts/compute_cost_analysis.py --output results/flop_analysis.json
+```
+
+### What Gets Calculated
+
+The FLOP analysis estimates total floating-point operations for:
+- **Per-Phase Breakdown**: Wake, Dream, Nightmare, and Compress phases
+- **Per-Cycle Total**: Sum of all phases in one training cycle
+- **Total Training**: Total FLOPs across all cycles
+- **Baseline Comparison**: Comparison to standard 3-epoch fine-tuning
+
+### Important Notes
+
+- FLOP comparisons are only meaningful when comparing equal epoch counts. [^1]
+- The default sample count is 500 (configurable via `dataset.max_samples`)
+- FLOP estimates are approximate and model-dependent
+
+### Example Output
+
+```text
+================================================================================
+NIGHTMARENET FLOP ANALYSIS
+================================================================================
+
+MODEL CONFIGURATION
+  Model: distilbert-base-uncased
+  Training Samples: 500
+  FLOPs per Sample/Epoch: 2.50 TFLOPs
+
+TRAINING SCHEDULE
+  Cycles: 3
+  Wake epochs/cycle: 3
+  Dream epochs/cycle: 2
+  Nightmare epochs/cycle: 1
+  Compression rounds/cycle: 1
+
+PER-CYCLE FLOPS BREAKDOWN
+  Wake:      3.75 TFLOPs
+  Dream:     2.50 TFLOPs
+  Nightmare: 1.25 TFLOPs
+  Compress:  1.25 TFLOPs
+  Cycle Total: 8.75 TFLOPs
+
+TOTAL FLOPS
+  NightmareNet (total): 26.25 TFLOPs
+  Baseline (3 epoch FT): 7.50 TFLOPs
+
+COMPARISON
+  NightmareNet vs Baseline: 3.50x
+  Cycle Total == Sum(Phases): True
+  Phase Sum: 8.75 TFLOPs
+
+NOTE: FLOP comparisons are valid for equal epoch counts.
+      The sample count used is: 500
+================================================================================
+```
+
+---
+
 ## Testing
+
+[^1]: \*FLOP comparisons are only meaningful when comparing equal epoch counts.* For example, comparing 3 cycles of NightmareNet (7 epochs/cycle = 21 epochs total) to 1 cycle of standard fine-tuning (3 epochs) would be misleading. Always compare models trained for the same number of epochs, or report both epoch counts when making comparisons.
 
 ```bash
 pytest --cov=nightmarenet --cov-report=term-missing tests/ -v --tb=short   # 660+ tests
@@ -740,7 +818,7 @@ mypy nightmarenet/                   # type check
 cd frontend && npm run build         # production build
 ```
 
----
+
 
 ## License
 

@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/training/phases.py
-# hypothesis_version: 6.141.1
-
-[0.0, 0.1, 0.2, 0.7, 1.0, 2.0, 4.0, 'avg_kl_loss', 'avg_loss', 'base_lrs', 'batchmean', 'causal_lm', 'compression', 'cpu', 'cuda', 'distillation', 'distillation_alpha', 'distillation_epochs', 'dream', 'finetune_after_prune', 'finetune_epochs', 'image_classification', 'input_ids', 'labels', 'lr', 'magnitude', 'max_grad_norm', 'method', 'nightmare', 'num_epochs', 'optimizer_lrs', 'phase', 'pruned_params', 'pruning_method', 'pruning_ratio', 'scheduler_base_lrs', 'seq_classification', 'total_params', 'total_steps', 'wake']

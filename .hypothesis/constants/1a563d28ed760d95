@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/textattack_adapter.py
-# hypothesis_version: 6.141.1
-
-[0.0, 100, 200, '-', '87-92%', '89.2%', '=', 'BERTAttackLi2020', 'N/A', 'PWWSRen2019', 'Running attack: %s', 'TextBuggerLi2018', 'TextFoolerJin2019', 'attack_success_rate', 'avg_perturbation_pct', 'avg_queries', 'bertattack', 'elapsed_time', 'error', 'failed_attacks', 'glue', 'pwws', 'skipped_attacks', 'sst2', 'successful_attacks', 'textbugger', 'textfooler', 'validation']

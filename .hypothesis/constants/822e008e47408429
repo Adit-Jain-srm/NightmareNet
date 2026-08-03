@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/utils/message_builders.py
-# hypothesis_version: 6.141.1
-
-[3447003, 5763719, 15548997, 16750848, '#0078d7', '#36a64f', '#ff0000', '#ff9900', '0078D7', '@context', '@type', 'FF0000', 'MessageCard', 'View in Dashboard', 'Z', 'actions', 'activityTitle', 'alert', 'attachments', 'blocks', 'button', 'color', 'content', 'deploy', 'description', 'details', 'discord.com', 'discordapp.com', 'divider', 'elements', 'embeds', 'emoji', 'event', 'facts', 'fields', 'header', 'inline', 'markdown', 'message', 'microsoft.com', 'mrkdwn', 'name', 'office.com', 'plain_text', 'primary', 'regression_detected', 'run_complete', 'section', 'sections', 'slack.com', 'style', 'summary', 'text', 'themeColor', 'timestamp', 'title', 'type', 'url', 'value', 'webhook.office.com', 'ℹ️', '⚠️', '✅', '🚀', '🚨']
