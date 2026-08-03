@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/distortions/registry.py
-# hypothesis_version: 6.141.1
-
-[0.3, ', ', 'builtin', 'custom', 'description', 'dist', 'dream', 'name', 'nightmare', 'package', 'phase', 'plugin', 'source', 'unknown']

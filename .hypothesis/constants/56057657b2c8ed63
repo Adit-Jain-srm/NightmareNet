@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/api/auth.py
-# hypothesis_version: 6.141.1
-
-[401, '/api/v1/badge/', '/api/v1/health', '/docs', '/openapi.json', '/redoc', '/ws/', 'NIGHTMARENET_API_KEY', 'Unauthorized', 'X-API-Key', 'detail', 'error', 'origin', 'referer']

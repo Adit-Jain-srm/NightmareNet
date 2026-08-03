@@ -808,7 +808,7 @@ NOTE: FLOP comparisons are valid for equal epoch counts.
 
 ## Testing
 
-[^1]: \*FLOP comparisons are only meaningful when comparing equal epoch counts.* For example, comparing 3 cycles of NightmareNet (12 epochs/cycle = 36 epochs total) to 1 cycle of standard fine-tuning (3 epochs) would be misleading. Always compare models trained for the same number of epochs, or report both epoch counts when making comparisons.
+[^1]: \*FLOP comparisons are only meaningful when comparing equal epoch counts.* For example, comparing 3 cycles of NightmareNet (7 epochs/cycle = 21 epochs total) to 1 cycle of standard fine-tuning (3 epochs) would be misleading. Always compare models trained for the same number of epochs, or report both epoch counts when making comparisons.
 
 ```bash
 pytest --cov=nightmarenet --cov-report=term-missing tests/ -v --tb=short   # 660+ tests
@@ -818,17 +818,7 @@ mypy nightmarenet/                   # type check
 cd frontend && npm run build         # production build
 ```
 
----
 
-```bash
-pytest --cov=nightmarenet --cov-report=term-missing tests/ -v --tb=short   # 660+ tests
-pytest -m slow tests/test_distortion_fuzz.py -v                            # 1000+ sample fuzz suite
-ruff check .                         # zero lint errors
-mypy nightmarenet/                   # type check
-cd frontend && npm run build         # production build
-```
-
----
 
 ## License
 

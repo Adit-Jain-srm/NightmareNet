@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/distributed/resume.py
-# hypothesis_version: 6.141.1
-
-['cpu', 'cuda', 'optimizer.pt', 'rng_state.pt']
