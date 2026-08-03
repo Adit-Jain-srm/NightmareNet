@@ -77,7 +77,7 @@ npx webpack-bundle-analyzer stats.json  # Webpack
 
 <!-- GOOD: responsive, modern format, preloaded, sized -->
 <link rel="preload" as="image" href="hero.webp" fetchpriority="high">
-<img src="hero.webp" width="1920" height="1080"
+<img src="hero.webp" width="1920" height="1080" 
      srcset="hero-480.webp 480w, hero-960.webp 960w, hero-1920.webp 1920w"
      sizes="100vw" alt="Hero" fetchpriority="high" decoding="async">
 ```

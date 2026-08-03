@@ -1,6 +1,6 @@
 ---
 description: "Expand every prompt into a full specification before execution"
-globs:
+globs: 
 alwaysApply: true
 ---
 

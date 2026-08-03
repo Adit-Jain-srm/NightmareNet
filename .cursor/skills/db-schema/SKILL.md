@@ -98,7 +98,7 @@ CREATE INDEX idx_orders_covering ON orders(user_id, status) INCLUDE (total, crea
    ```sql
    -- UP
    ALTER TABLE users ADD COLUMN display_name VARCHAR(255);
-
+   
    -- DOWN (must always exist)
    ALTER TABLE users DROP COLUMN display_name;
    ```
@@ -107,7 +107,7 @@ CREATE INDEX idx_orders_covering ON orders(user_id, status) INCLUDE (total, crea
    ```sql
    -- BAD: locks table for minutes on 10M+ rows
    ALTER TABLE orders ADD COLUMN priority INT DEFAULT 0;
-
+   
    -- GOOD: add nullable first, backfill in batches
    ALTER TABLE orders ADD COLUMN priority INT;
    -- Then backfill in 10K batches with sleep between
