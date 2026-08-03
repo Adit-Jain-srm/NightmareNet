@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/data/loader.py
-# hypothesis_version: 6.141.1
-
-[0.1, 0.5, 100, 224, 1000, './data', 'all', 'cifar10', 'config', 'dataset', 'features', 'glue', 'image_classification', 'imagenet', 'labels', 'max_samples', 'model', 'name', 'nyu-mll/glue', 'path', 'pixel_values', 'seed', 'streaming', 'subset', 'test', 'text', 'text_column', 'train', 'type', 'val', 'validation', 'wikitext', 'wikitext-2-raw-v1']

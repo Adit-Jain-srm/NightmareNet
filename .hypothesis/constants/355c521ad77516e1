@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/distributed/ddp_wrapper.py
-# hypothesis_version: 6.141.1
-
-['LOCAL_RANK', 'RANK', 'WORLD_SIZE', 'nccl']

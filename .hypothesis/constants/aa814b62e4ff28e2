@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/phases/evaluate.py
-# hypothesis_version: 6.141.1
-
-[0.0, 0.1, 'Evaluation failed.', 'N/A', 'Push failed: %s', 'Pushing to Hub...', 'Quality feedback: %s', 'auc_robustness', 'auto_push_hub', 'auto_terminated', 'avg_robustness', 'baseline', 'baseline_auc', 'checkpoint_dir', 'comparison', 'complete', 'compliance_report', 'convergence', 'convergence_patience', 'cycles_completed', 'deltas', 'evaluate', 'evaluation', 'final_delta', 'hub_metadata.yaml', 'mean_robustness', 'metrics', 'model', 'model.name', 'name', 'nightmarenet-trained', 'on_target', 'output_dir', 'regression_detected', 'results', 'robustness', 'robustness_delta', 'robustness_score', 'run_complete', 'run_id', 'status', 'suggestions', 'tracking', 'trained', 'trained_auc', 'training', 'training_config', 'unknown', 'utf-8', 'w']

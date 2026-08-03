@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/utils/logging_config.py
-# hypothesis_version: 6.141.1
-
-['%Y%m%d_%H%M%S', '%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%SZ', 'INFO', 'Logging initialized', 'asctime', 'json_logs', 'level', 'levelname', 'log_dir', 'log_level', 'logger', 'logs', 'message', 'name', 'nightmarenet', 'observability', 'timestamp', 'training']
