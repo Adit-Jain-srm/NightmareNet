@@ -32,13 +32,13 @@
     "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.11",
+    "eslint": "^10",
+    "eslint-config-next": "16.2.12",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "jsdom": "^29.1.1",
     "size-limit": "^12.1.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^7",
     "vitest": "^4.1.10"
   }
 }
