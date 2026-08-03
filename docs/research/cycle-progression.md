@@ -1,9 +1,9 @@
 # Per-cycle robustness progression (5 cycles)
 
-**Date:** 2026-07-24
-**Issue:** [#305](https://github.com/Adit-Jain-srm/NightmareNet/issues/305)
-**Config:** [`configs/benchmark_5cycle_progression.yaml`](../../configs/benchmark_5cycle_progression.yaml)
-**Script:** [`scripts/cycle_progression.py`](../../scripts/cycle_progression.py)
+**Date:** 2026-07-24  
+**Issue:** [#305](https://github.com/Adit-Jain-srm/NightmareNet/issues/305)  
+**Config:** [`configs/benchmark_5cycle_progression.yaml`](../../configs/benchmark_5cycle_progression.yaml)  
+**Script:** [`scripts/cycle_progression.py`](../../scripts/cycle_progression.py)  
 **Artifacts:** [`results/cycle_progression/`](../../results/cycle_progression/)
 
 ---
@@ -12,7 +12,7 @@
 
 Under the DistilBERT SST-2 protocol (seed 42, 500/200), **robustness AUC accumulates across cycles with diminishing returns and approaches a plateau by cycle 5**. Clean accuracy also rises slowly. This supports the README claim that robustness accumulates across training cycles; it does **not** fluctuate in this study.
 
-> **Cycle 1** AUC/clean match the measured one-cycle NightmareNet numbers in `results/gpu_benchmark.json`.
+> **Cycle 1** AUC/clean match the measured one-cycle NightmareNet numbers in `results/gpu_benchmark.json`.  
 > **Cycles 2–5** in this PR are a **saturating calibration** (no GPU here). Replace with a live run:
 >
 > ```bash

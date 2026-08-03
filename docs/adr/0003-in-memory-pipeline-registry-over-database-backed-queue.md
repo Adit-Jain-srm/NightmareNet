@@ -6,7 +6,7 @@ Date: 2026-04-01
 
 Accepted (revisit at scale)
 
-## Context
+## Context 
 
 Need to manage long-running training pipelines with start/stop/status semantics.
 

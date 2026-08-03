@@ -16,17 +16,17 @@ Here is a definition and breakdown of the five primary metrics calculated by the
 ### 2. Generalization Score
 *   **Definition**: Measures the model's ability to maintain performance on out-of-distribution (OOD) datasets.
 *   **Mechanism**: Calculates the ratio between OOD perplexity and clean perplexity:
-
+    
     $$\text{Generalization Ratio} = \frac{\text{OOD Perplexity}}{\text{Clean Perplexity}}$$
-
+    
 *   **Score Interpretation**: A ratio close to $1.0$ indicates perfect generalization (no performance drop). A larger ratio (e.g. $> 2.0$) indicates the model is highly sensitive to distribution shifts.
 
 ### 3. Robustness Score (AUC)
 *   **Definition**: Compares the model's degradation profile across multiple distortion strengths.
 *   **Mechanism**: Calculated as the Area Under the Curve (AUC) of the inverse perplexity values plotted against distortion strengths:
-
+    
     $$\text{AUC Robustness} = \int_{0.1}^{0.9} \frac{1}{\text{Perplexity}(s)} \, ds$$
-
+    
 *   **Ideal target**: Closer to $1.0$ is better. An AUC increase indicates the model remains stable even under high-strength perturbations.
 
 ### 4. Hallucination Rate

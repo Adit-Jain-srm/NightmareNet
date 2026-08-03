@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/art_adapter.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.01, 0.3, 1.0, 100, 'CarliniL2Method', 'FastGradientMethod', 'batch_size', 'confidence', 'cpu', 'cw', 'eps', 'eps_step', 'fgsm', 'learning_rate', 'max_iter', 'pgd', 'targeted']

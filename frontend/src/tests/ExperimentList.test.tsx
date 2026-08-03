@@ -6,13 +6,10 @@ import * as api from "@/lib/api";
 
 // Mock next/navigation
 const mockPush = vi.fn();
-const mockSearchParams = { get: vi.fn(), has: vi.fn(), toString: vi.fn(), entries: vi.fn() };
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => "/dashboard",
-  useSearchParams: () => mockSearchParams,
-  redirect: () => {},
-  notFound: () => {},
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Mock sounds

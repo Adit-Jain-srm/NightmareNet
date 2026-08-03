@@ -1,11 +1,11 @@
 # NightmareNet Benchmark v3 — Multi-dataset evaluation (SST-2, AG News, IMDB)
 
-**Date:** 2026-07-24
-**Issue:** [#303](https://github.com/Adit-Jain-srm/NightmareNet/issues/303)
-**Model:** `distilbert-base-uncased`
-**Seed:** 42
-**Samples:** 500 train / 200 eval per dataset
-**Software:** Python 3.12, PyTorch, Transformers, Datasets
+**Date:** 2026-07-24  
+**Issue:** [#303](https://github.com/Adit-Jain-srm/NightmareNet/issues/303)  
+**Model:** `distilbert-base-uncased`  
+**Seed:** 42  
+**Samples:** 500 train / 200 eval per dataset  
+**Software:** Python 3.12, PyTorch, Transformers, Datasets  
 
 **Configs**
 
@@ -15,7 +15,7 @@
 | AG News | `configs/benchmark_ag_news.yaml` | 4 | 128 |
 | IMDB | `configs/benchmark_imdb.yaml` | 2 | 256 |
 
-**Metrics suite:** `python scripts/run_multi_dataset_benchmark.py`
+**Metrics suite:** `python scripts/run_multi_dataset_benchmark.py`  
 **Raw JSON:** [`results/multi_dataset_benchmark.json`](../../results/multi_dataset_benchmark.json)
 
 ---
@@ -24,7 +24,7 @@
 
 Benchmark v3 extends SST-2-only evidence to **AG News** (4-class topic) and **IMDB** (long-form binary sentiment). Across all three datasets, NightmareNet (Wake + Dream + Nightmare training path in the metrics suite) improves average distorted accuracy vs a wake-only baseline, with relative robustness lifts of **+14.5% (SST-2), +16.9% (AG News), +17.1% (IMDB)** under the documented protocol.
 
-> **SST-2** numbers are **measured** (`results/gpu_benchmark.json`, CUDA).
+> **SST-2** numbers are **measured** (`results/gpu_benchmark.json`, CUDA).  
 > **AG News / IMDB** numbers in this PR are **calibrated** from that SST-2 anchor (text-length / class-count scaling) so the comparison table and docs are complete without a GPU in this environment. Replace them with live runs:
 >
 > ```bash

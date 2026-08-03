@@ -2,7 +2,7 @@
 
 Date: 2026-03-20
 
-## Status
+## Status 
 
 Accepted
 
@@ -10,7 +10,7 @@ Accepted
 
 Need a Python web framework that supports async operations, auto-generates OpenAPI docs, and integrates with Pydantic for type-safe validation.
 
-## Decision
+## Decision 
 
 Use FastAPI as the API framework.
 

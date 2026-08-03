@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/data/ingest.py
+# hypothesis_version: 6.141.1
+
+[1.0, 512, '.csv', '.jsonl', '.txt', 'text', 'upload', 'utf-8']

@@ -171,7 +171,6 @@ class TestBottleneckWrapper:
         assert out.shape == (4, 16)
         assert torch.isfinite(out).all()
 
-
 # ---------------------------------------------------------------------------
 # CompressionPhase integration
 # ---------------------------------------------------------------------------
@@ -224,3 +223,4 @@ class TestCompressionPhaseBottleneck:
         mock_distill.assert_called_once()
         assert stats["wrapped_count"] == 1
         assert stats["distillation_loss"] == 0.1
+

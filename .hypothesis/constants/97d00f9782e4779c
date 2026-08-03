@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/distortions/adversarial.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.2, 0.3, 0.35, 0.4, 0.5, '.', '. ', ':', 'ambiguity', 'are', 'attention', 'can', 'contradiction', 'cross_domain', 'do', 'does', 'financial', 'has', 'have', 'is', 'learned', 'learned_cache', 'learned_model', 'learned_seed', 'learned_strategy', 'legal', 'medical', 'misleading_context', 'not', 'philosophical', 'technical', 'was', 'were', 'will']

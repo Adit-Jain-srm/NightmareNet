@@ -48,7 +48,7 @@ export function getSidebarPrefs(): SidebarPrefs {
   if (typeof window === "undefined") {
     return defaultSidebarPrefs();
   }
-
+  
   try {
     const raw = localStorage.getItem(SIDEBAR_PREFS_KEY);
     if (!raw) return defaultSidebarPrefs();

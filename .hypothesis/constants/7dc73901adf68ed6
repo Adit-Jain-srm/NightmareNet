@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/distortions/learned.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.4, 0.5, 1.0, 512, 4096, '##', 'actually', 'all_special_ids', 'always', 'attention', 'attention_fallback', 'big', 'causallm', 'certainly', 'config', 'cpu', 'frequently', 'get_input_embeddings', 'gpt', 'gradient', 'however', 'indeed', 'input_ids', 'is_decoder', 'module', 'never', 'perhaps', 'pt', 'rarely', 'surprisingly', 'training', 'Ġ▁']

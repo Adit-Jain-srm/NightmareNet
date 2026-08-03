@@ -13,7 +13,7 @@ export async function GET() {
   try {
     const changelogPath = path.join(process.cwd(), '..', 'CHANGELOG.md');
     let content = '';
-
+    
     try {
       content = await fs.readFile(changelogPath, 'utf-8');
     } catch {
@@ -35,7 +35,7 @@ export async function GET() {
         currentLink = `https://github.com/Adit-Jain-srm/NightmareNet/releases/tag/v${currentVersion}`;
         continue;
       }
-
+      
       if (currentVersion === 'Unreleased') {
         continue;
       }
@@ -44,25 +44,25 @@ export async function GET() {
       if (bulletMatch && currentVersion) {
         const text = bulletMatch[1];
         let link = currentLink;
-
+        
         const prMatch = text.match(/\(#(\d+)\)/);
         if (prMatch) {
           link = `https://github.com/Adit-Jain-srm/NightmareNet/pull/${prMatch[1]}`;
         }
-
+        
         entries.push({
           text,
           version: currentVersion,
           date: currentDate,
           link,
         });
-
+        
         if (entries.length >= 5) {
           break;
         }
       }
     }
-
+    
     return NextResponse.json({ entries });
   } catch (error) {
     console.error('Failed to parse changelog:', error);

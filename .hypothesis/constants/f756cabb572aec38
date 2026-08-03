@@ -1,0 +1,4 @@
+# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/ensemble_benchmark.py
+# hypothesis_version: 6.141.1
+
+[0.0, 0.1, 0.3, 0.5, 0.7, 0.9, 100, 128, 300, '-', './results', '.cache', '/', 'Loading dataset %s', '_', 'accuracies', 'accuracy', 'auc', 'cpu', 'cuda', 'dream', 'label', 'labels', 'latency', 'max_length', 'model', 'models_summary', 'params', 'pt', 'raw_results', 'robustness', 'sentence', 'sst2', 'strengths', 'torch', 'type', 'utf-8', 'validation', 'w']
