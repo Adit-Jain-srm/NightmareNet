@@ -273,12 +273,14 @@ describe("API module", () => {
     });
 
     it("retains res.status on thrown errors including rate limit responses with custom detail", async () => {
-      mockFetch.mockResolvedValue({
+      const make429 = () => ({
         ok: false,
         status: 429,
         headers: new Headers(),
+        clone: function () { return this; },
         json: async () => ({ detail: "Rate limit exceeded" }),
       });
+      mockFetch.mockImplementation(async () => make429());
 
       const { getHealth } = await import("@/lib/api");
       try {
