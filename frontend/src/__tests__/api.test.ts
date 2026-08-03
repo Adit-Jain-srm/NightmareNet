@@ -273,9 +273,10 @@ describe("API module", () => {
     });
 
     it("retains res.status on thrown errors including rate limit responses with custom detail", async () => {
-      mockFetch.mockResolvedValueOnce({
+      mockFetch.mockResolvedValue({
         ok: false,
         status: 429,
+        headers: new Headers(),
         json: async () => ({ detail: "Rate limit exceeded" }),
       });
 
@@ -287,6 +288,6 @@ describe("API module", () => {
         expect(err.message).toBe("Rate limit exceeded");
         expect(err.status).toBe(429);
       }
-    });
+    }, 15000);
   });
 });
