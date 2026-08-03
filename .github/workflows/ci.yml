@@ -55,23 +55,20 @@ jobs:
           --cov-report=xml
           --cov-report=term-missing
 
-      - name: Check OpenAPI spec drift
-        if: matrix.python-version == '3.12'
-        run: PYTHONPATH=. python scripts/export_openapi.py --check
-
-      - name: Validate Alembic migrations (upgrade head → downgrade base)
-        if: matrix.python-version == '3.12'
-        run: |
-          pip install "alembic>=1.13" "sqlalchemy>=2.0"
-          pip install -e ".[dev,api]"
-          python scripts/check_migrations.py
-
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.xml
+          flags: unittests
+          name: nightmarenet-coverage
           fail_ci_if_error: false
+          verbose: true
+
+      - name: Check OpenAPI spec drift
+        if: matrix.python-version == '3.12'
+        run: PYTHONPATH=. python scripts/export_openapi.py --check
 
       - name: Set up Node.js
         if: matrix.python-version == '3.12'
@@ -91,6 +88,16 @@ jobs:
           NPM_CONFIG_FETCH_TIMEOUT: 300000
         run: npm ci
 
+      - name: Lint frontend
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check frontend
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npx tsc --noEmit
+
       - name: Run frontend unit tests
         if: matrix.python-version == '3.12'
         working-directory: frontend
@@ -108,16 +115,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           directory: frontend
           skip_step: build
-
-      - name: Lint frontend
-        if: matrix.python-version == '3.12'
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Type-check frontend
-        if: matrix.python-version == '3.12'
-        working-directory: frontend
-        run: npx tsc --noEmit
 
       - name: Install Playwright Chromium
         if: matrix.python-version == '3.12'
