@@ -225,6 +225,32 @@ This starts:
 
 ---
 
+## Configuration Files Reference
+
+NightmareNet includes several configuration files that help manage the development environment, dependencies, data pipelines, database migrations, and local tooling. The table below explains the purpose of each file and whether contributors typically need to modify it.
+
+| File | Purpose | When Used | Usually Modified? |
+|------|---------|-----------|------------------|
+| `.env.example` | Template containing required environment variables for local development. Copy it to `.env` before running the project. | Initial setup | ✅ Yes |
+| `.python-version` | Specifies the recommended Python version for tools such as `pyenv`, `asdf`, and `mise`. | Python environment setup | ❌ Rarely |
+| `.nvmrc` | Defines the recommended Node.js version for the frontend. | Frontend development | ❌ Rarely |
+| `pyproject.toml` | Stores Python project metadata, dependencies, build configuration, and tool settings. | Package installation and development | ⚠️ Sometimes |
+| `requirements.txt` | Lists Python dependencies for environments that install packages using `pip`. | Dependency installation | ⚠️ Sometimes |
+| `docker-compose.yml` | Defines local Docker services used during development. | Running the application with Docker | ⚠️ Sometimes |
+| `dvc.yaml` | Describes DVC pipeline stages for datasets and experiments. | Data pipeline execution | ⚠️ Occasionally |
+| `dvc.lock` | Auto-generated file that records exact pipeline dependencies and outputs for reproducibility. | Generated after DVC pipeline runs | ❌ No |
+| `alembic.ini` | Configuration file for Alembic database migrations. | Database schema migrations | ⚠️ Rarely |
+| `Makefile` | Provides shortcuts for common development tasks such as setup, testing, and local execution. | Daily development workflow | ⚠️ Sometimes |
+
+### Notes
+
+- Copy `.env.example` to `.env` before starting local development.
+- Avoid manually editing auto-generated files such as `dvc.lock`.
+- Update `pyproject.toml` and `requirements.txt` together whenever project dependencies change.
+- Most contributors only need to modify `.env` values and occasionally update dependency or Docker configuration files.
+
+---
+
 ## Troubleshooting
 
 If you encounter issues while setting up or running NightmareNet, the following solutions may help.
