@@ -80,6 +80,7 @@ results/*
 !results/convergence/
 !results/convergence/**
 !results/multi_dataset_benchmark.json
+!results/gpt2_validation.json
 checkpoints/
 logs/
 
