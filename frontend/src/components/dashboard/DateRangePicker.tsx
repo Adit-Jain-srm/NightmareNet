@@ -73,7 +73,7 @@ export function DateRangePicker({ value, onChange, className = "" }: DateRangePi
         ].join(" ")}
       >
         {PRESETS.map((p) => (
-          <option key={p.value} value={p.value} className="bg-abyss text-slate-200">
+          <option key={p.value} value={p.value} className="bg-abyss text-slate-200 dark:bg-abyss dark:text-slate-200">
             {p.label}
           </option>
         ))}
@@ -95,7 +95,6 @@ export function DateRangePicker({ value, onChange, className = "" }: DateRangePi
               "px-2 py-0 text-xs text-slate-300 outline-none",
               "focus-visible:ring-2 focus-visible:ring-neural/50",
               "hover:border-white/20 transition-colors",
-              "[color-scheme:dark]",
             ].join(" ")}
           />
           <span className="text-xs text-slate-500" aria-hidden="true">→</span>
@@ -114,7 +113,6 @@ export function DateRangePicker({ value, onChange, className = "" }: DateRangePi
               "px-2 py-0 text-xs text-slate-300 outline-none",
               "focus-visible:ring-2 focus-visible:ring-neural/50",
               "hover:border-white/20 transition-colors",
-              "[color-scheme:dark]",
             ].join(" ")}
           />
         </div>
