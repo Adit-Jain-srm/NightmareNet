@@ -21,6 +21,8 @@ from nightmarenet.utils.config import load_config
 
 # FLOP estimates per sample per epoch (approximate, model-dependent)
 # These are reasonable estimates for common transformer models
+BASELINE_WAKE_EPOCHS = 3
+
 FLOPS_PER_SAMPLE_PER_EPOCH = {
     "distilbert-base-uncased": 2.5e12,  # ~2.5 trillion FLOPs
     "distilgpt2": 1.2e12,  # ~1.2 trillion FLOPs
@@ -183,11 +185,11 @@ def calculate_total_flops(
     total_flops = cycle_flops["total"] * num_cycles
 
     # Calculate baseline (standard fine-tuning equivalent)
-    # Standard FT: 1 cycle, 3 wake epochs, 0 dream, 0 nightmare, 0 compress
+    # Standard FT: 1 cycle, BASELINE_WAKE_EPOCHS wake epochs, 0 dream, 0 nightmare, 0 compress
     baseline_cycle_flops = calculate_cycle_flops(
         model_name,
         num_samples,
-        wake_epochs=3,  # Typical fine-tuning epochs
+        wake_epochs=BASELINE_WAKE_EPOCHS,  # Typical fine-tuning epochs
         dream_epochs=0,
         nightmare_epochs=0,
         compression_rounds=0,
@@ -282,7 +284,7 @@ def print_analysis(analysis: dict) -> None:
     print()
     print("TOTAL FLOPS")
     print(f"  NightmareNet (total): {format_flops(total['nightmarenet'])}")
-    print(f"  Baseline (3 epoch FT): {format_flops(total['baseline'])}")
+    print(f"  Baseline ({BASELINE_WAKE_EPOCHS} epoch FT): {format_flops(total['baseline'])}")
     print()
     print("COMPARISON")
     print(f"  NightmareNet vs Baseline: {comparison['nightmarenet_vs_baseline']:.2f}x")
