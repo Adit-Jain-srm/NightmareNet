@@ -180,6 +180,7 @@ def run_live(
             eval_texts,
             distortion_types=DISTORTION_TYPES,
             strength=strength,
+            seed=seed,
             device=device,
             max_length=128,
             batch_size=2,
@@ -204,11 +205,11 @@ def run_live(
         if do_cycle:
 
             def dream_fn(t: str) -> str:
-                return dream_mod.distort(t, strength=0.25, seed=42)
+                return dream_mod.distort(t, strength=0.25, seed=seed)
 
             def night_fn(t: str) -> str:
                 return nightmare_mod.distort(
-                    t, strength=0.75, seed=42, config=night_cfg
+                    t, strength=0.75, seed=seed, config=night_cfg
                 )
 
             dream_loss = _train_causal_epoch(

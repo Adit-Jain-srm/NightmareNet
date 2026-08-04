@@ -17,14 +17,14 @@ logger = logging.getLogger(__name__)
 DEFAULT_DISTORTION_TYPES = ("dream", "nightmare", "text")
 
 
-def _build_distorter(name: str, strength: float) -> Callable[[str], str]:
+def _build_distorter(name: str, strength: float, seed: int = 42) -> Callable[[str], str]:
     """Return a text→text callable for a named distortion family."""
     key = name.strip().lower()
     if key == "dream":
         from nightmarenet.distortions import dream as dream_mod
 
         def fn_dream(text: str) -> str:
-            return dream_mod.distort(text, strength=strength, seed=42)
+            return dream_mod.distort(text, strength=strength, seed=seed)
 
         return fn_dream
 
@@ -43,7 +43,7 @@ def _build_distorter(name: str, strength: float) -> Callable[[str], str]:
         }
 
         def fn_night(text: str) -> str:
-            return nightmare_mod.distort(text, strength=strength, seed=42, config=cfg)
+            return nightmare_mod.distort(text, strength=strength, seed=seed, config=cfg)
 
         return fn_night
 
@@ -131,6 +131,7 @@ def evaluate_causal_lm_robustness(
     *,
     distortion_types: Optional[Sequence[str]] = None,
     strength: float = 0.5,
+    seed: int = 42,
     device: str = "cpu",
     max_length: int = 128,
     batch_size: int = 4,
@@ -146,6 +147,7 @@ def evaluate_causal_lm_robustness(
         texts: Evaluation strings (non-empty).
         distortion_types: Named families (default: dream, nightmare, text).
         strength: Distortion intensity in ``[0, 1]``.
+        seed: Random seed for distortion generation.
         device: Torch device string.
         max_length: Truncation length.
         batch_size: Eval batch size.
@@ -175,7 +177,7 @@ def evaluate_causal_lm_robustness(
     per_distortion: Dict[str, Any] = {}
     distorted_ppls: List[float] = []
     for dtype in types:
-        distort_fn = _build_distorter(dtype, strength)
+        distort_fn = _build_distorter(dtype, strength, seed=seed)
         distorted = [distort_fn(t) for t in clean_texts]
         # Keep non-empty after distortion; fall back to original if emptied.
         distorted = [d if d.strip() else t for d, t in zip(distorted, clean_texts)]
