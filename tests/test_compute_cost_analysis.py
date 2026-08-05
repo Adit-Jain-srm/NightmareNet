@@ -1,6 +1,7 @@
 """Tests for compute_cost_analysis module."""
 
 from scripts.compute_cost_analysis import (
+    BASELINE_WAKE_EPOCHS,
     calculate_cycle_flops,
     calculate_phase_flops,
     calculate_total_flops,
@@ -190,10 +191,28 @@ class TestCalculateTotalFlops:
             flops_per_sample=2.5e12,
         )
 
-        # Baseline: 3 wake epochs only = 2.5e12 * 500 * 3 = 3.75e15
+        # Baseline: BASELINE_WAKE_EPOCHS wake epochs only = 2.5e12 * 500 * 3 = 3.75e15
         expected_baseline = 3.75e15
         assert result["total"]["baseline"] == expected_baseline
         assert result["comparison"]["nightmarenet_vs_baseline"] > 1
+
+    def test_baseline_multi_cycle_scaling(self):
+        """Test baseline scaling semantics when num_cycles > 1."""
+        num_cycles = 4
+        num_samples = 500
+        result = calculate_total_flops(
+            model_name="distilbert-base-uncased",
+            num_samples=num_samples,
+            num_cycles=num_cycles,
+            wake_epochs=3,
+            dream_epochs=2,
+            nightmare_epochs=1,
+            compression_rounds=1,
+            flops_per_sample=2.5e12,
+        )
+
+        single_cycle_baseline = 2.5e12 * num_samples * BASELINE_WAKE_EPOCHS
+        assert result["total"]["baseline"] == single_cycle_baseline * num_cycles
 
     def test_cycle_total_matches_sum(self):
         """Test that cycle_total == sum(phases)."""
