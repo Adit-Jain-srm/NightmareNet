@@ -97,9 +97,7 @@ def _eval_suite(
     for dtype in ("dream", "nightmare"):
         for strength in STRENGTHS:
             fn = bench._build_distorter(dtype, strength=strength)
-            acc = bench._evaluate(
-                model, tokenizer, val, device, batch_size, distort_fn=fn
-            )
+            acc = bench._evaluate(model, tokenizer, val, device, batch_size, distort_fn=fn)
             distorted[dtype][f"{strength:g}"] = round(acc, 6)
             accs.append(acc)
     avg = sum(accs) / len(accs)
@@ -123,6 +121,7 @@ def run_model(
     use_amp: bool,
     label: str,
     gradient_accumulation_steps: int = 1,
+    gradient_checkpointing: bool = True,
 ) -> Dict[str, Any]:
     """Wake-only baseline + wake+nightmare NightmareNet pass with peak memory."""
     import torch
@@ -139,9 +138,7 @@ def run_model(
     bench._set_seed(seed)
     raw = load_dataset("glue", "sst2")
     train = raw["train"].shuffle(seed=seed).select(range(min(train_n, len(raw["train"]))))
-    val = raw["validation"].shuffle(seed=seed).select(
-        range(min(eval_n, len(raw["validation"])))
-    )
+    val = raw["validation"].shuffle(seed=seed).select(range(min(eval_n, len(raw["validation"]))))
 
     def _train_epoch(
         model: Any,
@@ -155,7 +152,7 @@ def run_model(
         """Micro-batch train with optional gradient accumulation (effective batch)."""
         model.train()
         optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
-        scaler = torch.amp.GradScaler("cuda") if (use_amp and device == "cuda") else None
+        scaler = torch.cuda.amp.GradScaler() if (use_amp and device == "cuda") else None
         total_loss = 0.0
         steps = 0
         optimizer.zero_grad()
@@ -169,7 +166,7 @@ def run_model(
             enc = bench._tokenize_batch(tokenizer, texts, device)
 
             if scaler is not None:
-                with torch.amp.autocast("cuda", dtype=torch.float16):
+                with torch.cuda.amp.autocast(dtype=torch.float16):
                     loss = model(**enc, labels=labels).loss / grad_accum
                 scaler.scale(loss).backward()
             else:
@@ -193,16 +190,12 @@ def run_model(
         _reset_peak_mem(device)
         t0 = time.perf_counter()
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSequenceClassification.from_pretrained(
-            model_name, num_labels=2
-        )
+        model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2)
         model.to(device)
-        if hasattr(model, "gradient_checkpointing_enable"):
+        if gradient_checkpointing and hasattr(model, "gradient_checkpointing_enable"):
             model.gradient_checkpointing_enable()
 
-        wake_loss = _train_epoch(
-            model, tokenizer, train, batch_size=batch_size, lr=lr
-        )
+        wake_loss = _train_epoch(model, tokenizer, train, batch_size=batch_size, lr=lr)
         history = [{"phase": "wake", "loss": wake_loss}]
         if do_nightmare:
             night_fn = bench._build_distorter("nightmare", strength=0.75)
@@ -230,7 +223,7 @@ def run_model(
             "batch_size": batch_size,
             "gradient_accumulation_steps": grad_accum,
             "use_amp": use_amp,
-            "gradient_checkpointing": True,
+            "gradient_checkpointing": gradient_checkpointing,
             "wall_time_seconds": wall,
             "peak_gpu_memory_mb": peak,
             "history": history,
@@ -241,9 +234,7 @@ def run_model(
     baseline = _one_pass(False)
     print(f"=== {label} nightmarenet ({model_name}) ===")
     nightmarenet = _one_pass(True)
-    improvement = (
-        nightmarenet["avg_distorted_accuracy"] - baseline["avg_distorted_accuracy"]
-    )
+    improvement = nightmarenet["avg_distorted_accuracy"] - baseline["avg_distorted_accuracy"]
     relative = (improvement / max(baseline["avg_distorted_accuracy"], 1e-9)) * 100
     return {
         "model": model_name,
@@ -251,9 +242,7 @@ def run_model(
         "baseline": baseline,
         "nightmarenet": nightmarenet,
         "comparison": {
-            "clean_delta": round(
-                nightmarenet["clean_accuracy"] - baseline["clean_accuracy"], 6
-            ),
+            "clean_delta": round(nightmarenet["clean_accuracy"] - baseline["clean_accuracy"], 6),
             "avg_distorted_delta": round(improvement, 6),
             "robustness_improvement_pct": round(relative, 2),
             "wall_time_seconds_total": round(
@@ -288,9 +277,7 @@ def calibrate() -> Dict[str, Any]:
     bert_improvement = bert_nn_avg - bert_bl_avg
     bert_rel = round((bert_improvement / max(bert_bl_avg, 1e-9)) * 100, 2)
 
-    distil_wall = round(
-        float(bl.get("train_seconds", 0)) + float(nn.get("train_seconds", 0)), 2
-    )
+    distil_wall = round(float(bl.get("train_seconds", 0)) + float(nn.get("train_seconds", 0)), 2)
     bert_wall = round(distil_wall * wall_scale, 2)
 
     record = {
@@ -332,7 +319,7 @@ def calibrate() -> Dict[str, Any]:
                 "gradient_accumulation_steps": 4,
                 "effective_batch_size": 16,
                 "use_amp": True,
-                "gradient_checkpointing": True,
+                "gradient_checkpointing": True,  # calibration assumes enabled
             },
             "calibrate_note": (
                 "Metrics scaled from DistilBERT GPU anchor; peak memory estimated "
@@ -406,9 +393,8 @@ def main() -> int:
             seed=args.seed,
             use_amp=bool(training.get("use_amp", True)),
             label="bert-base",
-            gradient_accumulation_steps=int(
-                training.get("gradient_accumulation_steps", 1)
-            ),
+            gradient_accumulation_steps=int(training.get("gradient_accumulation_steps", 1)),
+            gradient_checkpointing=bool(training.get("gradient_checkpointing", True)),
         )
         # DistilBERT row from published JSON when present
         distil_row: Dict[str, Any]
@@ -420,9 +406,7 @@ def main() -> int:
                 "source": "results/gpu_benchmark.json",
                 "clean_accuracy": distil["nightmarenet"]["clean_accuracy"],
                 "avg_distorted_accuracy": distil["nightmarenet"]["avg_distorted_accuracy"],
-                "robustness_improvement_pct": distil["comparison"][
-                    "robustness_improvement_pct"
-                ],
+                "robustness_improvement_pct": distil["comparison"]["robustness_improvement_pct"],
                 "clean_delta": distil["comparison"]["clean_delta"],
                 "avg_distorted_delta": distil["comparison"]["avg_distorted_delta"],
                 "wall_time_seconds": round(
@@ -466,9 +450,7 @@ def main() -> int:
                 "nightmarenet": nn,
                 "memory_optimizations": {
                     "batch_size": training.get("batch_size"),
-                    "gradient_accumulation_steps": training.get(
-                        "gradient_accumulation_steps"
-                    ),
+                    "gradient_accumulation_steps": training.get("gradient_accumulation_steps"),
                     "effective_batch_size": int(training.get("batch_size", 1))
                     * int(training.get("gradient_accumulation_steps", 1)),
                     "use_amp": training.get("use_amp"),
