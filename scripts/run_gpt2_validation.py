@@ -208,9 +208,7 @@ def run_live(
                 return dream_mod.distort(t, strength=0.25, seed=seed)
 
             def night_fn(t: str) -> str:
-                return nightmare_mod.distort(
-                    t, strength=0.75, seed=seed, config=night_cfg
-                )
+                return nightmare_mod.distort(t, strength=0.75, seed=seed, config=night_cfg)
 
             dream_loss = _train_causal_epoch(
                 model,
@@ -356,9 +354,7 @@ def _finalize(
         "mean_relative_degradation_delta": round(
             c["mean_relative_degradation"] - b["mean_relative_degradation"], 4
         ),
-        "robustness_score_delta": round(
-            c["robustness_score"] - b["robustness_score"], 4
-        ),
+        "robustness_score_delta": round(c["robustness_score"] - b["robustness_score"], 4),
         "cycling_improves_robustness": c["robustness_score"] > b["robustness_score"],
         "per_distortion_relative_degradation": {
             dtype: {

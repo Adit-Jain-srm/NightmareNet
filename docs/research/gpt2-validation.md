@@ -1,10 +1,10 @@
 # GPT-2 causal LM validation (beyond sequence classification)
 
-**Date:** 2026-07-25  
-**Issue:** [#322](https://github.com/Adit-Jain-srm/NightmareNet/issues/322)  
-**Config:** [`configs/examples/gpt2-robustness.yaml`](../../configs/examples/gpt2-robustness.yaml)  
-**Metric:** [`nightmarenet/evaluation/causal_lm.py`](../../nightmarenet/evaluation/causal_lm.py)  
-**Script:** [`scripts/run_gpt2_validation.py`](../../scripts/run_gpt2_validation.py)  
+**Date:** 2026-07-25
+**Issue:** [#322](https://github.com/Adit-Jain-srm/NightmareNet/issues/322)
+**Config:** [`configs/examples/gpt2-robustness.yaml`](../../configs/examples/gpt2-robustness.yaml)
+**Metric:** [`nightmarenet/evaluation/causal_lm.py`](../../nightmarenet/evaluation/causal_lm.py)
+**Script:** [`scripts/run_gpt2_validation.py`](../../scripts/run_gpt2_validation.py)
 **Results:** [`results/gpt2_validation.json`](../../results/gpt2_validation.json)
 
 ---
@@ -58,7 +58,7 @@ python scripts/run_gpt2_validation.py --run --device cuda
 
 ## Results (baseline vs cycled)
 
-> **Source in this PR:** `--calibrate` (no GPT-2 GPU run in this environment).  
+> **Source in this PR:** `--calibrate` (no GPT-2 GPU run in this environment).
 > Live replacement: `python scripts/run_gpt2_validation.py --run --device cuda`
 
 ### Summary

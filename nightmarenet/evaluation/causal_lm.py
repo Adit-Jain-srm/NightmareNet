@@ -64,8 +64,7 @@ def _build_distorter(name: str, strength: float, seed: int = 42) -> Callable[[st
         return fn_sem
 
     raise ValueError(
-        f"Unknown distortion type {name!r}; expected one of "
-        f"dream, nightmare, text, semantic"
+        f"Unknown distortion type {name!r}; expected one of dream, nightmare, text, semantic"
     )
 
 
@@ -109,9 +108,7 @@ def perplexity_on_texts(
     # Lazy import: metrics.py pulls optional heavy deps (datasets) at module load.
     from nightmarenet.evaluation.metrics import compute_perplexity
 
-    loader = texts_to_dataloader(
-        tokenizer, texts, max_length=max_length, batch_size=batch_size
-    )
+    loader = texts_to_dataloader(tokenizer, texts, max_length=max_length, batch_size=batch_size)
     return float(compute_perplexity(model, loader, device=device))
 
 

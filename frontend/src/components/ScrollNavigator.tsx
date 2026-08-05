@@ -119,8 +119,8 @@ export default function ScrollNavigator() {
       {isVisible && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
-          animate={{ 
-            opacity: isUserScrolling ? 1 : 0.35, 
+          animate={{
+            opacity: isUserScrolling ? 1 : 0.35,
             y: 0,
             scale: isUserScrolling ? 1 : 0.97
           }}
@@ -129,7 +129,7 @@ export default function ScrollNavigator() {
           className="fixed bottom-6 right-6 z-50 max-md:right-0 max-md:left-0 max-md:bottom-4 max-md:px-4 flex justify-center items-center pointer-events-none"
         >
           <div className="pointer-events-auto flex md:flex-col items-center bg-zinc-950/70 backdrop-blur-xl border border-zinc-800/80 rounded-full md:p-2 shadow-[0_0_40px_rgba(0,0,0,0.7)] text-white max-md:px-4 max-md:py-2 max-md:gap-4 max-md:w-full max-md:max-w-md max-md:justify-between">
-            
+
             {/* Arrow Up */}
             <button
               onClick={handlePrev}
@@ -155,7 +155,7 @@ export default function ScrollNavigator() {
                     <span className="absolute right-8 bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs px-2.5 py-1 rounded-md opacity-0 scale-95 group-hover:opacity-100 group-hover:scale-100 pointer-events-none transition-all duration-150 whitespace-nowrap shadow-xl">
                       {sec.label}
                     </span>
-                    
+
                     <div className="w-4 h-4 flex items-center justify-center">
                       <motion.div
                         animate={{
