@@ -81,6 +81,7 @@ results/*
 !results/convergence/**
 !results/multi_dataset_benchmark.json
 !results/gpt2_validation.json
+!results/bert_base_scaling.json
 checkpoints/
 logs/
 
