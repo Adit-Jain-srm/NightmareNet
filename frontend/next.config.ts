@@ -5,12 +5,19 @@ const apiRewriteBase =
   process.env.NEXT_API_REWRITE_URL?.replace(/\/$/, "") ||
   "http://127.0.0.1:8000";
 
+// Note: 'unsafe-inline' required by Next.js for inline script hydration.
+// To remove it, enable strict CSP with nonce: https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
+const apiOrigin = process.env.NEXT_PUBLIC_API_URL
+  ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
+  : "";
+
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data:;
   font-src 'self';
+  connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""};
   object-src 'none';
   base-uri 'self';
   form-action 'self';
