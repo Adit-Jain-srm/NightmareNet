@@ -26,9 +26,9 @@ const SERIES: RadarSeries[] = [
   { label: "Baseline", color: "var(--color-nightmare)", values: [62, 58, 71, 65, 41] },
 ];
 
-export function RobustnessRadar() {
+export function RobustnessRadar({ series = SERIES }: { series?: RadarSeries[] } = {}) {
   const { isLive } = useDemoMode();
-  const hasEvaluationData = SERIES.length >= 2;
+  const hasEvaluationData = series.length >= 2;
   const size = 280;
   const cx = size / 2;
   const cy = size / 2;
@@ -89,7 +89,7 @@ export function RobustnessRadar() {
                 return <line key={i} x1={cx} y1={cy} x2={px} y2={py} stroke="rgba(255,255,255,0.04)" />;
               })}
 
-              {SERIES.map((s, idx) => (
+              {series.map((s, idx) => (
                 <g key={s.label}>
                   <motion.polygon
                     points={polygonFor(s.values)}
@@ -131,8 +131,8 @@ export function RobustnessRadar() {
 
             <div className="w-full flex-1 space-y-2 lg:max-w-[180px]">
               {AXES.map((a, i) => {
-                const h = SERIES[0].values[i];
-                const b = SERIES[1].values[i];
+                const h = series[0].values[i];
+                const b = series[1].values[i];
                 const delta = h - b;
                 return (
                   <div key={a.key} className="rounded-md border border-white/[0.05] bg-white/[0.02] p-2">
@@ -152,7 +152,7 @@ export function RobustnessRadar() {
           </div>
 
           <div className="mt-3 flex items-center justify-center gap-4 text-[11px]">
-            {SERIES.map((s) => (
+            {series.map((s) => (
               <span key={s.label} className="inline-flex items-center gap-1.5 text-slate-400">
                 <span className="inline-block h-2 w-2 rounded-full" style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }} />
                 {s.label}
