@@ -385,7 +385,7 @@ nvidia-smi
 
 ---
 
-## ❓Frequently Asked Questions (FAQ)
+## Frequently Asked Questions (FAQ)
 
 ### Which Python version should I use?
 
@@ -412,7 +412,13 @@ cp .env.example .env
 cp frontend/.env.example frontend/.env
 ```
 
-For frontend development, install the Node.js dependencies and start the development server.
+For frontend development, install the Node.js dependencies and start the development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
 ---
 
