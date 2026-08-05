@@ -21,14 +21,25 @@ interface RadarSeries {
   values: number[];
 }
 
-const SERIES: RadarSeries[] = [
+type RadarComparison = readonly [RadarSeries, RadarSeries];
+
+const SERIES: RadarComparison = [
   { label: "Hardened", color: "var(--color-success)", values: [86, 81, 84, 79, 72] },
   { label: "Baseline", color: "var(--color-nightmare)", values: [62, 58, 71, 65, 41] },
 ];
 
-export function RobustnessRadar({ series = SERIES }: { series?: RadarSeries[] } = {}) {
+function isRadarComparison(series: readonly RadarSeries[]): series is RadarComparison {
+  return (
+    series.length === 2 &&
+    series[0].values.length === AXES.length &&
+    series[1].values.length === AXES.length
+  );
+}
+
+export function RobustnessRadar({ series = SERIES }: { series?: readonly RadarSeries[] } = {}) {
   const { isLive } = useDemoMode();
-  const hasEvaluationData = series.length >= 2;
+  const comparison = isRadarComparison(series) ? series : null;
+  const hasEvaluationData = comparison !== null;
   const size = 280;
   const cx = size / 2;
   const cy = size / 2;
@@ -58,7 +69,7 @@ export function RobustnessRadar({ series = SERIES }: { series?: RadarSeries[] } 
         ) : undefined
       }
     >
-      {!hasEvaluationData ? (
+      {!comparison ? (
         <EmptyState
           icon={<IconRadar size={18} />}
           title="No evaluation data"
@@ -89,7 +100,7 @@ export function RobustnessRadar({ series = SERIES }: { series?: RadarSeries[] } 
                 return <line key={i} x1={cx} y1={cy} x2={px} y2={py} stroke="rgba(255,255,255,0.04)" />;
               })}
 
-              {series.map((s, idx) => (
+              {comparison.map((s, idx) => (
                 <g key={s.label}>
                   <motion.polygon
                     points={polygonFor(s.values)}
@@ -131,14 +142,16 @@ export function RobustnessRadar({ series = SERIES }: { series?: RadarSeries[] } 
 
             <div className="w-full flex-1 space-y-2 lg:max-w-[180px]">
               {AXES.map((a, i) => {
-                const h = series[0].values[i];
-                const b = series[1].values[i];
+                const h = comparison[0].values[i];
+                const b = comparison[1].values[i];
                 const delta = h - b;
                 return (
                   <div key={a.key} className="rounded-md border border-white/[0.05] bg-white/[0.02] p-2">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] uppercase tracking-widest text-slate-400">{a.label}</span>
-                      <span className="font-mono text-xs text-emerald-300">+{delta}</span>
+                      <span className="font-mono text-xs text-emerald-300">
+                        {delta >= 0 ? `+${delta}` : delta}
+                      </span>
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-[11px]">
                       <span className="font-mono text-slate-100">{h}</span>
@@ -152,7 +165,7 @@ export function RobustnessRadar({ series = SERIES }: { series?: RadarSeries[] } 
           </div>
 
           <div className="mt-3 flex items-center justify-center gap-4 text-[11px]">
-            {series.map((s) => (
+            {comparison.map((s) => (
               <span key={s.label} className="inline-flex items-center gap-1.5 text-slate-400">
                 <span className="inline-block h-2 w-2 rounded-full" style={{ background: s.color, boxShadow: `0 0 6px ${s.color}` }} />
                 {s.label}

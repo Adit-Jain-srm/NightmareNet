@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import React from "react";
 
 vi.mock("framer-motion", () => {
@@ -11,7 +11,15 @@ vi.mock("framer-motion", () => {
       void transition;
       return React.createElement(tag, rest, children as React.ReactNode);
     };
-  return { motion: new Proxy({}, { get: (_t, p: string) => mock(p) }) };
+  return {
+    motion: new Proxy(
+      {},
+      {
+        get: (_target, property: string | symbol) =>
+          typeof property === "string" ? mock(property) : undefined,
+      },
+    ),
+  };
 });
 
 vi.mock("@/lib/hooks", () => ({
@@ -28,8 +36,12 @@ const mockSeries = [
 describe("RobustnessRadar", () => {
   it("renders with mock robustness data across multiple axes", () => {
     render(<RobustnessRadar series={mockSeries} />);
+    const chart = screen.getByRole("group", { name: "Robustness radar" });
+
     expect(screen.getByText("Robustness Radar")).toBeInTheDocument();
-    expect(screen.getByLabelText("Robustness radar")).toBeInTheDocument();
+    expect(chart).toBeInTheDocument();
+    expect(chart.querySelector('polygon[fill="#22c55e"]')).not.toBeNull();
+    expect(chart.querySelector('polygon[fill="#ef4444"]')).not.toBeNull();
     expect(screen.getByText("Hardened")).toBeInTheDocument();
     expect(screen.getByText("Baseline")).toBeInTheDocument();
     expect(screen.getByText("86")).toBeInTheDocument();
@@ -45,8 +57,9 @@ describe("RobustnessRadar", () => {
 
   it("labels axes with the distortion type names", () => {
     render(<RobustnessRadar series={mockSeries} />);
+    const chart = screen.getByRole("group", { name: "Robustness radar" });
     for (const label of ["Character", "Word", "Semantic", "Syntactic", "Attacks"]) {
-      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
+      expect(within(chart).getByText(label)).toBeInTheDocument();
     }
   });
 });
