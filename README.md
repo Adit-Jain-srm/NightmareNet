@@ -383,6 +383,88 @@ nvidia-smi
 
 - If no compatible GPU is available, run NightmareNet in CPU mode.
 
+---
+
+## Frequently Asked Questions (FAQ)
+
+### Which Python version should I use?
+
+NightmareNet officially supports **Python 3.9–3.12**. For the best development experience, the repository recommends **Python 3.12** (see `.python-version`).
+
+---
+
+### How do I set up the development environment?
+
+Clone the repository, create a virtual environment, install the dependencies, and configure the required environment files.
+
+```bash
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# Linux/macOS
+source .venv/bin/activate
+
+pip install -e .
+
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+For frontend development, install the Node.js dependencies and start the development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+### How do I run the test suite?
+
+Run the complete test suite from the project root:
+
+```bash
+pytest --cov=nightmarenet --cov-report=term-missing tests/ -v --tb=short
+```
+
+You can also run linting and type checking using:
+
+```bash
+ruff check .
+mypy nightmarenet/
+```
+
+---
+
+### Can I run NightmareNet with Docker?
+
+Yes. NightmareNet includes Docker support for local development.
+
+Start the supported services with:
+
+```bash
+docker compose up
+```
+
+Or run both backend and frontend together using:
+
+```bash
+make dev
+```
+
+Refer to the **Running the API + Dashboard Locally (Docker)** section for more details.
+
+---
+
+### Where should I report bugs or ask questions?
+
+- Report bugs or request features through **GitHub Issues**.
+- Ask usage questions or discuss ideas in **GitHub Discussions**.
+- Review the **CONTRIBUTING.md** guide before opening a pull request.
+
 ## What's Inside — 20 Panels of Capability
 
 NightmareNet ships as a unified workspace where every concern gets its own first-class panel. This is a feature-dense, information-rich product — not a sparse landing page.
