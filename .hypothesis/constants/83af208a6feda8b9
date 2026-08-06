@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/pipeline_runner.py
-# hypothesis_version: 6.141.1
-
-[300, 3600, '*.json', '.tmp', '64', 'Pipeline %s started.', '_last_heartbeat', '_start_time', 'cancelled', 'complete', 'config', 'evaluating', 'failed', 'gpu_utilization', 'ingesting', 'interrupted', 'is_running', 'last_heartbeat', 'metrics', 'preparing', 'run_id', 'running', 'runs', 'start_time', 'status', 'training', 'utf-8', 'w']

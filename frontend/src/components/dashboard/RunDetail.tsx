@@ -27,6 +27,7 @@ interface RunConfig {
   dreamStrength: number;
   numCycles: number;
   textContent: string;
+  seed?: number;
 }
 
 interface MutationPreset {
@@ -34,7 +35,6 @@ interface MutationPreset {
   label: string;
   detail: string;
   mutate: (cfg: RunConfig) => RunConfig;
-  // Inline diff description rendered next to each preset.
   diff: (cfg: RunConfig) => string;
 }
 
@@ -46,6 +46,7 @@ const BASE_CONFIG: RunConfig = {
   dreamStrength: 0.25,
   numCycles: 5,
   textContent: "",
+  seed: 42,
 };
 
 const PRESETS: MutationPreset[] = [
@@ -165,8 +166,8 @@ function ReRunMenu({ config }: { config: RunConfig }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const inFlight = useRef(false);
 
-  // Close on Escape and on outside click.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -197,17 +198,17 @@ function ReRunMenu({ config }: { config: RunConfig }) {
     };
   }, [open]);
 
-  // Move focus when the active index changes (keyboard nav).
   useEffect(() => {
     if (!open) return;
     buttonRefs.current[focusIdx]?.focus();
   }, [focusIdx, open]);
 
   const fire = async (preset: MutationPreset) => {
-    if (loading) return;
+    if (inFlight.current) return;
+    inFlight.current = true;
     setLoading(true);
-    const next = preset.mutate(config);
     try {
+      const next = preset.mutate(config);
       const res = await createPipeline({
         source_type: next.sourceType,
         model_name: next.modelName,
@@ -216,6 +217,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
         nightmare_strength: next.nightmareStrength,
         dream_strength: next.dreamStrength,
         ...(next.textContent ? { text_content: next.textContent } : {}),
+        ...(next.seed !== undefined ? { seed: next.seed } : {}),
       });
 
       toast.push({
@@ -237,6 +239,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
         variant: "error",
       });
     } finally {
+      inFlight.current = false;
       setLoading(false);
     }
   };
@@ -282,6 +285,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
                     }}
                     type="button"
                     role="menuitem"
+                    disabled={loading}
                     onClick={() => fire(preset)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -293,6 +297,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
                     className={[
                       "group flex w-full cursor-pointer flex-col gap-1 px-3 py-2 text-left transition-colors",
                       "hover:bg-white/[0.04] focus-visible:bg-white/[0.04] focus-visible:outline-none",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
                     ].join(" ")}
                   >
                     <span className="flex items-center justify-between">

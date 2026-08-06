@@ -255,7 +255,8 @@ def main():
 
     # Comparisons with baseline methods
     # Standard Fine-Tuning: 2 epochs of Wake only (as in configs/benchmark_sst2_baseline.yaml)
-    baseline_ft_epochs = 2
+    baseline_wake_epochs = 2
+    baseline_ft_epochs = baseline_wake_epochs
     baseline_ft_flops = baseline_ft_epochs * steps_per_epoch * step_flops_wake
 
     # Standard Adversarial Training (Wake + PGD-10)
@@ -264,7 +265,7 @@ def main():
     # - 1 step of forward+backward (gradient w.r.t weights) for training
     # Total = 11 * forward_flops + 11 * backward_flops = 33 * forward_flops per step
     step_flops_at = 11 * 3 * forward_flops  # 33 * forward_flops
-    baseline_at_epochs = 2
+    baseline_at_epochs = baseline_wake_epochs
     baseline_at_flops = baseline_at_epochs * steps_per_epoch * step_flops_at
 
     # TRADES (Standard)

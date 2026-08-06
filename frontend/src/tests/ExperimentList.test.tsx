@@ -8,6 +8,8 @@ import * as api from "@/lib/api";
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
+  usePathname: () => "/dashboard",
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 // Mock sounds
@@ -31,7 +33,7 @@ vi.mock("@/components/ui/Toast", () => ({
 
 // Mock API
 vi.mock("@/lib/api", async (importOriginal) => {
-  const actual = await importOriginal() as Record<string, unknown>;
+  const actual = (await importOriginal()) as Record<string, unknown>;
   return {
     ...actual,
     deleteExperiment: vi.fn(),

@@ -46,6 +46,7 @@ try:
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
+    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
     from nightmarenet.api.schemas import (
         CompareRequest,
         CompareResponse,
@@ -144,7 +145,13 @@ async def telemetry_middleware(request: Request, call_next):
 
 
 # --- Rate limiting ---
-limiter = Limiter(key_func=get_remote_address)
+_rate_limit_enabled = os.environ.get("RATELIMIT_ENABLED", "true").lower() not in (
+    "false",
+    "0",
+    "off",
+    "no",
+)
+limiter = Limiter(key_func=get_remote_address, enabled=_rate_limit_enabled)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
@@ -219,11 +226,6 @@ def _char_similarity(a: str, b: str) -> float:
 # --- Cached test count ---
 _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
-
-
-WEBHOOKS_FILE_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
-)
 
 
 def _get_test_count() -> Optional[int]:

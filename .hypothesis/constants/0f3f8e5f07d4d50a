@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/distortions/dsl/executor.py
-# hypothesis_version: 6.141.1
-
-['!=', '<', '<=', '==', '>', '>=', 'always', 'applied', 'condition', 'engine', 'error', 'eval', 'failed', 'final', 'input', 'original', 'output', 'seed', 'skipped', 'status', 'step', 'steps', 'strength']

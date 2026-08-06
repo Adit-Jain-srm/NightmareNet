@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/pipeline.py
-# hypothesis_version: 6.141.1
-
-[0.0, 0.1, 0.7, 2.0, 8.0, 10.0, 15.0, 85.0, 88.0, 'Pipeline run failed.', 'Training complete.', 'avg_loss', 'avg_robustness', 'cancelled', 'complete', 'configs/default.yaml', 'current_cycle', 'current_phase', 'cycle', 'cycle_metrics', 'error', 'eta_seconds', 'evaluate', 'evaluating', 'failed', 'has_report', 'history', 'idle', 'ingest', 'ingesting', 'mean_robustness', 'model', 'name', 'num_cycles', 'on_target', 'optimize', 'output_dir', 'per_cycle_metrics', 'phase', 'phase_loss', 'prepare', 'preparing', 'progress_pct', 'robustness', 'robustness_delta', 'run_complete', 'run_id', 'status', 'suggestions', 'total_cycles', 'train', 'training', 'unknown']

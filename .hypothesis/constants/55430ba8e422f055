@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/data/generator.py
-# hypothesis_version: 6.141.1
-
-[0.0, 0.25, 0.3, 0.5, 0.8, 0.9, '__self__', 'adversarial', 'attention', 'cosine', 'custom:', 'custom_engines', 'dataset', 'distortion', 'dream', 'dream_strength', 'engine', 'features', 'gradient', 'labels', 'learned', 'learned_strategy', 'linear', 'map', 'nightmare', 'nightmare_strength', 'phase', 'pixel_values', 'seed', 'semantic', 'step', 'strength', 'strength_max', 'strength_min', 'strength_schedule', 'text', 'text_column', 'uniform', 'vision', 'vision_fgsm', 'vision_pgd']

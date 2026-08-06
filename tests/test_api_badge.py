@@ -10,6 +10,7 @@ Covers:
 
 from __future__ import annotations
 
+import json
 import time
 import xml.etree.ElementTree as ET
 
@@ -149,3 +150,36 @@ class TestLatestBadgeSvg:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "rk_test_key_123")
         r = client.get("/api/v1/badge/latest.svg")
         assert r.status_code == 200
+
+    def test_latest_svg_none_comparison_metrics_no_crash(self):
+        """Explicit None nested metrics must yield 'no data', not HTTP 500.
+
+        Regression for issue #443: ``comparison.get("metrics", {}).get(...)``
+        crashes when ``metrics`` is present but ``None``.
+        """
+        from nightmarenet.api.badge import _extract_robustness_score
+
+        assert (
+            _extract_robustness_score({"status": "complete", "comparison": {"metrics": None}})
+            is None
+        )
+
+        now = time.time()
+        pr._persist_run_state("run-none-metrics", {}, "running", now)
+        pr._update_run_state("run-none-metrics", "complete", now, metrics={})
+
+        # Inject the None-shaped comparison payload the extractor must tolerate.
+        runs_dir = pr._get_runs_dir()
+        run_file = runs_dir / "run-none-metrics.json"
+        with open(run_file, encoding="utf-8") as fh:
+            state = json.load(fh)
+        state["comparison"] = {"metrics": None}
+        with open(run_file, "w", encoding="utf-8") as fh:
+            json.dump(state, fh)
+
+        r = client.get("/api/v1/badge/latest.svg")
+        assert r.status_code == 200
+        body = r.text
+        assert "no data" in body
+        assert "#9f9f9f" in body
+        ET.fromstring(body)
