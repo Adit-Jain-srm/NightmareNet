@@ -44,9 +44,9 @@ export function WhatsNew() {
     const current = getCurrentBuild();
     setBuild(current);
     const seen = window.localStorage.getItem(STORAGE_KEY);
-    
+
     let t: ReturnType<typeof setTimeout>;
-    
+
     fetch("/api/changelog")
       .then((r) => r.json())
       .then((data) => {
@@ -60,7 +60,7 @@ export function WhatsNew() {
           t = setTimeout(() => setOpen(true), 650);
         }
       });
-      
+
     return () => {
       if (t) clearTimeout(t);
     };

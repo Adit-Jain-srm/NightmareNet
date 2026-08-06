@@ -88,7 +88,7 @@ def test_evaluate_causal_lm_robustness_three_types(monkeypatch):
     # Avoid importing heavy distortion stacks; identity maps keep PPL finite.
     monkeypatch.setattr(
         "nightmarenet.evaluation.causal_lm._build_distorter",
-        lambda name, strength: (lambda text: text + f" {name}"),
+        lambda name, strength, seed=42: lambda text: text + f" {name}",
     )
 
     result = evaluate_causal_lm_robustness(
@@ -119,3 +119,21 @@ def test_evaluate_requires_three_distortion_types():
             distortion_types=("dream", "text"),
             device="cpu",
         )
+
+
+def test_build_distorter_seed_propagation():
+    from nightmarenet.evaluation.causal_lm import _build_distorter
+
+    text = "The quick brown fox jumps over the lazy dog and runs across the wide open field."
+    fn1 = _build_distorter("dream", strength=0.5, seed=42)
+    fn2 = _build_distorter("dream", strength=0.5, seed=42)
+    fn3 = _build_distorter("dream", strength=0.5, seed=999)
+
+    out1 = fn1(text)
+    out2 = fn2(text)
+    out3 = fn3(text)
+
+    # Same seed produces identical distortion
+    assert out1 == out2
+    # Different seed produces different distortion output
+    assert out1 != out3

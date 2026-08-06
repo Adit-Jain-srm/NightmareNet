@@ -1,8 +1,8 @@
 # NightmareNet Benchmark v2 — Full Wake–Dream–Nightmare–Compress Pipeline
 
-**Date:** 2026-07-17  
-**Hardware:** NVIDIA Tesla T4 (16 GB VRAM, Kaggle)  
-**Software:** Python 3.12, PyTorch, Transformers  
+**Date:** 2026-07-17
+**Hardware:** NVIDIA Tesla T4 (16 GB VRAM, Kaggle)
+**Software:** Python 3.12, PyTorch, Transformers
 **Reproducibility:** `python scripts/train.py --config configs/benchmark_sst2_full_cycle.yaml`
 
 ---
