@@ -4,6 +4,63 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.3.1...nightmarenet-v0.4.0) (2026-08-06)
+
+
+### Features
+
+* add formal compute cost analysis (FLOPs per phase) [#124](https://github.com/Adit-Jain-srm/NightmareNet/issues/124) ([#172](https://github.com/Adit-Jain-srm/NightmareNet/issues/172)) ([abd0b9d](https://github.com/Adit-Jain-srm/NightmareNet/commit/abd0b9d7d8c46eedc4ec7d396e439a43c3fb6472))
+* add memory-optimized BERT-base SST-2 scaling config ([#562](https://github.com/Adit-Jain-srm/NightmareNet/issues/562)) ([c891c46](https://github.com/Adit-Jain-srm/NightmareNet/commit/c891c4674afd24b6bfafd6d7e2a3d124c03160ef))
+* add retryLazy utility for resilient panel chunk loading ([#461](https://github.com/Adit-Jain-srm/NightmareNet/issues/461)) ([#475](https://github.com/Adit-Jain-srm/NightmareNet/issues/475)) ([3115a30](https://github.com/Adit-Jain-srm/NightmareNet/commit/3115a300d57206c30ffcd3cd2a3aded1a1d2d77e))
+* added aria-labels and keyboard navigation accessibility to sidebar ([#602](https://github.com/Adit-Jain-srm/NightmareNet/issues/602)) ([99ce773](https://github.com/Adit-Jain-srm/NightmareNet/commit/99ce773ce6aa53c6d439abb160c7317aa380ea42))
+* **dashboard:** add DateRangePicker and date range filter to ExperimentList ([#525](https://github.com/Adit-Jain-srm/NightmareNet/issues/525)) ([#596](https://github.com/Adit-Jain-srm/NightmareNet/issues/596)) ([193ade9](https://github.com/Adit-Jain-srm/NightmareNet/commit/193ade9cd4180f1aa6e158a11a09ba10f0a9feda))
+* **distortions:** add Unicode-aware text distortions for CJK, Arabic, Cyrillic, Devanagari ([#563](https://github.com/Adit-Jain-srm/NightmareNet/issues/563)) ([0d0cbe1](https://github.com/Adit-Jain-srm/NightmareNet/commit/0d0cbe174ad33fb2b7ecc0dd6aed5c6c78a41a74))
+* **frontend:** add Content-Security-Policy and security headers ([#641](https://github.com/Adit-Jain-srm/NightmareNet/issues/641)) ([9c4a120](https://github.com/Adit-Jain-srm/NightmareNet/commit/9c4a120e5a82ae4927980d55be4ef577df919808))
+* implement ECE metric and Temperature Scaling confidence calibration ([#215](https://github.com/Adit-Jain-srm/NightmareNet/issues/215)) ([#470](https://github.com/Adit-Jain-srm/NightmareNet/issues/470)) ([14e1c12](https://github.com/Adit-Jain-srm/NightmareNet/commit/14e1c1238ded921d9f203604151261d46d9f82ed))
+* integrate distributed training into trainer ([#592](https://github.com/Adit-Jain-srm/NightmareNet/issues/592)) ([d2a4018](https://github.com/Adit-Jain-srm/NightmareNet/commit/d2a401816ee237f21bb5e91aa17a8328b9f6c0b1))
+* **research:** add distortion quality vs model size correlation study ([#601](https://github.com/Adit-Jain-srm/NightmareNet/issues/601)) ([cc7f4ed](https://github.com/Adit-Jain-srm/NightmareNet/commit/cc7f4edee3dc15f43848d8db73647ef335f7be63))
+* **research:** add ε-calibrated DP noise to Dream phase ([#707](https://github.com/Adit-Jain-srm/NightmareNet/issues/707)) ([1d9be22](https://github.com/Adit-Jain-srm/NightmareNet/commit/1d9be224c332a195d8a3368b0093d8ebc7b08d66))
+* run pre-commit hooks in CI on every PR ([#425](https://github.com/Adit-Jain-srm/NightmareNet/issues/425)) ([6516c14](https://github.com/Adit-Jain-srm/NightmareNet/commit/6516c1403d1ed0d13901b240ea2d8065c7465f20))
+
+
+### Bug Fixes
+
+* **a11y:** audit dashboard components for light-mode theme compatibility ([#633](https://github.com/Adit-Jain-srm/NightmareNet/issues/633)) ([#642](https://github.com/Adit-Jain-srm/NightmareNet/issues/642)) ([ed85872](https://github.com/Adit-Jain-srm/NightmareNet/commit/ed858728e6c5f6a202561ba6860d9dbd35db78d0))
+* add clone() to mock response in rate-limit test ([09be6ba](https://github.com/Adit-Jain-srm/NightmareNet/commit/09be6ba341866474b1014a7cd23c10f1a1ede4ff))
+* **ci:** harden release automation ([#458](https://github.com/Adit-Jain-srm/NightmareNet/issues/458)) ([2431fef](https://github.com/Adit-Jain-srm/NightmareNet/commit/2431fefea3e250bf4e20ac24f875b0a5ea705a79))
+* **ci:** restrict bundle size check to PRs, remove invalid input ([bc6d104](https://github.com/Adit-Jain-srm/NightmareNet/commit/bc6d1045eab16c35715d4b64297d10a710e56c2d))
+* **ci:** use Node 22 for frontend steps (jsdom requires &gt;=22) ([7108894](https://github.com/Adit-Jain-srm/NightmareNet/commit/710889484ec965375f41818ed180cd03fd22d1df))
+* **eval:** propagate seed parameter in causal LM distortion evaluation ([#643](https://github.com/Adit-Jain-srm/NightmareNet/issues/643)) ([0e800d4](https://github.com/Adit-Jain-srm/NightmareNet/commit/0e800d403cb3906f7068401f52532b5a197d3491))
+* harden badge extraction and restore package import ergonomics ([#590](https://github.com/Adit-Jain-srm/NightmareNet/issues/590)) ([412d8b1](https://github.com/Adit-Jain-srm/NightmareNet/commit/412d8b165633d149ea73886991015a951e8df97c))
+* import app module not app object for reload in tests ([75cd212](https://github.com/Adit-Jain-srm/NightmareNet/commit/75cd212951a458c06e6da49a628868649f02305a))
+* improve FLOP analysis and benchmark validation ([#612](https://github.com/Adit-Jain-srm/NightmareNet/issues/612)) ([cd3e106](https://github.com/Adit-Jain-srm/NightmareNet/commit/cd3e106c11e989d3b7633dc94684486038c27f15))
+* mock all retry attempts in rate-limit test to prevent timeout ([4f2cba2](https://github.com/Adit-Jain-srm/NightmareNet/commit/4f2cba25f2b511d32af927cadd92ee829622c640))
+* move rank_failures() before return in robustness_score() ([#534](https://github.com/Adit-Jain-srm/NightmareNet/issues/534)) ([0bc7a92](https://github.com/Adit-Jain-srm/NightmareNet/commit/0bc7a92014a1c7bb0f85eaaa125b1f89eb338eb1)), closes [#481](https://github.com/Adit-Jain-srm/NightmareNet/issues/481)
+* pin typescript@^5 and eslint@^9, block major bumps via dependabot ([b68508b](https://github.com/Adit-Jain-srm/NightmareNet/commit/b68508ba66831844182dea627a3b021c6809cffc))
+* prevent duplicate pipeline creation and add seed to RunDetail re-run ([#586](https://github.com/Adit-Jain-srm/NightmareNet/issues/586)) ([a403163](https://github.com/Adit-Jain-srm/NightmareNet/commit/a40316330f8b6c9be5380ff7d50d59d6c60414dc))
+* resolve mypy errors in adaption.py and hpo.py ([93593c2](https://github.com/Adit-Jain-srm/NightmareNet/commit/93593c25ccc15e78db884b9f8053b22e5587426c))
+* resolve mypy unused-ignore, Next.js 16 params, missing imports ([53b7b13](https://github.com/Adit-Jain-srm/NightmareNet/commit/53b7b13a4b4565c3fb8a25e20d65e704d9788235))
+* resolve TypeScript errors in test files ([c031bac](https://github.com/Adit-Jain-srm/NightmareNet/commit/c031baca48fc41de3a7c0aa5d34b2bf94f24ec15))
+* restore precise return types in certification and generator modules ([#446](https://github.com/Adit-Jain-srm/NightmareNet/issues/446)) ([#469](https://github.com/Adit-Jain-srm/NightmareNet/issues/469)) ([f1b21ed](https://github.com/Adit-Jain-srm/NightmareNet/commit/f1b21edd014ee1a80cf0dfd65387374890dcff62))
+* strip trailing whitespace from test files (pre-commit hook fix) ([f76a05b](https://github.com/Adit-Jain-srm/NightmareNet/commit/f76a05bb7c46f9183ba2aea438d5681dba7e0065))
+* update .nvmrc to Node 22 (jest-dom@7 requires &gt;=22) ([0fec222](https://github.com/Adit-Jain-srm/NightmareNet/commit/0fec222f2e787805a7b5799aa46f80095399bf97))
+* use importlib.import_module for app module reload ([2a0a398](https://github.com/Adit-Jain-srm/NightmareNet/commit/2a0a398392e082b30c837887f9e60f681651cdce))
+* use importlib.import_module for upload test module access ([2d64dbe](https://github.com/Adit-Jain-srm/NightmareNet/commit/2d64dbe6bd7dfe60565a1bbf3628442d1eb1444c))
+* wire bottleneck method into compression phase ([#538](https://github.com/Adit-Jain-srm/NightmareNet/issues/538)) ([3e96862](https://github.com/Adit-Jain-srm/NightmareNet/commit/3e96862f4b7101f584763d5ff9ec1edbe4b386b4))
+* wire retry handling into API requests ([#557](https://github.com/Adit-Jain-srm/NightmareNet/issues/557)) ([eacb32e](https://github.com/Adit-Jain-srm/NightmareNet/commit/eacb32e870e02d5aafe7293a7872e028d7a57fd6))
+
+
+### Documentation
+
+* add architecture overview Mermaid diagram ([#587](https://github.com/Adit-Jain-srm/NightmareNet/issues/587)) ([c83ad12](https://github.com/Adit-Jain-srm/NightmareNet/commit/c83ad12cf5a7dec0fbfe354a8e63c5c3279d4421))
+* add common CLI commands cheat sheet ([#477](https://github.com/Adit-Jain-srm/NightmareNet/issues/477)) ([5a8465b](https://github.com/Adit-Jain-srm/NightmareNet/commit/5a8465bcf2ef99c13d71cb9ffc717ef25e9a80eb))
+* add configuration files reference to README ([#636](https://github.com/Adit-Jain-srm/NightmareNet/issues/636)) ([b47e353](https://github.com/Adit-Jain-srm/NightmareNet/commit/b47e3538e5032b0e30905e51e67fde83b38fffce))
+* add Discussions Q&A template and Community links ([#460](https://github.com/Adit-Jain-srm/NightmareNet/issues/460)) ([d104cb2](https://github.com/Adit-Jain-srm/NightmareNet/commit/d104cb2ff1716bd318dcd5e7f11ae136b60da05b))
+* add FAQ section to README ([#640](https://github.com/Adit-Jain-srm/NightmareNet/issues/640)) ([cb53e14](https://github.com/Adit-Jain-srm/NightmareNet/commit/cb53e144a8cba067cba72a0618e5dc595f65e38e))
+* add troubleshooting section to README ([#578](https://github.com/Adit-Jain-srm/NightmareNet/issues/578)) ([649c6ca](https://github.com/Adit-Jain-srm/NightmareNet/commit/649c6ca2ce1d3eebcf627243c0f71e9045389b9b))
+* regenerate openapi.json after dependency bump ([8632d82](https://github.com/Adit-Jain-srm/NightmareNet/commit/8632d825920132067a81fc4a7e35fd2c4213a1c2))
+* **research:** clarify distortion quality metrics ([#624](https://github.com/Adit-Jain-srm/NightmareNet/issues/624)) ([7aab94b](https://github.com/Adit-Jain-srm/NightmareNet/commit/7aab94b414eaf81ae2717519f6d730236f41d18c))
+
 ## [0.3.1](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.3.0...nightmarenet-v0.3.1) (2026-07-23)
 
 
