@@ -46,6 +46,9 @@ training:
 distortion:
   dream_strength: 0.25   # Mild distortions for dream phase
   nightmare_strength: 0.8 # Extreme perturbations for nightmare phase (ignored for non-uniform schedules)
+  dream_dp_epsilon: null  # null = off; float enables ε-calibrated Gaussian DP noise in Dream
+  dream_dp_delta: 1.0e-5
+  dream_dp_sensitivity: 1.0
   strength_schedule: uniform # uniform|linear|cosine|step (within-epoch scheduling for nightmare phase)
   schedule_across_cycles: false # Enable/disable per-cycle strength scheduling (paper formula)
   strength_min: 0.2 # Min strength for non-uniform schedules

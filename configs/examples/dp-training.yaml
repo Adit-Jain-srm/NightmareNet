@@ -1,0 +1,60 @@
+# Differential privacy Dream-phase training (issue #546)
+# ε-calibrated Gaussian noise in Dream; privacy accountant across cycles.
+#
+# Validate:
+#   python scripts/run_dp_dream_noise.py --validate
+#
+# Calibrated privacy–robustness table (no GPU):
+#   python scripts/run_dp_dream_noise.py --calibrate
+#
+# Live run (GPU recommended):
+#   python scripts/run_dp_dream_noise.py --run --device cuda
+#   python scripts/train.py --config configs/examples/dp-training.yaml
+
+model:
+  name: distilbert-base-uncased
+  type: seq_classification
+  num_labels: 2
+  max_length: 128
+  device: auto
+
+dataset:
+  name: glue
+  config: sst2
+  text_column: sentence
+  label_column: label
+  max_samples: 500
+  streaming: false
+
+training:
+  wake_epochs: 1
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 3
+  batch_size: 8
+  learning_rate: 2.0e-5
+  use_amp: true
+  checkpoint_dir: checkpoints/dp_dream
+  log_dir: logs/dp_dream
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.8
+  # Set to 1.0 / 3.0 / 8.0 for the privacy–robustness sweep
+  dream_dp_epsilon: 3.0
+  dream_dp_delta: 1.0e-5
+  dream_dp_sensitivity: 1.0
+
+compression:
+  pruning_ratio: 0.2
+  distill_temperature: 2.0
+
+evaluation:
+  strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+  metrics: [accuracy, robustness]
+
+tracking:
+  enabled: false
+
+seed: 42
