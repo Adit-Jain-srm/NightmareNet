@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import tempfile
 import threading
 import time
@@ -22,13 +23,47 @@ if TYPE_CHECKING:
     from nightmarenet.pipeline import Pipeline
 
 try:
-    from opentelemetry import context as otel_context
+    from opentelemetry import context as otel_context # type: ignore
 except ImportError:
     otel_context = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
 
 _GPU_SAMPLE_INTERVAL = 30  # seconds
+
+# Tag validation regex: alphanumeric and hyphens only
+_TAG_REGEX = re.compile(r"^[a-zA-Z0-9\-]+$")
+
+
+def _validate_tags(tags: Any) -> list[str]:
+    """Validate and normalize run tags.
+
+    Requirements:
+    - Must be a list of strings.
+    - Max 20 tags per run.
+    - Max 50 characters per tag.
+    - Alphanumeric + hyphens only.
+    """
+    if tags is None:
+        return []
+    if not isinstance(tags, (list, tuple)):
+        raise TypeError("Tags must be a list of strings.")
+
+    if len(tags) > 20:
+        raise ValueError("A run can have at most 20 tags.")
+
+    validated = []
+    for tag in tags:
+        if not isinstance(tag, str):
+            raise TypeError("Each tag must be a string.")
+        if len(tag) > 50:
+            raise ValueError("Each tag must be at most 50 characters long.")
+        if not _TAG_REGEX.match(tag):
+            raise ValueError(
+                f"Invalid tag '{tag}': tags may only contain alphanumeric characters and hyphens."
+            )
+        validated.append(tag)
+    return validated
 
 
 def _gpu_sample_loop(stop_event: threading.Event, interval: float = _GPU_SAMPLE_INTERVAL) -> None:
@@ -47,7 +82,7 @@ class PipelineRunner:
 
     Usage::
 
-        runner = PipelineRunner(pipeline)
+        runner = PipelineRunner(pipeline, tags=["baseline"])
         runner.start(urls=["https://..."])
         runner.status()  # -> dict
         runner.cancel()
@@ -55,17 +90,20 @@ class PipelineRunner:
     Args:
         pipeline: Configured Pipeline instance.
         on_event: Optional event callback ``fn(event_dict)`` for WebSocket.
+        tags: Optional list of string tags for the run.
     """
 
     def __init__(
         self,
         pipeline: Pipeline,
         on_event: Optional[Callable[[dict], None]] = None,
+        tags: Optional[list[str]] = None,
     ) -> None:
         self.id = str(uuid.uuid4())
         self.pipeline = pipeline
         self.pipeline.run_id = self.id
         self.on_event = on_event
+        self.tags = _validate_tags(tags)
         self._thread: Optional[threading.Thread] = None
         self._cancel_event = threading.Event()
 
@@ -88,8 +126,8 @@ class PipelineRunner:
         self._start_time = time.time()
         self._last_heartbeat = self._start_time
 
-        # Persist initial run state
-        _persist_run_state(self.id, self.pipeline.config, "running", self._start_time)
+        # Persist initial run state with tags
+        _persist_run_state(self.id, self.pipeline.config, "running", self._start_time, self.tags)
         parent_context = otel_context.get_current() if otel_context is not None else None
 
         def _run() -> None:
@@ -177,9 +215,10 @@ class PipelineRunner:
         logger.info("Pipeline %s cancellation requested.", self.id)
 
     def status(self) -> dict:
-        """Return the current pipeline metrics as a dict."""
+        """Return the current pipeline metrics and metadata as a dict."""
         data = self.pipeline.metrics.to_dict()
         data["run_id"] = self.id
+        data["tags"] = self.tags
         data["is_running"] = self._thread is not None and self._thread.is_alive()
         data["start_time"] = getattr(self, "_start_time", None)
         data["last_heartbeat"] = getattr(self, "_last_heartbeat", None)
@@ -256,6 +295,9 @@ def list_all_runs(include_historical: bool = True) -> list[dict]:
                 try:
                     with open(run_file, encoding="utf-8") as f:
                         data = json.load(f)
+                    # Ensure backward compatibility for runs without tags field
+                    if "tags" not in data:
+                        data["tags"] = []
                     # Add is_running=False for historical runs
                     data["is_running"] = False
                     runs.append(data)
@@ -306,8 +348,14 @@ def _get_runs_dir() -> Path:
     return runs_dir
 
 
-def _persist_run_state(run_id: str, config: dict, status: str, timestamp: float) -> None:
-    """Persist initial run state to disk."""
+def _persist_run_state(
+    run_id: str,
+    config: dict,
+    status: str,
+    timestamp: float,
+    tags: Optional[list[str]] = None,
+) -> None:
+    """Persist initial run state to disk with tags."""
     runs_dir = _get_runs_dir()
     run_file = runs_dir / f"{run_id}.json"
 
@@ -315,6 +363,7 @@ def _persist_run_state(run_id: str, config: dict, status: str, timestamp: float)
         "run_id": run_id,
         "status": status,
         "config": config,
+        "tags": tags if tags is not None else [],
         "start_time": timestamp,
         "last_heartbeat": timestamp,
         "metrics": {},
@@ -375,6 +424,11 @@ def load_persisted_runs() -> None:
             status = state.get("status")
             start_time = state.get("start_time", 0)
             last_heartbeat = state.get("last_heartbeat", 0)
+
+            # Ensure backward compatibility for tags field
+            if "tags" not in state:
+                state["tags"] = []
+                _atomic_write_json(run_file, state)
 
             # Evict old runs
             if now - start_time > age_threshold:
