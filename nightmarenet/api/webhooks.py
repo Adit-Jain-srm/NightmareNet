@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+import tempfile
+from pathlib import Path
 
 from fastapi import APIRouter, Body, HTTPException, Request
 from slowapi import Limiter
@@ -29,13 +31,33 @@ limiter = Limiter(key_func=get_remote_address)
     tags=["settings"],
 )
 async def get_webhook_settings():
-    """Retrieve the current webhook settings."""
-    if not os.path.exists(WEBHOOKS_FILE_PATH):
+    """Retrieve the current webhook settings with graceful JSON corruption handling."""
+    webhook_path = Path(WEBHOOKS_FILE_PATH)
+    if not webhook_path.exists():
         return WebhookSettingsResponse(webhooks=[])
+    
     try:
-        with open(WEBHOOKS_FILE_PATH, encoding="utf-8") as f:
+        with open(webhook_path, encoding="utf-8") as f:
+            # Try to acquire a shared advisory lock for reading if supported (Unix)
+            try:
+                import fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_SH)
+            except (ImportError, OSError):
+                pass
+
             data = json.load(f)
-            return WebhookSettingsResponse(webhooks=data.get("webhooks", []))
+            
+            try:
+                import fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+            except (ImportError, OSError):
+                pass
+
+            webhooks = data.get("webhooks", []) if isinstance(data, dict) else []
+            return WebhookSettingsResponse(webhooks=webhooks)
+    except json.JSONDecodeError as jde:
+        logger.warning("Webhook settings file is corrupted (%s). Returning empty configuration.", jde)
+        return WebhookSettingsResponse(webhooks=[])
     except Exception as e:
         logger.error("Failed to read webhooks: %s", e)
         return WebhookSettingsResponse(webhooks=[])
@@ -51,11 +73,39 @@ async def save_webhook_settings(
     request: Request,
     body: WebhookSettingsRequest,
 ):
-    """Save webhook settings."""
+    """Save webhook settings using atomic writes and advisory file locking."""
+    webhook_path = Path(WEBHOOKS_FILE_PATH)
+    webhook_dir = webhook_path.parent
+    webhook_dir.mkdir(parents=True, exist_ok=True)
+
     try:
-        os.makedirs(os.path.dirname(WEBHOOKS_FILE_PATH), exist_ok=True)
-        with open(WEBHOOKS_FILE_PATH, "w", encoding="utf-8") as f:
-            json.dump({"webhooks": [w.model_dump() for w in body.webhooks]}, f, indent=2)
+        # Atomic write: write to temp file in the same directory, then replace
+        fd, temp_path = tempfile.mkstemp(dir=str(webhook_dir), prefix="webhooks_", suffix=".tmp")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                # Acquire exclusive advisory lock (Unix)
+                try:
+                    import fcntl
+                    fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+                except (ImportError, OSError):
+                    pass
+
+                json.dump({"webhooks": [w.model_dump() for w in body.webhooks]}, f, indent=2)
+                f.flush()
+                os.fsync(f.fileno())
+
+                try:
+                    import fcntl
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                except (ImportError, OSError):
+                    pass
+
+            os.replace(temp_path, webhook_path)
+        except Exception:
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise
+
         return WebhookSettingsResponse(webhooks=body.webhooks)
     except Exception as e:
         logger.error("Failed to save webhooks: %s", e)
@@ -93,7 +143,6 @@ async def test_webhook_endpoint(
             ),
         )
 
-    # Temporary configuration dict containing the target webhook
     temp_config = {
         "notifications": {
             "webhooks": [
@@ -106,7 +155,6 @@ async def test_webhook_endpoint(
     }
 
     try:
-        # Build some mock details depending on the event type
         details = {
             "test": "true",
             "message": f"This is a test notification for {body.event_type}.",
@@ -144,3 +192,4 @@ async def test_webhook_endpoint(
             status_code=400,
             detail=f"Failed to dispatch test webhook: {e}",
         ) from None
+    
