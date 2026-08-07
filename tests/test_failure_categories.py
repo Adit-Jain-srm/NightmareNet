@@ -200,6 +200,7 @@ def test_auto_wiring():
 
     class DummyDataset:
         def map(self, *args, **kwargs): return self
+        def set_format(self, *args, **kwargs): return self
         def __iter__(self): yield {"text": "test"}
         def __len__(self): return 1
         column_names = ["text"]
