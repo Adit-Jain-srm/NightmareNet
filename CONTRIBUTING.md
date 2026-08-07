@@ -608,11 +608,13 @@ These are applied by maintainers at merge time based on quality. **Do not reques
 ## Where to ask for help
 
 - **GitHub Discussions** — `https://github.com/Adit-Jain-srm/NightmareNet/discussions`
-  - `q-and-a` for "how do I..." questions
+  - `q-a` for "how do I..." questions
   - `ideas` for feature proposals (RFC threads welcome)
-  - `research` for paper-related discussion, benchmark proposals, citation requests
+  - `show-and-tell` to share what you've built
+  - `general` for community chat and paper/benchmark discussion
 - **GitHub Issues** — bug reports and concrete tasks
 - **Direct contact** — for security disclosures, email the maintainers per [`SECURITY.md`](SECURITY.md). Do **not** open public issues for vulnerabilities.
+
 
 We respond fastest to issues that include a minimal reproducible example, the relevant config snippet, and the output of `pip list | findstr nightmarenet` (or `pip freeze | grep nightmarenet` on Unix).
 
