@@ -109,9 +109,15 @@ class TestTrainerUnit(unittest.TestCase):
     @mock.patch("nightmarenet.training.trainer.DreamPhase")
     @mock.patch("nightmarenet.training.trainer.NightmarePhase")
     def test_training_loop_execution_single_epoch(self, mock_nightmare, mock_dream, mock_wake):
-        mock_result = mock.Mock()
-        mock_result.loss = 0.5
-        mock_result.metrics = {"loss": 0.5, "accuracy": 0.9}
+        class DummyPhaseResult:
+            def __init__(self):
+                self.success = True
+                self.metrics = {"loss": 0.5, "accuracy": 0.9}
+                self.history = [{"loss": 0.5}]
+                self.loss = 0.5
+                self.model = None
+
+        mock_result = DummyPhaseResult()
 
         mock_wake.return_value.execute.return_value = mock_result
         mock_dream.return_value.execute.return_value = mock_result
@@ -139,7 +145,7 @@ class TestTrainerUnit(unittest.TestCase):
         def callback(event: TrainingEvent):
             events_captured.append(event.event_type)
 
-        cm.register(EventType.STEP_END, callback)
+        cm.on(EventType.STEP, callback)
 
         trainer = Trainer(
             config=self.config,
@@ -147,8 +153,8 @@ class TestTrainerUnit(unittest.TestCase):
             tokenizer=self.dummy_tokenizer,
             callback_manager=cm,
         )
-        trainer.callback_manager.trigger(EventType.STEP_END, cycle=0, phase="test")
-        self.assertIn(EventType.STEP_END, events_captured)
+        trainer.callback_manager.emit(TrainingEvent(event_type=EventType.STEP, phase="test"))
+        self.assertIn(EventType.STEP, events_captured)
 
     def test_checkpoint_save_and_load_roundtrip(self):
         trainer = Trainer(
