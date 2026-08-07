@@ -61,7 +61,7 @@ class OptimizePhase(Phase):
                         success=True, phase_name=self.name, data={"skipped": skip_reason}
                     )
 
-            quality_results: dict = {}
+            quality_results: dict[str, Any] = {}
 
             if has_phase_controls:
                 self._optimize_per_phase(
@@ -80,8 +80,8 @@ class OptimizePhase(Phase):
         self,
         optimizer: Any,
         context: PipelineContext,
-        adaption_cfg: dict,
-        column_mapping: dict,
+        adaption_cfg: dict[str, Any],
+        column_mapping: dict[str, Any],
     ) -> Optional[str]:
         """Return a skip reason if the estimated cost exceeds budget, else None."""
         try:
@@ -113,10 +113,10 @@ class OptimizePhase(Phase):
         self,
         optimizer: Any,
         context: PipelineContext,
-        adaption_cfg: dict,
-        column_mapping: dict,
+        adaption_cfg: dict[str, Any],
+        column_mapping: dict[str, Any],
         max_rows: int,
-        quality_results: dict,
+        quality_results: dict[str, Any],
     ) -> None:
         """Single generic optimization pass (backward-compatible)."""
         brand_controls = adaption_cfg.get("brand_controls")
@@ -144,10 +144,10 @@ class OptimizePhase(Phase):
         self,
         optimizer: Any,
         context: PipelineContext,
-        adaption_cfg: dict,
-        column_mapping: dict,
+        adaption_cfg: dict[str, Any],
+        column_mapping: dict[str, Any],
         max_rows: int,
-        quality_results: dict,
+        quality_results: dict[str, Any],
     ) -> None:
         """Separate optimization passes per training phase."""
         for phase_name in PHASE_NAMES:

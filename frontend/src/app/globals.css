@@ -224,6 +224,75 @@ body {
   color: white;
 }
 
+/* ── Dashboard Light Mode Overrides ── */
+.light {
+  color-scheme: light;
+}
+
+.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light .bg-void,
+.light .bg-void\/80,
+.light .bg-void\/85,
+.light .bg-void\/90,
+.light .bg-void\/95 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-abyss,
+.light .bg-abyss\/80,
+.light .bg-abyss\/90,
+.light .bg-abyss\/95 {
+  background-color: #ffffff !important;
+}
+
+.light .bg-deep,
+.light .bg-deep\/60,
+.light .bg-deep\/80,
+.light .bg-surface {
+  background-color: #f1f5f9 !important;
+}
+
+.light .border-slate-800,
+.light .border-slate-700,
+.light .border-slate-800\/60,
+.light .border-slate-800\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .bg-slate-900,
+.light .bg-slate-900\/50,
+.light .bg-slate-900\/80,
+.light .bg-slate-900\/90,
+.light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-slate-800,
+.light .bg-slate-800\/50,
+.light .bg-slate-800\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+.light select,
+.light option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.light input:not([type="checkbox"]):not([type="radio"]) {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.light input::placeholder {
+  color: #94a3b8 !important;
+}
+
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*              GRADIENT TEXT FILLS              */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */

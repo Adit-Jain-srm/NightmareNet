@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
+from typing import Any
 
 from nightmarenet.evaluation.evaluator import Evaluator
 from nightmarenet.exceptions import HubUploadError
@@ -116,7 +117,9 @@ class EvaluatePhase(Phase):
 
         return PhaseResult(success=True, phase_name=self.name, data={"comparison": comparison})
 
-    def _compute_quality_feedback(self, context: PipelineContext, comparison: dict) -> None:
+    def _compute_quality_feedback(
+        self, context: PipelineContext, comparison: dict[str, Any]
+    ) -> None:
         if not context.adaption_quality:
             return
 
@@ -127,7 +130,7 @@ class EvaluatePhase(Phase):
                     robustness_delta = comparison[key]
                     break
 
-        feedback: dict = {
+        feedback: dict[str, Any] = {
             "adaption_phases_optimized": list(context.adaption_quality.keys()),
             "robustness_delta": robustness_delta,
         }
@@ -146,7 +149,7 @@ class EvaluatePhase(Phase):
         context.quality_feedback = feedback
         logger.info("Quality feedback: %s", feedback)
 
-    def _fire_webhooks(self, context: PipelineContext, comparison: dict) -> None:
+    def _fire_webhooks(self, context: PipelineContext, comparison: dict[str, Any]) -> None:
         robustness_metric = comparison.get("metrics", {}).get("robustness", {})
         robustness_delta = robustness_metric.get("deltas", {}).get("auc_robustness")
         if robustness_delta is None:
@@ -190,7 +193,7 @@ class EvaluatePhase(Phase):
                 {"model": context.config.get("model", {}).get("name", "unknown")},
             )
 
-    def _maybe_push_hub(self, context: PipelineContext, comparison: dict) -> None:
+    def _maybe_push_hub(self, context: PipelineContext, comparison: dict[str, Any]) -> None:
         tracking_cfg = context.config.get("tracking", {})
         auto_push_repo = tracking_cfg.get("auto_push_hub")
         if not auto_push_repo:

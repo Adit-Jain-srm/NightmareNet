@@ -61,7 +61,7 @@ cat .env.example docker-compose.yml 2>/dev/null | grep -i "host\|url\|port\|data
 **For TypeScript/JavaScript:**
 ```bash
 # External dependencies = integration points
-cat package.json | jq '.dependencies' 
+cat package.json | jq '.dependencies'
 # Internal imports = module relationships
 grep -r "from ['\"]\.\./" src/ --include="*.ts" | sed 's/.*from ['\''\"]\(.*\)['\''\"]/\1/' | sort | uniq -c | sort -rn
 ```
@@ -102,7 +102,7 @@ graph TB
     Cache["Cache (Redis)"]
     Queue["Message Queue"]
     External["External APIs"]
-    
+
     User -->|"HTTP/WebSocket"| System
     System -->|"SQL/ORM"| DB
     System -->|"Get/Set"| Cache
@@ -118,19 +118,19 @@ graph TB
         Web["Web App (React/Next.js)"]
         Mobile["Mobile App"]
     end
-    
+
     subgraph Backend
         API["API Server"]
         Auth["Auth Service"]
         Worker["Background Workers"]
     end
-    
+
     subgraph Data
         DB["PostgreSQL"]
         Redis["Redis Cache"]
         S3["Object Storage"]
     end
-    
+
     Web --> API
     Mobile --> API
     API --> Auth
@@ -147,17 +147,17 @@ graph LR
         Routes["routes/"]
         Controllers["controllers/"]
     end
-    
+
     subgraph Business
         Services["services/"]
         Domain["domain/"]
     end
-    
+
     subgraph Infrastructure
         Repos["repositories/"]
         Clients["clients/"]
     end
-    
+
     Routes --> Controllers
     Controllers --> Services
     Services --> Domain

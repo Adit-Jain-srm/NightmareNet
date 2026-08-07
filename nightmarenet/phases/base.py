@@ -26,7 +26,7 @@ class PipelineContext:
 
     # Set at construction time
     run_id: str
-    config: dict
+    config: dict[str, Any]
     tracker: Optional[Any] = None
     distributed: Optional[str] = None
     resume_dir: Optional[str] = None
@@ -39,7 +39,7 @@ class PipelineContext:
     wake_dataset: Optional[Any] = None
     dream_base: Optional[Any] = None
     nightmare_base: Optional[Any] = None
-    adaption_quality: Optional[dict] = None
+    adaption_quality: Optional[dict[str, Any]] = None
 
     # Populated by PreparePhase
     train_dl: Optional[Any] = None
@@ -48,7 +48,7 @@ class PipelineContext:
     nightmare_dl: Optional[Any] = None
     val_dl: Optional[Any] = None
     eval_dataset: Optional[Any] = None
-    distortion_fn: Optional[Callable] = None
+    distortion_fn: Optional[Callable[..., Any]] = None
     callback_manager: Optional[Any] = None
     dream_generator: Optional[Any] = None
     nightmare_generator: Optional[Any] = None
@@ -58,18 +58,18 @@ class PipelineContext:
     baseline_model: Optional[Any] = None
 
     # Populated by TrainPhase
-    history: list = field(default_factory=list)
+    history: list[Any] = field(default_factory=list)
     last_robustness_score: Optional[float] = None
     convergence_count: int = 0
     final_convergence_delta: Optional[float] = None
     cycles_completed: int = 0
 
     # Populated by EvaluatePhase
-    trained_results: Optional[dict] = None
-    baseline_results: Optional[dict] = None
-    comparison: Optional[dict] = None
+    trained_results: Optional[dict[str, Any]] = None
+    baseline_results: Optional[dict[str, Any]] = None
+    comparison: Optional[dict[str, Any]] = None
     report_md: Optional[str] = None
-    quality_feedback: Optional[dict] = None
+    quality_feedback: Optional[dict[str, Any]] = None
 
 
 @dataclass
@@ -79,7 +79,7 @@ class PhaseResult:
     success: bool
     phase_name: str
     error: Optional[str] = None
-    data: dict = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
 
 class Phase(abc.ABC):
