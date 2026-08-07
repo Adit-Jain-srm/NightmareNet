@@ -3,10 +3,8 @@ import logging
 import os
 
 from fastapi import APIRouter, Body, HTTPException, Request
-from slowapi import Limiter
-from slowapi.util import get_remote_address
 
-from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
+from nightmarenet.api.constants import WEBHOOKS_FILE_PATH, limiter
 from nightmarenet.api.schemas import (
     ErrorResponse,
     TestWebhookRequest,
@@ -18,8 +16,6 @@ from nightmarenet.api.schemas import (
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
-
-limiter = Limiter(key_func=get_remote_address)
 
 
 @router.get(
