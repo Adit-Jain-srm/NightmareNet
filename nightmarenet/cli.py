@@ -5,6 +5,8 @@ Usage:
     nightmarenet evaluate --checkpoint ./output/model --config configs/default.yaml
     nightmarenet benchmark --suite standard --model distilbert-base-uncased
     nightmarenet distort --type dream --strength 0.3 --text "Hello world"
+    nightmarenet dev --help
+    nightmarenet dev check
 """
 
 import argparse
@@ -1009,6 +1011,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Model task architecture",
     )
 
+    from nightmarenet.dev_cli import register_dev_parser
+
+    register_dev_parser(subparsers)
+
     return parser
 
 
@@ -1032,6 +1038,11 @@ def main(argv: Optional[list] = None) -> int:
     from nightmarenet.utils.logging_config import setup_logging
 
     setup_logging(log_level=log_level, console=not json_mode, file_logging=False)
+
+    if args.command == "dev":
+        from nightmarenet.dev_cli import run_dev
+
+        return run_dev(args)
 
     commands = {
         "train": cmd_train,
