@@ -109,15 +109,12 @@ class TestTrainerUnit(unittest.TestCase):
     @mock.patch("nightmarenet.training.trainer.DreamPhase")
     @mock.patch("nightmarenet.training.trainer.NightmarePhase")
     def test_training_loop_execution_single_epoch(self, mock_nightmare, mock_dream, mock_wake):
-        class DummyPhaseResult:
-            def __init__(self):
-                self.success = True
-                self.metrics = {"loss": 0.5, "accuracy": 0.9}
-                self.history = [{"loss": 0.5}]
-                self.loss = 0.5
-                self.model = None
-
-        mock_result = DummyPhaseResult()
+        mock_result = {
+            "success": True,
+            "metrics": {"loss": 0.5, "accuracy": 0.9},
+            "history": [{"loss": 0.5}],
+            "avg_loss": 0.5,
+        }
 
         mock_wake.return_value.execute.return_value = mock_result
         mock_dream.return_value.execute.return_value = mock_result
