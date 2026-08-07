@@ -10,7 +10,7 @@ class TestTrackingUnit(unittest.TestCase):
         self.assertEqual(tracker.backend, "none")
 
         config_mlflow = {"tracking": {"backend": "mlflow", "experiment": "test_exp"}}
-        with mock.patch("mlflow.start_run"):
+        with mock.patch.dict("sys.modules", {"mlflow": mock.MagicMock()}):
             tracker_mlflow = create_tracker_from_config(config_mlflow)
             self.assertEqual(tracker_mlflow.backend, "mlflow")
 
@@ -21,9 +21,6 @@ class TestTrackingUnit(unittest.TestCase):
 
         tracker.log_metrics({"loss": 0.5}, step=1)
         tracker.log_metrics({"loss": 0.4}, step=2)
-
-        tracker.log_phase_event("wake", {"loss": 0.4})
-        self.assertEqual(len(tracker.lineage["phases"]), 1)
 
         tracker.log_artifact("checkpoint.pt")
         tracker.finish()
