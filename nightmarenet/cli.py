@@ -96,7 +96,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     instead of the standard distortion-based evaluation.
 
     When ``--json`` is supplied, emits a single JSON object on stdout suitable
-    for CI consumption (e.g. the ``nightmarenet-robustness-check`` composite
+    for CI consumption (e.g. the ``.github/actions/robustness-check`` composite
     GitHub Action) containing per-strength similarity scores plus an aggregate
     ``robustness_score`` in ``[0, 1]``.
     """
