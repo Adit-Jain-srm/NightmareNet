@@ -726,3 +726,24 @@ export function updateExperiment(runId: string, data: { name: string }): Promise
     body: JSON.stringify(data),
   });
 }
+
+/** Redirect the browser to the hosted OIDC SSO login endpoint. */
+export function startSsoLogin(orgId?: string, providerId?: string): void {
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams();
+  if (orgId) params.set("org_id", orgId);
+  if (providerId) params.set("provider_id", providerId);
+  const qs = params.toString();
+  const base = getApiBase() || "";
+  window.location.href = `${base}/api/v1/auth/sso/login${qs ? `?${qs}` : ""}`;
+}
+
+export function storeSsoAccessToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("nightmarenet-access-token", token);
+}
+
+export function getSsoAccessToken(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return localStorage.getItem("nightmarenet-access-token") || undefined;
+}
