@@ -79,7 +79,7 @@ Run this checklist YOURSELF before showing the PR to the user:
 BAD:  "update stuff"
 GOOD: "feat(auth): add JWT refresh token rotation"
 
-BAD:  "fix bug"  
+BAD:  "fix bug"
 GOOD: "fix(checkout): prevent double-charge on timeout retry"
 
 BAD:  one commit with 15 files changed across 3 features

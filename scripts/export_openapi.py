@@ -27,6 +27,25 @@ def _pyproject_version() -> str:
     return match.group(1)
 
 
+def _normalize_descriptions(obj):
+    if isinstance(obj, dict):
+        new_obj = {}
+        for k, v in obj.items():
+            if (
+                k == "422"
+                and isinstance(v, dict)
+                and v.get("description") == "Unprocessable Content"
+            ):
+                v = {**v, "description": "Unprocessable Entity"}
+            elif k == "413" and isinstance(v, dict) and v.get("description") == "Content Too Large":
+                v = {**v, "description": "Request Entity Too Large"}
+            new_obj[k] = _normalize_descriptions(v)
+        return new_obj
+    elif isinstance(obj, list):
+        return [_normalize_descriptions(x) for x in obj]
+    return obj
+
+
 def build_spec() -> dict:
     from nightmarenet import __version__
     from nightmarenet.api.app import app
@@ -42,7 +61,7 @@ def build_spec() -> dict:
             f"OpenAPI info.version ({spec.get('info', {}).get('version')}) "
             f"!= pyproject.toml ({pkg_version})"
         )
-    return spec
+    return _normalize_descriptions(spec)
 
 
 def dump_spec(spec: dict) -> str:
@@ -81,17 +100,27 @@ def main() -> int:
             return 1
         committed = args.output.read_text(encoding="utf-8")
         if committed != text:
+            import difflib
+
+            diff = difflib.unified_diff(
+                committed.splitlines(keepends=True),
+                text.splitlines(keepends=True),
+                fromfile=str(args.output),
+                tofile="generated",
+            )
             print(
                 f"OpenAPI drift detected: {args.output} is out of date.",
                 file=sys.stderr,
             )
+            print("".join(diff), file=sys.stderr)
             print("Run: make openapi  (or python scripts/export_openapi.py)", file=sys.stderr)
             return 1
         print(f"OpenAPI spec is up to date: {args.output}")
         return 0
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(text, encoding="utf-8")
+    with open(args.output, "w", encoding="utf-8", newline="\n") as f:
+        f.write(text)
     print(f"Wrote {args.output}")
     return 0
 

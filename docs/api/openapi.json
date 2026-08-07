@@ -763,27 +763,6 @@
         "title": "OptimizationStatusResponse",
         "type": "object"
       },
-      "PipelineCancelRequest": {
-        "description": "Request body for cancelling a pipeline run.",
-        "properties": {
-          "force": {
-            "default": false,
-            "description": "Force cancellation",
-            "title": "Force",
-            "type": "boolean"
-          },
-          "pipeline_id": {
-            "description": "ID of the pipeline to cancel",
-            "title": "Pipeline Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "pipeline_id"
-        ],
-        "title": "PipelineCancelRequest",
-        "type": "object"
-      },
       "PipelineCreateRequest": {
         "description": "Request body for creating a new end-to-end pipeline run.",
         "properties": {
@@ -950,28 +929,6 @@
         "title": "PipelineCreateRequest",
         "type": "object"
       },
-      "PipelineEvaluateRequest": {
-        "description": "Request body for evaluating a pipeline.",
-        "properties": {
-          "config": {
-            "additionalProperties": true,
-            "description": "Evaluation config",
-            "title": "Config",
-            "type": "object"
-          },
-          "model_name": {
-            "default": "gpt2",
-            "description": "Model to evaluate",
-            "title": "Model Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "config"
-        ],
-        "title": "PipelineEvaluateRequest",
-        "type": "object"
-      },
       "PipelineReportResponse": {
         "description": "Full evaluation report for a completed pipeline.",
         "properties": {
@@ -1113,35 +1070,6 @@
         "title": "PipelineStatusResponse",
         "type": "object"
       },
-      "PipelineTrainRequest": {
-        "description": "Request body for training a pipeline.",
-        "properties": {
-          "config": {
-            "additionalProperties": true,
-            "description": "Training config",
-            "title": "Config",
-            "type": "object"
-          },
-          "cycles": {
-            "default": 1,
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Cycles",
-            "type": "integer"
-          },
-          "model_name": {
-            "default": "gpt2",
-            "description": "Model to train",
-            "title": "Model Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "config"
-        ],
-        "title": "PipelineTrainRequest",
-        "type": "object"
-      },
       "RobustnessRequest": {
         "description": "Request body for robustness evaluation endpoint.",
         "properties": {
@@ -1200,24 +1128,6 @@
           "summary"
         ],
         "title": "RobustnessResponse",
-        "type": "object"
-      },
-      "SettingsWebhooksRequest": {
-        "description": "Request body for updating webhook settings.",
-        "properties": {
-          "webhooks": {
-            "description": "List of webhook configurations",
-            "items": {
-              "$ref": "#/components/schemas/WebhookConfigSchema"
-            },
-            "title": "Webhooks",
-            "type": "array"
-          }
-        },
-        "required": [
-          "webhooks"
-        ],
-        "title": "SettingsWebhooksRequest",
         "type": "object"
       },
       "SuggestConfigRequest": {
@@ -1686,10 +1596,31 @@
   "info": {
     "description": "Autonomous AI Self-Improvement Platform \u2014 Dream & Nightmare Distortion Service",
     "title": "NightmareNet API",
-    "version": "0.2.0"
+    "version": "0.3.1"
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/badge/latest.svg": {
+      "get": {
+        "description": "Render dynamic SVG badge reflecting the robustness score of the most recent completed run.",
+        "operationId": "latest_badge_svg_api_v1_badge_latest_svg_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              },
+              "image/svg+xml": {}
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Render dynamic robustness badge from most recent run",
+        "tags": [
+          "Badge"
+        ]
+      }
+    },
     "/api/v1/badge/{score}.json": {
       "get": {
         "description": "Return JSON describing the badge so clients can render their own.",
@@ -2687,50 +2618,6 @@
         ]
       }
     },
-    "/api/v1/pipeline/cancel": {
-      "post": {
-        "description": "Cancel pipeline run via POST body (Legacy/Alternative).",
-        "operationId": "cancel_pipeline_post_endpoint_api_v1_pipeline_cancel_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PipelineCancelRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Cancel Pipeline Post Endpoint Api V1 Pipeline Cancel Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Cancel Pipeline Post Endpoint",
-        "tags": [
-          "pipeline"
-        ]
-      }
-    },
     "/api/v1/pipeline/create": {
       "post": {
         "description": "Create a new pipeline, ingest data, and start training.",
@@ -2768,50 +2655,6 @@
           }
         },
         "summary": "Create and start an E2E pipeline run",
-        "tags": [
-          "pipeline"
-        ]
-      }
-    },
-    "/api/v1/pipeline/evaluate": {
-      "post": {
-        "description": "Evaluate pipeline robustness.",
-        "operationId": "evaluate_pipeline_endpoint_api_v1_pipeline_evaluate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PipelineEvaluateRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Evaluate Pipeline Endpoint Api V1 Pipeline Evaluate Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Evaluate Pipeline Endpoint",
         "tags": [
           "pipeline"
         ]
@@ -2873,50 +2716,6 @@
           }
         },
         "summary": "List all pipeline runs with pagination",
-        "tags": [
-          "pipeline"
-        ]
-      }
-    },
-    "/api/v1/pipeline/train": {
-      "post": {
-        "description": "Start pipeline training phase.",
-        "operationId": "train_pipeline_endpoint_api_v1_pipeline_train_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PipelineTrainRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Train Pipeline Endpoint Api V1 Pipeline Train Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Train Pipeline Endpoint",
         "tags": [
           "pipeline"
         ]
@@ -3306,50 +3105,6 @@
         "summary": "Upload Text File",
         "tags": [
           "Upload"
-        ]
-      }
-    },
-    "/settings/webhooks": {
-      "post": {
-        "description": "Update configured webhooks.",
-        "operationId": "update_webhooks_endpoint_settings_webhooks_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SettingsWebhooksRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Update Webhooks Endpoint Settings Webhooks Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update Webhooks Endpoint",
-        "tags": [
-          "settings"
         ]
       }
     }

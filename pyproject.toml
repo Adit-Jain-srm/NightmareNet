@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nightmarenet"
-version = "0.2.0"
+version = "0.4.0"
 description = "Autonomous AI Self-Improvement Platform — Sleep-Inspired Training Paradigm"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -39,6 +39,7 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "requests>=2.31.0",
     "pydantic>=2.0",
+    "regex>=2023.0.0",
 ]
 
 [project.optional-dependencies]
@@ -108,6 +109,9 @@ export = [
 art = [
     "adversarial-robustness-toolbox>=1.15.0",
 ]
+benchmark = [
+    "fvcore>=0.1.5",
+]
 
 [project.urls]
 Homepage = "https://github.com/Adit-Jain-srm/NightmareNet"
@@ -166,5 +170,28 @@ module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]
 follow_imports = "skip"
 follow_imports_for_stubs = false
 
+[[tool.mypy.overrides]]
+module = [
+    "nightmarenet.phases.*",
+    "nightmarenet.compliance.*",
+    "nightmarenet.hub.*",
+    "nightmarenet.evaluation.certification",
+    "nightmarenet.optimization.*",
+    "nightmarenet.data.*",
+]
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_decorators = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+strict_concatenate = true
+
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "nightmarenet_server*", "scripts"]
+[tool.setuptools.package-data]
+nightmarenet = ["py.typed"]

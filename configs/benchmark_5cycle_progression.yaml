@@ -1,0 +1,46 @@
+# 5-cycle robustness progression (issue #305)
+# Per-cycle clean + distorted AUC: python scripts/cycle_progression.py --run --device cuda
+# Provisional (no GPU): python scripts/cycle_progression.py --calibrate
+# Full trainer path: python scripts/train.py --config configs/benchmark_5cycle_progression.yaml
+
+model:
+  name: distilbert-base-uncased
+  type: seq_classification
+  max_length: 128
+  num_labels: 2
+  device: auto
+
+dataset:
+  name: glue
+  config: sst2
+  text_column: sentence
+  label_column: label
+  max_samples: 500
+
+training:
+  wake_epochs: 2
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 5
+  auto_terminate: false
+  batch_size: 8
+  learning_rate: 3.0e-5
+  checkpoint_dir: checkpoints/cycle_progression
+  log_dir: logs/cycle_progression
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.75
+
+compression:
+  pruning_ratio: 0.15
+  distill_temperature: 2.0
+
+evaluation:
+  strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+
+tracking:
+  enabled: false
+
+seed: 42

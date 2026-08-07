@@ -153,9 +153,7 @@ class TestARTAdapterMocked:
             ):
                 from nightmarenet.evaluation.art_adapter import run_art_benchmark
 
-                results = run_art_benchmark(
-                    mock_classifier, x, y, attacks=["pgd", "fgsm", "cw"]
-                )
+                results = run_art_benchmark(mock_classifier, x, y, attacks=["pgd", "fgsm", "cw"])
 
         assert len(results) == 3
         assert all(isinstance(r, ARTAttackResult) for r in results)
@@ -273,9 +271,7 @@ class TestARTAdapterIntegration:
         )
 
         model = self._make_simple_model()
-        wrapper = NightmareNetARTClassifier(
-            model=model, nb_classes=3, input_shape=(3, 4, 4)
-        )
+        wrapper = NightmareNetARTClassifier(model=model, nb_classes=3, input_shape=(3, 4, 4))
 
         x = np.random.rand(8, 3, 4, 4).astype(np.float32)
         y = np.random.randint(0, 3, 8)
