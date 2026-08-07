@@ -626,6 +626,7 @@ def cmd_optimize(args: argparse.Namespace) -> int:
 
     return 0
 
+
 def cmd_push(args: argparse.Namespace) -> int:
     """Push a hardened model package structure to HuggingFace Hub."""
     try:

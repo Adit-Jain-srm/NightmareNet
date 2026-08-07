@@ -119,9 +119,7 @@ def test_vision_distortions():
 
 def test_json_serialization(tmp_path):
     """Test JSON serialization of failure_categories."""
-    failure_cats = {
-        "blur": {"count": 2, "failure_rate": 0.2, "avg_confidence_delta": 0.3}
-    }
+    failure_cats = {"blur": {"count": 2, "failure_rate": 0.2, "avg_confidence_delta": 0.3}}
     evaluator = Evaluator(
         model=None,
         tokenizer=None,

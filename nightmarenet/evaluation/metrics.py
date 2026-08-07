@@ -205,9 +205,7 @@ def compute_perplexity(
                 shift_logits = logits[..., :-1, :].contiguous()
                 shift_labels = labels[..., 1:].contiguous()
                 loss_fct = torch.nn.CrossEntropyLoss(reduction="none", ignore_index=-100)
-                loss = loss_fct(
-                    shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1)
-                )
+                loss = loss_fct(shift_logits.view(-1, shift_logits.size(-1)), shift_labels.view(-1))
                 loss = loss.view(shift_labels.size(0), -1)
 
                 shift_mask = mask[..., 1:].contiguous()

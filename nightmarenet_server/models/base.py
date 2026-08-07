@@ -3,6 +3,13 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+from nightmarenet_server.db import (
+    DB_MAX_OVERFLOW,
+    DB_POOL_RECYCLE,
+    DB_POOL_SIZE,
+    DB_POOL_TIMEOUT,
+)
+
 DEFAULT_DATABASE_URL = "sqlite:///./nightmarenet_hosted.db"
 
 
@@ -10,12 +17,8 @@ class Base(DeclarativeBase):
     """Declarative base for hosted platform ORM models."""
 
 
-from nightmarenet_server.db import (
-    DB_POOL_SIZE,
-    DB_MAX_OVERFLOW,
-    DB_POOL_TIMEOUT,
-    DB_POOL_RECYCLE,
-)
+
+
 
 def get_engine(database_url: str = DEFAULT_DATABASE_URL):
     """Create a SQLAlchemy engine."""
@@ -27,11 +30,13 @@ def get_engine(database_url: str = DEFAULT_DATABASE_URL):
     if database_url.startswith("sqlite"):
         connect_args["check_same_thread"] = False
     else:
-        kwargs.update({
-            "pool_size": DB_POOL_SIZE,
-            "max_overflow": DB_MAX_OVERFLOW,
-            "pool_timeout": DB_POOL_TIMEOUT,
-        })
+        kwargs.update(
+            {
+                "pool_size": DB_POOL_SIZE,
+                "max_overflow": DB_MAX_OVERFLOW,
+                "pool_timeout": DB_POOL_TIMEOUT,
+            }
+        )
     return create_engine(database_url, connect_args=connect_args, **kwargs)
 
 
