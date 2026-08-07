@@ -46,6 +46,7 @@ try:
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
+    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
     from nightmarenet.api.schemas import (
         CompareRequest,
         CompareResponse,
@@ -56,26 +57,18 @@ try:
         DistortionResponse,
         ErrorResponse,
         HealthResponse,
-        PipelineCancelRequest,
         PipelineCreateRequest,
-        PipelineEvaluateRequest,
         PipelineReportResponse,
         PipelineRunsListResponse,
         PipelineStatusResponse,
-        # Adding the missing schemas for validation
-        PipelineTrainRequest,
         RobustnessRequest,
         RobustnessResponse,
-        SettingsWebhooksRequest,
-        TestWebhookRequest,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
         UploadResponse,
-        WebhookSettingsRequest,
-        WebhookSettingsResponse,
-        WebhookTestResponse,
     )
+    from nightmarenet.api.webhooks import router
 except ImportError as e:
     raise ImportError(
         "FastAPI dependencies not installed. Install with: pip install nightmarenet[api]"
@@ -152,7 +145,13 @@ async def telemetry_middleware(request: Request, call_next):
 
 
 # --- Rate limiting ---
-limiter = Limiter(key_func=get_remote_address)
+_rate_limit_enabled = os.environ.get("RATELIMIT_ENABLED", "true").lower() not in (
+    "false",
+    "0",
+    "off",
+    "no",
+)
+limiter = Limiter(key_func=get_remote_address, enabled=_rate_limit_enabled)
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
@@ -229,11 +228,13 @@ _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
 
 
+ infra/542-configure-sqlalchemy-pool
 WEBHOOKS_FILE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
 )
 
 
+ main
 def _get_test_count() -> Optional[int]:
     """Return the number of collected tests, cached (optionally, dev-only)."""
     flag = os.environ.get("NIGHTMARENET_HEALTH_TEST_COUNT", "0").lower()
@@ -902,34 +903,6 @@ async def upload_text_file(request: Request, file: UploadFile) -> UploadResponse
 _PIPELINE_BODY = Body(...)
 
 
-# ADDED MISSING ENDPOINTS TO SATISFY PR REQUIREMENTS
-@app.post("/api/v1/pipeline/train", response_model=dict, tags=["pipeline"])
-async def train_pipeline_endpoint(request: PipelineTrainRequest):
-    """Start pipeline training phase."""
-    return {"status": "ok", "message": "Training started", "model": request.model_name}
-
-
-@app.post("/api/v1/pipeline/evaluate", response_model=dict, tags=["pipeline"])
-async def evaluate_pipeline_endpoint(request: PipelineEvaluateRequest):
-    """Evaluate pipeline robustness."""
-    return {"status": "ok", "message": "Evaluation started", "model": request.model_name}
-
-
-@app.post("/api/v1/pipeline/cancel", response_model=dict, tags=["pipeline"])
-async def cancel_pipeline_post_endpoint(request: PipelineCancelRequest):
-    """Cancel pipeline run via POST body (Legacy/Alternative)."""
-    return {"status": "ok", "message": "Pipeline cancelled", "pipeline_id": request.pipeline_id}
-
-
-@app.post("/settings/webhooks", response_model=dict, tags=["settings"])
-async def update_webhooks_endpoint(request: SettingsWebhooksRequest):
-    """Update configured webhooks."""
-    return {"status": "ok", "message": "Webhooks updated", "webhooks_count": len(request.webhooks)}
-
-
-# END MISSING ENDPOINTS
-
-
 @app.post(
     "/api/v1/pipeline/create",
     response_model=PipelineStatusResponse,
@@ -1105,6 +1078,7 @@ async def get_pipeline_report(run_id: str):
     )
 
 
+ infra/542-configure-sqlalchemy-pool
 @app.get(
     "/api/v1/settings/webhooks",
     response_model=WebhookSettingsResponse,
@@ -1144,6 +1118,9 @@ async def save_webhook_settings(
         logger.error("Failed to save webhooks: %s", e)
         raise HTTPException(status_code=500, detail="Failed to save webhook settings.") from None
 
+app.include_router(router)
+ main
+
 
 @app.get(
     "/api/v1/pipeline/runs",
@@ -1175,90 +1152,6 @@ async def list_runs(
         offset=offset,
         limit=limit,
     )
-
-
-_TEST_WEBHOOK_BODY = Body(...)
-
-
-@app.post(
-    "/api/v1/notifications/test-webhook",
-    response_model=WebhookTestResponse,
-    responses={
-        400: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Send a test notification to a webhook URL",
-    tags=["notifications"],
-)
-@limiter.limit("5/minute")
-async def test_webhook_endpoint(
-    request: Request,
-    body: TestWebhookRequest = _TEST_WEBHOOK_BODY,
-):
-    """Send a test notification payload to verify webhook integration."""
-    from nightmarenet.utils.webhooks import trigger_webhook, validate_webhook_url
-
-    if not validate_webhook_url(body.url):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Invalid webhook URL. Must be an allowed HTTPS domain"
-                " and not resolve to an internal IP."
-            ),
-        )
-
-    # Temporary configuration dict containing the target webhook
-    temp_config = {
-        "notifications": {
-            "webhooks": [
-                {
-                    "url": body.url,
-                    "events": [body.event_type],
-                }
-            ]
-        }
-    }
-
-    try:
-        # Build some mock details depending on the event type
-        details = {
-            "test": "true",
-            "message": f"This is a test notification for {body.event_type}.",
-        }
-        if body.event_type == "run_complete":
-            details.update({"run_id": "test-run-12345", "status": "complete", "model": "gpt2"})
-        elif body.event_type == "regression_detected":
-            details.update(
-                {
-                    "robustness_delta": "-0.0543",
-                    "baseline_auc": "0.8520",
-                    "trained_auc": "0.7977",
-                }
-            )
-        elif body.event_type == "alert":
-            details.update(
-                {
-                    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
-                    "usage_percent": "91.2%",
-                }
-            )
-        elif body.event_type == "deploy":
-            details.update({"mode": "full", "output_path": "results/benchmark-v1.json"})
-
-        trigger_webhook(
-            temp_config,
-            body.event_type,
-            f"Test notification: {body.event_type} integration test.",
-            details,
-        )
-        return WebhookTestResponse(status="ok")
-    except Exception as e:
-        logger.exception("Test webhook failed: %s", e)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Failed to dispatch test webhook: {e}",
-        ) from None
 
 
 # ------------------------------------------------------------------

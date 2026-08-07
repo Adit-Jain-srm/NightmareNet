@@ -10,6 +10,7 @@ Just like text, image perturbations are managed via the `VisionDistortionRegistr
 
 ```python
 from nightmarenet.distortions.registry import get_vision_registry
+
 registry = get_vision_registry()
 ```
 
@@ -112,7 +113,9 @@ print("\nAdversarial Robustness Sweep:")
 
 for strength in strengths:
     # Apply spatial/geometric transformation
-    distorted_tensor = registry.apply("vision_geometric_transform", dummy_img, strength=strength, seed=42)
+    distorted_tensor = registry.apply(
+        "vision_geometric_transform", dummy_img, strength=strength, seed=42
+    )
     distorted_input = preprocess(distorted_tensor.unsqueeze(0))
 
     with torch.no_grad():

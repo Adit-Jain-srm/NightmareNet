@@ -27,8 +27,8 @@ from nightmarenet.evaluation.art_adapter import NightmareNetARTClassifier
 wrapper = NightmareNetARTClassifier(
     model=your_pytorch_model,
     nb_classes=10,
-    input_shape=(3, 32, 32),      # C, H, W
-    clip_values=(0.0, 1.0),       # input range
+    input_shape=(3, 32, 32),  # C, H, W
+    clip_values=(0.0, 1.0),  # input range
 )
 
 art_classifier = wrapper.classifier
@@ -50,8 +50,8 @@ result = run_art_attack(
     attack_name="pgd",
     x=x_test,
     y=y_test,
-    eps=0.3,          # perturbation budget
-    max_iter=40,      # PGD iterations
+    eps=0.3,  # perturbation budget
+    max_iter=40,  # PGD iterations
 )
 
 print(f"Attack: {result.attack_name}")

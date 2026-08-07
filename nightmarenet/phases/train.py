@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Any, Optional
 
 from nightmarenet.distortions.text import apply_text_distortions
 from nightmarenet.evaluation.metrics import evaluate_cycle, quick_robustness_score
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 class TrainPhase(Phase):
     name = "train"
 
-    def __init__(self, on_progress=None) -> None:
+    def __init__(self, on_progress: Optional[Any] = None) -> None:
         # Optional callback for orchestrator-level progress/metrics updates,
         # called with the same event dicts the old Pipeline._emit()'d on.
         self.on_progress = on_progress
@@ -39,7 +40,7 @@ class TrainPhase(Phase):
 
         num_cycles = context.config.get("training", {}).get("num_cycles", 3)
 
-        def _on_train_progress(event: dict) -> None:
+        def _on_train_progress(event: dict[str, Any]) -> None:
             if event.get("event") == "cycle_end":
                 self._handle_cycle_end(context, event)
             if self.on_progress is not None:
@@ -81,7 +82,7 @@ class TrainPhase(Phase):
 
         return PhaseResult(success=True, phase_name=self.name, data={"history": history})
 
-    def _handle_cycle_end(self, context: PipelineContext, event: dict) -> None:
+    def _handle_cycle_end(self, context: PipelineContext, event: dict[str, Any]) -> None:
         """Per-cycle evaluation and adaptive convergence detection."""
         if context.trainer is not None and context.eval_dl is not None:
             try:

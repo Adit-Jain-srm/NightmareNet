@@ -310,15 +310,17 @@ For an in-tree distortion, drop a module under `nightmarenet/distortions/your_en
 ```python
 from nightmarenet.distortions.registry import get_registry
 
-def register_distortion(name, *, phase='custom', description=''):
+
+def register_distortion(name, *, phase="custom", description=""):
     def decorator(fn):
-        get_registry().register(name, fn, metadata={'phase': phase, 'description': description})
+        get_registry().register(name, fn, metadata={"phase": phase, "description": description})
         return fn
+
     return decorator
 
-@register_distortion('homoglyph', phase='nightmare', description='Latin -> Cyrillic swap')
-def homoglyph(text, strength, seed=None):
-    ...
+
+@register_distortion("homoglyph", phase="nightmare", description="Latin -> Cyrillic swap")
+def homoglyph(text, strength, seed=None): ...
 ```
 
 ### Tests
@@ -345,7 +347,10 @@ Mirror the package layout under `tests/`. At minimum:
 - **Line length:** 100 (enforced by ruff).
 - **Ruff rules:** `E, F, W, I, N, UP, B`. We ignore `UP007` and `UP045` to keep `Union[X, Y]` available in 3.9-targeted code.
 - **Imports:** isort via ruff. Order: stdlib, third-party, local; alphabetical within each group.
-- **Type hints:**
+- **Type hints & Mypy:**
+  - NightmareNet uses a **gradual typing** approach.
+  - **Strict Modules:** Specific core modules (including `nightmarenet/phases/`, `nightmarenet/compliance/`, `nightmarenet/hub/`, and `nightmarenet/evaluation/certification.py`) are strictly typed and must pass mypy without errors.
+  - **Legacy Modules:** Older components like `nightmarenet/cli.py` and `nightmarenet/api/app.py` remain in relaxed mode.
   - Use `Union[X, Y]` and `Optional[X]` — **not** `X | Y` — in any code path that runs on Python 3.9.
   - Use `from __future__ import annotations` everywhere **except** modules under `nightmarenet/api/` that use FastAPI `Body(...)`. The future import breaks Pydantic v2 at runtime there. Prefer module-level singletons for `Body(...)` defaults to satisfy `B008`.
 - **Docstrings:** Google style on public APIs only. Internal helpers can be terse.
@@ -388,6 +393,7 @@ All PRs that change user-facing behavior **must** update relevant documentation:
 - **Distortion changes** → Update the README distortion table + `docs/research/paper-draft.md`
 - **Frontend changes** → Update component inventory in README if adding panels
 - **Breaking changes** → Add migration note at the top of PR description
+- **Architecture changes** → If a pull request modifies the system architecture, module dependencies, training pipeline, or data flow, update the Mermaid diagrams in `docs/architecture/TRD.md` to keep them synchronized with the implementation.
 
 Good documentation is as important as good code. If you're unsure what to update, ask in the PR description and we'll guide you.
 

@@ -629,8 +629,6 @@ def robustness_score(
         }
         if export_failures:
             res["per_sample_data"] = failures_data
-        return res
-
         ranked_failures = rank_failures(all_failures)
         res["top_failures"] = ranked_failures[:10]
         res["delta_distribution"] = build_delta_distribution(ranked_failures)
@@ -783,8 +781,6 @@ def robustness_score(
     }
     if export_failures:
         res["per_sample_data"] = failures_data
-    return res
-
     ranked_failures = rank_failures(all_failures)
     res["top_failures"] = ranked_failures[:10]
     res["delta_distribution"] = build_delta_distribution(ranked_failures)
