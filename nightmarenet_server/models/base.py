@@ -17,9 +17,6 @@ class Base(DeclarativeBase):
     """Declarative base for hosted platform ORM models."""
 
 
-
-
-
 def get_engine(database_url: str = DEFAULT_DATABASE_URL):
     """Create a SQLAlchemy engine."""
     connect_args = {}
