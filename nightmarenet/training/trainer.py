@@ -422,6 +422,24 @@ class Trainer:
         torch.save(state, os.path.join(path, "training_state.pt"))
         logger.info("Checkpoint saved: %s (including training state)", path)
 
+        # Auto-register checkpoint folder
+        try:
+            from pathlib import Path
+
+            from nightmarenet.artifacts.manager import ArtifactManager
+
+            manager = ArtifactManager()
+            manager.register(
+                path=Path(path),
+                run_id=run_id_to_use,
+                artifact_type="checkpoint",
+                retention_policy=self.config.get("artifacts", {})
+                .get("retention", {})
+                .get("checkpoint"),
+            )
+        except Exception as e:
+            logger.warning("Failed to auto-register checkpoint artifact: %s", e)
+
         try:
             self.tracker.log_artifact(path)
         except Exception as e:
@@ -1065,6 +1083,26 @@ class Trainer:
 
         self.tracker.finish()
         logger.info("Training complete. Final model saved to %s", final_path)
+
+        # Auto-register final model checkpoint directory
+        try:
+            from pathlib import Path
+
+            from nightmarenet.artifacts.manager import ArtifactManager
+
+            run_id_to_use = getattr(self, "run_id", "default_run") or "default_run"
+            manager = ArtifactManager()
+            manager.register(
+                path=Path(final_path),
+                run_id=run_id_to_use,
+                artifact_type="checkpoint",
+                retention_policy=self.config.get("artifacts", {})
+                .get("retention", {})
+                .get("checkpoint"),
+            )
+        except Exception as e:
+            logger.warning("Failed to auto-register final model checkpoint: %s", e)
+
         return self.history
 
 
