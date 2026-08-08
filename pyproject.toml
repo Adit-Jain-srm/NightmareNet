@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nightmarenet"
-version = "0.3.1"
+version = "0.4.0"
 description = "Autonomous AI Self-Improvement Platform — Sleep-Inspired Training Paradigm"
 readme = "README.md"
 license = {text = "Apache-2.0"}
@@ -39,6 +39,7 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "requests>=2.31.0",
     "pydantic>=2.0",
+    "regex>=2023.0.0",
 ]
 
 [project.optional-dependencies]
@@ -107,6 +108,9 @@ export = [
 ]
 art = [
     "adversarial-robustness-toolbox>=1.15.0",
+]
+benchmark = [
+    "fvcore>=0.1.5",
 ]
 
 [project.urls]
@@ -189,3 +193,5 @@ strict_concatenate = true
 
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "nightmarenet_server*", "scripts"]
+[tool.setuptools.package-data]
+nightmarenet = ["py.typed"]

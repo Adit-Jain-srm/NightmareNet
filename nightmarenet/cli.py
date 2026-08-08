@@ -52,11 +52,11 @@ def cmd_train(args: argparse.Namespace) -> int:
 
     def on_event(event: dict) -> None:
         phase = event.get("status", "unknown")
-        logger.info("[%s] %s", phase, event.get('message', ''))
+        logger.info("[%s] %s", phase, event.get("message", ""))
 
     logger.info("NightmareNet Training Pipeline")
     logger.info("  Config: %s", config_path)
-    logger.info("  Model: %s", config.get('model', {}).get('name', 'gpt2'))
+    logger.info("  Model: %s", config.get("model", {}).get("name", "gpt2"))
     if getattr(args, "distributed", None):
         logger.info("  Distributed: %s", args.distributed)
     if getattr(args, "resume", None):
@@ -101,6 +101,88 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     ``robustness_score`` in ``[0, 1]``.
     """
     json_only = bool(getattr(args, "json", False))
+    if getattr(args, "config", None):
+        import torch
+        import yaml
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+        from nightmarenet.data.ingest import DataIngestor
+        from nightmarenet.evaluation.evaluator import Evaluator
+        from nightmarenet.training.trainer import _tokenize_dataset
+
+        config_path = Path(args.config)
+        if not config_path.exists():
+            logger.error("Config file not found: %s", config_path)
+            return 1
+
+        with open(config_path) as f:
+            config = yaml.safe_load(f) or {}
+
+        model_name = (
+            getattr(args, "checkpoint", None)
+            or getattr(args, "model", None)
+            or config.get("model", {}).get("name")
+        )
+        if not model_name:
+            logger.error(
+                "Model name or checkpoint path is required "
+                "(--model or --checkpoint or model.name in config)"
+            )
+            return 1
+
+        if not json_only:
+            logger.info("NightmareNet Evaluation")
+            logger.info("  Model:   %s", model_name)
+            logger.info("  Config:  %s", config_path)
+
+        device = getattr(args, "device", None) or ("cuda" if torch.cuda.is_available() else "cpu")
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model_obj = AutoModelForSequenceClassification.from_pretrained(model_name)
+        model_obj.to(device)
+
+        # Ingest
+        dataset_cfg = config.get("dataset", {})
+        ingestor = DataIngestor(
+            text_column=dataset_cfg.get("text_column", "text"),
+            max_samples=dataset_cfg.get("max_samples"),
+            seed=config.get("seed", 42),
+        )
+        dataset_obj = ingestor.from_huggingface(dataset_cfg.get("name", "sst2"))
+
+        # Split
+        eval_split_ratio = config.get("evaluation", {}).get("eval_split_ratio", 0.2)
+        n_total = len(dataset_obj)
+        n_eval = max(1, int(n_total * eval_split_ratio))
+        n_train = n_total - n_eval
+        eval_dataset = dataset_obj.select(list(range(n_train, n_total)))
+
+        text_column = dataset_cfg.get("text_column", "text")
+        max_length = config.get("model", {}).get("max_length", 128)
+        batch_size = config.get("training", {}).get("batch_size", 8)
+        clean_dl = _tokenize_dataset(eval_dataset, tokenizer, text_column, max_length, batch_size)
+
+        evaluator = Evaluator(model_obj, tokenizer, config, device=device)
+        results = evaluator.evaluate(
+            clean_dataloader=clean_dl,
+            base_dataset=eval_dataset,
+            distortion_fn=lambda x, strength: x,
+            label="evaluate-cli",
+        )
+
+        calib = results.get("calibration")
+        if calib and not json_only:
+            logger.info("--- Calibration Analysis ---")
+            logger.info("  ECE (Before Scaling): %.4f", calib.get("ece_before", 0.0))
+            logger.info("  ECE (After Scaling):  %.4f", calib.get("ece_after", 0.0))
+            logger.info("  Optimal Temperature:  %.4f", calib.get("optimal_temperature", 1.0))
+
+        if json_only:
+            sys.stdout.write(json.dumps(results, default=str))
+            sys.stdout.write("\n")
+        else:
+            logger.info(json.dumps(results, indent=2, default=str))
+        return 0
+
     dataset = getattr(args, "dataset", None) or "sst2"
     model_name = getattr(args, "model", None) or ""
     attacks_arg = getattr(args, "attacks", None)
@@ -226,7 +308,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
         logger.info("NightmareNet Ensemble Benchmark Suite")
         logger.info("  Config: %s", args.config)
-        logger.info("  Output: %s", args.output if args.output else './results')
+        logger.info("  Output: %s", args.output if args.output else "./results")
         logger.info("")
 
         output_dir = args.output if args.output else "./results"
@@ -324,8 +406,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         evaluator.print_results_table(results)
     else:
         logger.info(
-            "Model: %s | Suite Profile: %s | Status: Evaluation Complete",
-            model_name, suite
+            "Model: %s | Suite Profile: %s | Status: Evaluation Complete", model_name, suite
         )
     logger.info("-----------------------------------")
 
@@ -337,9 +418,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     if robustness_delta >= 0.14:
         logger.info("[SUCCESS] Metrics match or exceed canonical paper specifications!")
     else:
-        logger.warning(
-            "Benchmark completed, but metrics diverged below the target paper standard."
-        )
+        logger.warning("Benchmark completed, but metrics diverged below the target paper standard.")
 
     return 0
 
@@ -358,9 +437,9 @@ def cmd_distort(args: argparse.Namespace) -> int:
             return 0
         logger.info("Available presets (%d):", len(presets))
         for preset in presets:
-            logger.info("  - %s: %s", preset['name'], preset['description'])
-            logger.info("    Path: %s", preset['path'])
-            logger.info("    Version: %s, Steps: %d", preset['version'], preset['num_steps'])
+            logger.info("  - %s: %s", preset["name"], preset["description"])
+            logger.info("    Path: %s", preset["path"])
+            logger.info("    Version: %s, Steps: %d", preset["version"], preset["num_steps"])
         return 0
 
     # Handle --validate
@@ -412,21 +491,25 @@ def cmd_distort(args: argparse.Namespace) -> int:
         if engines_by_source.get("builtin"):
             logger.info("Built-in:")
             for engine in engines_by_source["builtin"]:
-                pkg_info = " [%s]" % engine.get('package', '') if engine.get("package") else ""  # noqa: UP031
+                pkg_info = " [%s]" % engine.get("package", "") if engine.get("package") else ""  # noqa: UP031
                 logger.info(
                     "  %s (%s)%s - %s",
-                    engine['name'], engine.get('phase', 'unknown'), pkg_info,
-                    engine.get('description', '')
+                    engine["name"],
+                    engine.get("phase", "unknown"),
+                    pkg_info,
+                    engine.get("description", ""),
                 )
 
         if engines_by_source.get("plugin"):
             logger.info("Plugins:")
             for engine in engines_by_source["plugin"]:
-                pkg_info = " [%s]" % engine.get('package', '') if engine.get("package") else ""  # noqa: UP031
+                pkg_info = " [%s]" % engine.get("package", "") if engine.get("package") else ""  # noqa: UP031
                 logger.info(
                     "  %s (%s)%s - %s",
-                    engine['name'], engine.get('phase', 'unknown'), pkg_info,
-                    engine.get('description', '')
+                    engine["name"],
+                    engine.get("phase", "unknown"),
+                    pkg_info,
+                    engine.get("description", ""),
                 )
 
         if engines_by_source.get("custom"):
@@ -434,8 +517,9 @@ def cmd_distort(args: argparse.Namespace) -> int:
             for engine in engines_by_source["custom"]:
                 logger.info(
                     "  %s (%s) - %s",
-                    engine['name'], engine.get('phase', 'unknown'),
-                    engine.get('description', '')
+                    engine["name"],
+                    engine.get("phase", "unknown"),
+                    engine.get("description", ""),
                 )
 
         return 0
@@ -445,7 +529,7 @@ def cmd_distort(args: argparse.Namespace) -> int:
         # Use registry-based engine
         if args.engine not in registry:
             logger.error("Unknown engine '%s'", args.engine)
-            logger.error("Available: %s", ', '.join(registry.engine_names))
+            logger.error("Available: %s", ", ".join(registry.engine_names))
             return 1
 
         result = registry.apply(args.engine, text, strength=strength, seed=args.seed)
@@ -522,8 +606,7 @@ def cmd_transfer(args: argparse.Namespace) -> int:
                 return 1
             if "robustness_score" not in b_data or "clean_accuracy" not in b_data:
                 logger.error(
-                    "Baseline JSON is missing required keys "
-                    "('robustness_score', 'clean_accuracy')"
+                    "Baseline JSON is missing required keys ('robustness_score', 'clean_accuracy')"
                 )
                 return 1
 
@@ -539,9 +622,9 @@ def cmd_transfer(args: argparse.Namespace) -> int:
             return 1
     elif args.foundation and args.config:
         logger.info(
-            "Starting transfer fine-tuning using foundation '%s' "
-            "and config '%s'",
-            args.foundation, args.config
+            "Starting transfer fine-tuning using foundation '%s' and config '%s'",
+            args.foundation,
+            args.config,
         )
         try:
             config = load_config(args.config)
@@ -633,6 +716,7 @@ def cmd_optimize(args: argparse.Namespace) -> int:
         return 1
 
     return 0
+
 
 def cmd_push(args: argparse.Namespace) -> int:
     """Push a hardened model package structure to HuggingFace Hub."""
@@ -794,8 +878,10 @@ def build_parser() -> argparse.ArgumentParser:
     eval_parser.add_argument(
         "--num-examples", type=int, default=200, help="Number of examples for attack eval"
     )
+    eval_parser.add_argument("--config", help="YAML config path")
+    eval_parser.add_argument("--checkpoint", help="Path to local trained checkpoint directory")
     eval_parser.add_argument(
-        "--device", default=None, help="Device for attack evaluation (e.g. cuda, cpu)"
+        "--device", default=None, help="Device for evaluation (e.g. cuda, cpu)"
     )
 
     # benchmark

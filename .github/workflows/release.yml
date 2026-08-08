@@ -4,9 +4,24 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      verify_only:
+        description: "Build and verify distributions without publishing"
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    name: Build and verify distributions
     runs-on: ubuntu-latest
 
     steps:
@@ -18,13 +33,53 @@ jobs:
           python-version: "3.12"
           cache: pip
 
-      - name: Install build tools
-        run: python -m pip install --upgrade pip build
+      - name: Install build and verification tools
+        run: python -m pip install --upgrade pip build twine
 
       - name: Build sdist and wheel
         run: python -m build
 
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*
+
+      - name: Verify distribution set
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+          import zipfile
+
+          dist = Path("dist")
+          wheels = sorted(dist.glob("*.whl"))
+          sdists = sorted(dist.glob("*.tar.gz"))
+
+          if len(wheels) != 1:
+              raise SystemExit(f"Expected exactly one wheel, found {len(wheels)}")
+          if len(sdists) != 1:
+              raise SystemExit(f"Expected exactly one sdist, found {len(sdists)}")
+
+          with zipfile.ZipFile(wheels[0]) as archive:
+              wheel_files = archive.namelist()
+              if not any(name.endswith(".dist-info/METADATA") for name in wheel_files):
+                  raise SystemExit("Wheel is missing .dist-info/METADATA")
+              if not any(name == "nightmarenet/__init__.py" for name in wheel_files):
+                  raise SystemExit("Wheel is missing the nightmarenet package")
+
+          with tarfile.open(sdists[0], "r:gz") as archive:
+              sdist_files = archive.getnames()
+              if not any(name.endswith("/pyproject.toml") for name in sdist_files):
+                  raise SystemExit("Source distribution is missing pyproject.toml")
+              if not any(name.endswith("/nightmarenet/__init__.py") for name in sdist_files):
+                  raise SystemExit("Source distribution is missing the nightmarenet package")
+
+          print(f"Verified wheel: {wheels[0].name}")
+          print(f"Verified sdist: {sdists[0].name}")
+          PY
+
       - name: Check version matches tag
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        shell: bash
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           PKG_VERSION=$(python -c "import nightmarenet; print(nightmarenet.__version__)")
@@ -33,42 +88,70 @@ jobs:
             exit 1
           fi
 
-      - name: Upload build artifacts
+      - name: Smoke-test built wheel
+        shell: bash
+        run: |
+          python -m venv .release-smoke
+          .release-smoke/bin/python -m pip install --upgrade pip
+          .release-smoke/bin/python -m pip install --no-deps dist/*.whl
+          .release-smoke/bin/python - <<'PY'
+          from importlib.metadata import version
+          import nightmarenet
+
+          installed_version = version("nightmarenet")
+          if installed_version != nightmarenet.__version__:
+              raise SystemExit(
+                  "Installed metadata version "
+                  f"{installed_version} does not match package version "
+                  f"{nightmarenet.__version__}"
+              )
+
+          print(f"Installed nightmarenet {installed_version} successfully")
+          PY
+
+      - name: Upload verified build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dist
           path: dist/
+          if-no-files-found: error
+          retention-days: 7
 
   github-release:
+    name: Publish GitHub Release assets
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Download build artifacts
+      - name: Download verified build artifacts
         uses: actions/download-artifact@v8
         with:
           name: dist
           path: dist/
 
       - name: Publish GitHub Release with assets
-        uses: softprops/action-gh-release@c95fe1489396fe8a9eb87c0abf8aa5b2ef267fda # v2.2.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           files: dist/*
           fail_on_unmatched_files: true
 
   publish:
+    name: Publish verified distributions to PyPI
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/nightmarenet
     permissions:
-      id-token: write # required for PyPI trusted publishing (OIDC)
+      contents: read
+      id-token: write
 
     steps:
-      - name: Download build artifacts
+      - name: Download verified build artifacts
         uses: actions/download-artifact@v8
         with:
           name: dist
@@ -76,3 +159,5 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          print-hash: true

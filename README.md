@@ -10,6 +10,7 @@
 [![Adversarial Robustness](https://img.shields.io/badge/Adversarial_Robustness-Training-EE4C2C?logo=pytorch&logoColor=white)](https://arxiv.org/abs/1706.06083)
 [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 [![Last Commit](https://img.shields.io/github/last-commit/Adit-Jain-srm/NightmareNet)](https://github.com/Adit-Jain-srm/NightmareNet)
+[![codecov](https://codecov.io/gh/Adit-Jain-srm/NightmareNet/branch/main/graph/badge.svg)](https://app.codecov.io/gh/Adit-Jain-srm/NightmareNet)
 
 *A cyclic adversarial training platform that continuously strengthens model robustness through the Wake → Dream → Nightmare → Compress learning cycle.*
 
@@ -29,7 +30,7 @@
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
 [![CI](https://github.com/Adit-Jain-srm/NightmareNet/actions/workflows/ci.yml/badge.svg)](https://github.com/Adit-Jain-srm/NightmareNet/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/Adit-Jain-srm/NightmareNet/branch/main/graph/badge.svg)](https://codecov.io/gh/Adit-Jain-srm/NightmareNet)
+[![codecov](https://codecov.io/gh/Adit-Jain-srm/NightmareNet/branch/main/graph/badge.svg)](https://app.codecov.io/gh/Adit-Jain-srm/NightmareNet)
 [![Tests](https://img.shields.io/badge/tests-660%2B%20passing-brightgreen)](#testing)
 [![Python](https://img.shields.io/badge/python-3.9%E2%80%933.12-blue)](#installation)
 
@@ -192,8 +193,8 @@ docker compose up api frontend
 
 This starts only:
 
-- ✅ `api`
-- ✅ `frontend`
+- `api`
+- `frontend`
 
 ### Hosted profile (planned infrastructure)
 
@@ -221,6 +222,249 @@ This starts:
 > - `.nvmrc` (Node.js 20)
 >
 > If you use `pyenv`, `asdf`, or `mise`, your Python version can be selected automatically when entering the repository. If you use `nvm`, run `nvm use` to switch to Node.js 20.
+
+---
+
+## Configuration Files Reference
+
+NightmareNet includes several configuration files that help manage the development environment, dependencies, data pipelines, database migrations, and local tooling. The table below explains the purpose of each file and whether contributors typically need to modify it.
+
+| File | Purpose | When Used | Usually Modified? |
+|------|---------|-----------|------------------|
+| `.env.example` | Template for environment variables. Copy to `.env` for local dev; maintainers update when new vars are added. | Initial setup | ❌ No (copy only) |
+| `.python-version` | Specifies the recommended Python version for tools such as `pyenv`, `asdf`, and `mise`. | Python environment setup | ❌ Rarely |
+| `.nvmrc` | Defines the recommended Node.js version for the frontend. | Frontend development | ❌ Rarely |
+| `pyproject.toml` | Stores Python project metadata, dependencies, build configuration, and tool settings. | Package installation and development | ⚠️ Sometimes |
+| `requirements.txt` | Lists Python dependencies for environments that install packages using `pip`. | Dependency installation | ⚠️ Sometimes |
+| `docker-compose.yml` | Defines local Docker services used during development. | Running the application with Docker | ⚠️ Sometimes |
+| `dvc.yaml` | Describes DVC pipeline stages for datasets and experiments. | Data pipeline execution | ⚠️ Occasionally |
+| `dvc.lock` | Auto-generated lockfile recording exact pipeline dependencies and outputs. Never hand-edit. | Regenerated via `dvc repro` | ⚠️ Regenerated (via `dvc repro`) |
+| `alembic.ini` | Configuration file for Alembic database migrations. | Database schema migrations | ⚠️ Rarely |
+| `Makefile` | Provides shortcuts for common development tasks such as setup, testing, and local execution. | Daily development workflow | ⚠️ Sometimes |
+
+### Notes
+
+- Copy `.env.example` to `.env` before starting local development.
+- Avoid manually editing auto-generated files such as `dvc.lock`.
+- Update dependencies in `pyproject.toml` (source of truth). The `requirements.txt` is maintained for pip-only environments.
+- Most contributors only need to modify `.env` values and occasionally update dependency or Docker configuration files.
+
+---
+
+## Troubleshooting
+
+If you encounter issues while setting up or running NightmareNet, the following solutions may help.
+
+### Python version mismatch
+
+**Problem:** Installation or dependency errors caused by an unsupported Python version.
+
+**Solution:**
+
+- NightmareNet recommends **Python 3.12**.
+- Verify your Python version:
+
+```bash
+python --version
+```
+
+- If necessary, create a new virtual environment using Python 3.12.
+
+---
+
+### Docker is not running
+
+**Problem:** Docker containers fail to start or `docker compose` returns connection errors.
+
+**Solution:**
+
+- Make sure Docker Desktop is running.
+- Verify the installation:
+
+```bash
+docker --version
+docker compose version
+```
+
+- Restart Docker Desktop if required before running:
+
+```bash
+docker compose up
+```
+
+---
+
+### Port already in use
+
+**Problem:** The API or frontend fails to start because ports such as **3000** or **8000** are already occupied.
+
+**Solution:**
+
+Windows:
+
+```bash
+netstat -ano | findstr :3000
+taskkill /PID <PID> /F
+```
+
+Linux/macOS:
+
+```bash
+lsof -i :3000
+kill -9 <PID>
+```
+
+Repeat the same steps for port **8000** if needed.
+
+---
+
+### Missing `.env` configuration
+
+**Problem:** Environment variables are missing, causing startup failures.
+
+**Solution:**
+
+Create the required environment files:
+
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+Then update the values according to your local environment.
+
+---
+
+### `make` command not found (Windows)
+
+**Problem:** Windows cannot recognize the `make` command.
+
+**Solution:**
+
+Use **Git Bash**, **WSL**, or run the equivalent commands manually.
+
+For example, instead of:
+
+```bash
+make dev
+```
+
+follow the corresponding setup steps described throughout this README.
+
+### Dependency installation failures
+
+**Problem:** Python packages fail to install.
+
+**Solution:**
+
+Upgrade pip and reinstall dependencies:
+
+```bash
+python -m pip install --upgrade pip
+pip install -e .
+```
+
+If the issue persists, recreate the virtual environment and try again.
+
+---
+
+### GPU / CUDA not detected
+
+**Problem:** CUDA or GPU acceleration is unavailable.
+
+**Solution:**
+
+- Ensure NVIDIA drivers are installed.
+- Verify CUDA installation:
+
+```bash
+nvidia-smi
+```
+
+- If no compatible GPU is available, run NightmareNet in CPU mode.
+
+---
+
+## Frequently Asked Questions (FAQ)
+
+### Which Python version should I use?
+
+NightmareNet officially supports **Python 3.9–3.12**. For the best development experience, the repository recommends **Python 3.12** (see `.python-version`).
+
+---
+
+### How do I set up the development environment?
+
+Clone the repository, create a virtual environment, install the dependencies, and configure the required environment files.
+
+```bash
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+
+# Linux/macOS
+source .venv/bin/activate
+
+pip install -e .
+
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+```
+
+For frontend development, install the Node.js dependencies and start the development server:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+---
+
+### How do I run the test suite?
+
+Run the complete test suite from the project root:
+
+```bash
+pytest --cov=nightmarenet --cov-report=term-missing tests/ -v --tb=short
+```
+
+You can also run linting and type checking using:
+
+```bash
+ruff check .
+mypy nightmarenet/
+```
+
+---
+
+### Can I run NightmareNet with Docker?
+
+Yes. NightmareNet includes Docker support for local development.
+
+Start the supported services with:
+
+```bash
+docker compose up
+```
+
+Or run both backend and frontend together using:
+
+```bash
+make dev
+```
+
+Refer to the **Running the API + Dashboard Locally (Docker)** section for more details.
+
+---
+
+### Where should I report bugs or ask questions?
+
+- Report bugs or request features through **GitHub Issues**.
+- Ask usage questions or discuss ideas in **GitHub Discussions**.
+- Review the **CONTRIBUTING.md** guide before opening a pull request.
+
 ## What's Inside — 20 Panels of Capability
 
 NightmareNet ships as a unified workspace where every concern gets its own first-class panel. This is a feature-dense, information-rich product — not a sparse landing page.
@@ -395,6 +639,23 @@ The API also exposes generated reports:
 
 Four top-level commands cover the full workflow.
 
+### Common CLI Commands
+
+The table below provides a quick reference for the most commonly used NightmareNet CLI commands.
+
+| Task | Command |
+|------|---------|
+| Install | `pip install nightmarenet` |
+| Train | `nightmarenet train --config configs/benchmark_sst2.yaml` |
+| Evaluate | `nightmarenet evaluate --model ./output/model` |
+| Distort Text | `nightmarenet distort --type nightmare --strength 0.7 --text "Hello World"` |
+| Benchmark | `nightmarenet benchmark --suite standard` |
+| Run Tests | `pytest tests/` |
+| Lint | `ruff check .` |
+| Type Check | `mypy nightmarenet/` |
+
+> **Tip:** Run these commands from the project root directory unless otherwise noted.
+
 ### `nightmarenet train`
 
 Run the full 4-phase cycle from a YAML config.
@@ -504,8 +765,7 @@ from nightmarenet.hub import pull_model
 
 # Download the model artifacts to a local directory
 model_dir = pull_model(
-    repo_id="username/hardened-robust-model",
-    local_dir="./models/hardened-robust-model"
+    repo_id="username/hardened-robust-model", local_dir="./models/hardened-robust-model"
 )
 print(f"Model successfully loaded at: {model_dir}")
 ```
@@ -578,7 +838,85 @@ If you use NightmareNet in academic work, please cite:
 
 ---
 
+## FLOP Benchmarking & Compute Cost Analysis
+
+NightmareNet includes a FLOP analysis tool to estimate computational costs across training cycles. This helps researchers understand the tradeoffs between training duration, model size, and robustness gains.
+
+### Usage
+
+```bash
+# Basic usage with default config
+python scripts/compute_cost_analysis.py
+
+# Custom config file
+python scripts/compute_cost_analysis.py --config configs/benchmark_sst2_full_cycle.yaml
+
+# Override specific values
+python scripts/compute_cost_analysis.py --model distilbert-base-uncased --samples 2000
+
+# Output to JSON file
+python scripts/compute_cost_analysis.py --output results/flop_analysis.json
+```
+
+### What Gets Calculated
+
+The FLOP analysis estimates total floating-point operations for:
+- **Per-Phase Breakdown**: Wake, Dream, Nightmare, and Compress phases
+- **Per-Cycle Total**: Sum of all phases in one training cycle
+- **Total Training**: Total FLOPs across all cycles
+- **Baseline Comparison**: Comparison to standard 3-epoch fine-tuning
+
+### Important Notes
+
+- FLOP comparisons are only meaningful when comparing equal epoch counts. [^1]
+- The default sample count is 500 (configurable via `dataset.max_samples`)
+- FLOP estimates are approximate and model-dependent
+
+### Example Output
+
+```text
+================================================================================
+NIGHTMARENET FLOP ANALYSIS
+================================================================================
+
+MODEL CONFIGURATION
+  Model: distilbert-base-uncased
+  Training Samples: 500
+  FLOPs per Sample/Epoch: 2.50 TFLOPs
+
+TRAINING SCHEDULE
+  Cycles: 3
+  Wake epochs/cycle: 3
+  Dream epochs/cycle: 2
+  Nightmare epochs/cycle: 1
+  Compression rounds/cycle: 1
+
+PER-CYCLE FLOPS BREAKDOWN
+  Wake:      3.75 TFLOPs
+  Dream:     2.50 TFLOPs
+  Nightmare: 1.25 TFLOPs
+  Compress:  1.25 TFLOPs
+  Cycle Total: 8.75 TFLOPs
+
+TOTAL FLOPS
+  NightmareNet (total): 26.25 TFLOPs
+  Baseline (3 epoch FT): 7.50 TFLOPs
+
+COMPARISON
+  NightmareNet vs Baseline: 3.50x
+  Cycle Total == Sum(Phases): True
+  Phase Sum: 8.75 TFLOPs
+
+NOTE: FLOP comparisons are valid for equal epoch counts.
+      The sample count used is: 500
+================================================================================
+```
+
+---
+
 ## Testing
+
+[^1]: \*FLOP comparisons are only meaningful when comparing equal epoch counts.* For example, comparing 3 cycles of NightmareNet (7 epochs/cycle = 21 epochs total) to 1 cycle of standard fine-tuning (3 epochs) would be misleading. Always compare models trained for the same number of epochs, or report both epoch counts when making comparisons.
 
 ```bash
 pytest --cov=nightmarenet --cov-report=term-missing tests/ -v --tb=short   # 660+ tests
@@ -588,7 +926,7 @@ mypy nightmarenet/                   # type check
 cd frontend && npm run build         # production build
 ```
 
----
+
 
 ## License
 

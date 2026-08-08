@@ -307,11 +307,28 @@ class Trainer:
         override_devices = None
         if distributed and distributed != "auto":
             override_devices = [int(x.strip()) for x in distributed.split(",")]
+
         self.device_pool = DevicePool(override_devices=override_devices)
         self.ddp_wrapper = DDPWrapper()
 
-        if self.device_pool.should_use_ddp():
-            self.ddp_wrapper.setup()
+        # Enable distributed training only when explicitly requested
+        self.use_distributed = self.training_config.get("distributed", False)
+
+        # CLI override takes precedence over config
+        if distributed is not None:
+            self.use_distributed = True
+
+        if self.use_distributed:
+            if self.device_pool.should_use_ddp():
+                logger.info("Distributed training enabled.")
+                self.ddp_wrapper.setup()
+            else:
+                logger.warning(
+                    "Distributed training requested, but fewer than 2 devices are available. "
+                    "Falling back to single-device training."
+                )
+        else:
+            logger.info("Distributed training disabled.")
 
         # Checkpointer and Resume
         self.checkpointer = AtomicCheckpointer(self.checkpoint_dir)
@@ -826,6 +843,7 @@ class Trainer:
                     model=self.model,
                     device_pool=self.device_pool,
                     ddp_wrapper=self.ddp_wrapper,
+                    distributed_enabled=self.use_distributed,
                 )
 
                 if phase == "wake":
@@ -861,6 +879,20 @@ class Trainer:
                         lr_scheduler=self.lr_scheduler,
                     )
                     result = dream_runner.run(dream_dataloader, num_epochs=num_epochs)
+                    if dream_generator is not None:
+                        accountant = getattr(dream_generator, "privacy_accountant", None)
+                        eps = None
+                        if getattr(dream_generator, "config", None):
+                            eps = dream_generator.config.get("dream_dp_epsilon")
+                        if accountant is not None and eps is not None:
+                            cumulative = accountant.spend(
+                                float(eps), cycle=cycle, note="dream_phase"
+                            )
+                            result["privacy_epsilon_spent"] = float(eps)
+                            result["privacy_epsilon_cumulative"] = cumulative
+                            remaining = accountant.remaining()
+                            if remaining is not None:
+                                result["privacy_epsilon_remaining"] = remaining
 
                 elif phase == "nightmare":
                     lr_multiplier = self.training_config.get("nightmare_lr_multiplier", 2.0)

@@ -17,8 +17,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Name too long" }, { status: 400 });
     }
 
+    // In a real app, this would hit the DB. For now, we mock success.
     return NextResponse.json({ success: true, id, name: name.trim() });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
