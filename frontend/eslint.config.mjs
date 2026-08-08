@@ -13,6 +13,16 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // eslint-config-next/typescript enables this as an "error" by default.
+      // A handful of `any`s already exist in the codebase (see
+      // docs/development/code-style.md), so it's downgraded to "warn" here
+      // to surface every use without blocking unrelated PRs. Once the
+      // existing usages are cleaned up, flip this back to "error".
+      "@typescript-eslint/no-explicit-any": "warn",
+    },
+  },
 ]);
 
 export default eslintConfig;

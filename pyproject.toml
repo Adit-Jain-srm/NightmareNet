@@ -45,6 +45,7 @@ dev = [
     "pytest-cov>=4.0",
     "ruff>=0.4.0",
     "mypy>=1.8.0",
+    "mypy-baseline>=0.7.0",
     "types-PyYAML>=6.0",
 ]
 api = [
@@ -124,12 +125,19 @@ select = ["E", "F", "W", "I", "N", "UP", "B"]
 ignore = ["UP007", "UP006", "UP035", "UP045"]
 
 [tool.mypy]
+# Strict mode is the baseline going forward: it is what every *new* file is
+# held to. Pre-existing violations in older files are frozen in
+# mypy_baseline.txt (see docs/development/code-style.md) rather than
+# loosened here, so this section should not be relaxed again without
+# updating that document.
 python_version = "3.12"
-warn_return_any = false
+strict = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-check_untyped_defs = true
 ignore_missing_imports = true
+# import-untyped: redundant with ignore_missing_imports for our third-party
+#   surface (torch/transformers/etc. ship no stubs); operator: torch's
+#   dynamically-typed Tensor arithmetic makes this rule mostly noise here.
+disable_error_code = ["import-untyped", "operator"]
 
 [[tool.mypy.overrides]]
 module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]

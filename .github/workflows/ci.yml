@@ -32,9 +32,24 @@ jobs:
       - name: Lint with ruff
         run: ruff check nightmarenet/ scripts/ tests/
 
-      - name: Type check with mypy
-        run: mypy nightmarenet/ --ignore-missing-imports --disable-error-code import-untyped --disable-error-code operator --python-version 3.12
+      - name: Type check with mypy (strict, baseline-enforced)
+        # Strict mode is enforced repo-wide, but pre-existing violations in
+        # mypy_baseline.txt are frozen and don't fail CI. Only NEW errors -
+        # in new files, or new lines in changed files - fail the build.
+        # See docs/development/code-style.md for the full policy and how to
+        # update the baseline.
         if: matrix.python-version == '3.12'
+        run: |
+          set -o pipefail
+          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
+            echo "::error::These are NEW violations in changed/new files - see the 'new:' count above."
+            echo "::error::Pre-existing errors are frozen in mypy_baseline.txt and do not fail CI."
+            exit $status
+          fi
+          echo "No new type errors. All findings are pre-existing and tracked in mypy_baseline.txt."
 
       - name: Run tests with coverage
         run: pytest --cov=nightmarenet --cov-report=xml --cov-report=term-missing
@@ -47,12 +62,30 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
+      - name: Install frontend dependencies
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npm ci
+
+      - name: Type check frontend (tsc --noEmit, strict)
+        # tsconfig.json already has "strict": true; this just fails fast,
+        # before the full production build, on any type error.
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npx tsc --noEmit
+
+      - name: Lint frontend (ESLint)
+        # no-explicit-any is a warning for now (see eslint.config.mjs); this
+        # step is informational only and does not fail CI until the
+        # pre-existing violations are cleaned up.
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npm run lint || true
+
       - name: Build frontend
         if: matrix.python-version == '3.12'
         working-directory: frontend
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
