@@ -188,10 +188,13 @@ def create_app() -> Optional[Any]:
         logger.warning("FastAPI not installed; hosted server is disabled.")
         return None
 
+    core_app: Optional[Any] = None
     try:
-        from nightmarenet.api.app import app as core_app
+        from nightmarenet.api.app import app as _core_app
+
+        core_app = _core_app
     except ImportError:
-        core_app = None
+        pass
 
     app = FastAPI(
         title="NightmareNet Hosted Platform",
