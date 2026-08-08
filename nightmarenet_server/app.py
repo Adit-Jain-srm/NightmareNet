@@ -189,7 +189,8 @@ def create_app() -> Optional[Any]:
         return None
 
     try:
-        from nightmarenet.api.app import app as core_app
+        from nightmarenet.api.app import app as imported_app
+        core_app: Any = imported_app
     except ImportError:
         core_app = None
 
@@ -211,6 +212,30 @@ def create_app() -> Optional[Any]:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    try:
+        from fastapi import Request
+        from fastapi.responses import JSONResponse
+
+        from nightmarenet_server.middleware.rate_limiting import (
+            RateLimitException,
+            RateLimitingMiddleware,
+        )
+
+        @app.exception_handler(RateLimitException)
+        async def rate_limit_exception_handler(request: Request, exc: RateLimitException):
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "Rate limit exceeded",
+                    "detail": exc.detail,
+                },
+            )
+
+        app.add_middleware(RateLimitingMiddleware)
+        logger.info("Successfully registered RateLimitingMiddleware.")
+    except ImportError as e:
+        logger.warning("Could not register RateLimitingMiddleware: %s", e)
 
     if SessionMiddleware is not None:
         session_secret = os.environ.get(
