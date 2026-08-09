@@ -228,7 +228,6 @@ _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
 
 
-
 def _get_test_count() -> Optional[int]:
     """Return the number of collected tests, cached (optionally, dev-only)."""
     flag = os.environ.get("NIGHTMARENET_HEALTH_TEST_COUNT", "0").lower()
