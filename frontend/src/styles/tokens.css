@@ -1,0 +1,116 @@
+/* =========================================================================
+   DESIGN TOKENS
+   Single source of truth for colors, spacing, typography, and motion.
+   ========================================================================= */
+
+:root {
+  /* Colors (Dark Theme - Default) */
+  --color-void: #030712;
+  --color-abyss: #0a0f1e;
+  --color-deep: #141b2d;
+  --color-surface: #1e293b;
+  --color-muted: #64748b;
+  --color-text: #f1f5f9;
+  --color-text-dim: #94a3b8;
+  
+  --color-dream: #818cf8;
+  --color-dream-glow: #6366f1;
+  --color-dream-soft: #a5b4fc;
+  
+  --color-nightmare: #f87171;
+  --color-nightmare-glow: #dc2626;
+  --color-nightmare-soft: #fca5a5;
+  
+  --color-neural: #22d3ee;
+  --color-neural-glow: #06b6d4;
+  --color-neural-soft: #67e8f9;
+  
+  --color-success: #34d399;
+  --color-success-glow: #10b981;
+  
+  --color-warning: #fbbf24;
+  --color-warning-glow: #f59e0b;
+
+  /* Spacing Scale (4px Base) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-9: 36px;
+  --space-10: 40px;
+  --space-11: 44px;
+  --space-12: 48px;
+
+  /* Typography */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-md: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  /* Motion */
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 400ms;
+
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-glow: 0 0 16px rgba(34, 211, 238, 0.4);
+  --shadow-glow-dream: 0 0 30px rgba(129, 140, 248, 0.15);
+  --shadow-glow-nightmare: 0 0 30px rgba(239, 68, 68, 0.12);
+  --shadow-glow-neural: 0 0 30px rgba(6, 182, 212, 0.15);
+  --shadow-glow-button: 0 0 20px rgba(6, 182, 212, 0.25);
+  --shadow-glow-sm-neural: 0 0 8px var(--color-neural);
+  --shadow-glow-sm-nightmare: 0 0 6px var(--color-nightmare);
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.light {
+  /* Colors for Light Theme */
+  --color-void: #ffffff;
+  --color-abyss: #f8fafc;
+  --color-deep: #e2e8f0;
+  --color-surface: #cbd5e1;
+  --color-muted: #475569;
+  --color-text: #0f172a;
+  --color-text-dim: #334155;
+  
+  /* Additional modifications to glows/accents to make them visible/subtle in light mode */
+  --shadow-glow: 0 2px 8px rgba(14, 116, 144, 0.15);
+  --shadow-glow-dream: 0 2px 8px rgba(79, 70, 229, 0.1);
+  --shadow-glow-nightmare: 0 2px 8px rgba(220, 38, 38, 0.1);
+  --shadow-glow-neural: 0 2px 8px rgba(8, 145, 178, 0.1);
+  --shadow-glow-button: 0 2px 6px rgba(8, 145, 178, 0.15);
+  --shadow-glow-sm-neural: 0 2px 4px var(--color-neural);
+  --shadow-glow-sm-nightmare: 0 2px 4px var(--color-nightmare);
+  --shadow-panel: 0 4px 12px rgba(0, 0, 0, 0.08);
+}

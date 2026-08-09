@@ -155,7 +155,7 @@ export function Sidebar({
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.4 }}
-          className="relative flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-dream to-neural shadow-[0_0_16px_rgba(34,211,238,0.4)]"
+          className="relative flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-dream to-neural shadow-glow"
           aria-hidden="true"
         >
           <IconShield size={14} />
@@ -217,7 +217,7 @@ export function Sidebar({
                       {active && (
                         <motion.span
                           layoutId="sidebar-active"
-                          className="absolute left-0 top-1.5 h-5 w-0.5 rounded-r bg-neural shadow-[0_0_8px_var(--color-neural)]"
+                          className="absolute left-0 top-1.5 h-5 w-0.5 rounded-r bg-neural shadow-glow-sm-neural"
                         />
                       )}
                       <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
@@ -266,7 +266,7 @@ export function Sidebar({
                         {active && (
                           <motion.span
                             layoutId="sidebar-active"
-                            className="absolute left-0 top-1.5 h-5 w-0.5 rounded-r bg-neural shadow-[0_0_8px_var(--color-neural)]"
+                            className="absolute left-0 top-1.5 h-5 w-0.5 rounded-r bg-neural shadow-glow-sm-neural"
                           />
                         )}
                         <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
