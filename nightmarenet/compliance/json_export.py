@@ -2,7 +2,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, cast
 
 import jsonschema
 from jose import jwt
@@ -11,7 +11,7 @@ from jose import jwt
 def get_schema() -> Dict[str, Any]:
     schema_path = Path(__file__).parent.parent.parent / "docs" / "compliance-schema.json"
     with open(schema_path, encoding="utf-8") as f:
-        return json.load(f)
+        return cast(Dict[str, Any], json.load(f))
 
 
 def export_signed_json(report: Dict[str, Any], signing_key: str, *, version: str = "1.0") -> str:
@@ -65,7 +65,7 @@ def export_signed_json(report: Dict[str, Any], signing_key: str, *, version: str
         payload, signing_key, algorithm="RS256", headers={"typ": "JWT", "alg": "RS256"}
     )
 
-    return token
+    return cast(str, token)
 
 
 class VerificationResult:
