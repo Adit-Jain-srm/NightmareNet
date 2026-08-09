@@ -21,7 +21,7 @@ export function useVisitTracker<T extends string>(validKeys: readonly T[]) {
   const registerVisit = useCallback(
     (key: T) => {
       if (!(validKeys as readonly string[]).includes(key)) return;
-      
+
       setPrefs((prev) => {
         const newCounts = { ...prev.visitCounts };
         newCounts[key] = (newCounts[key] || 0) + 1;

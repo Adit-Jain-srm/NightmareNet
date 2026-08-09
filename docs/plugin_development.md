@@ -54,16 +54,16 @@ from typing import Optional
 
 class TickerCorruption(BaseDistortion):
     """Corrupt stock ticker symbols in financial text."""
-    
+
     name = "ticker_corrupt"
     phase = "nightmare"
     description = "Stock ticker symbol corruption"
-    
+
     def distort(self, text: str, strength: float, seed: Optional[int] = None) -> str:
         import random
         if seed is not None:
             random.seed(seed)
-        
+
         # Example: Replace AAPL with visually similar characters
         result = text
         if random.random() < strength:
@@ -101,7 +101,7 @@ def homoglyph(text: str, strength: float, seed: int = None) -> str:
     import random
     if seed is not None:
         random.seed(seed)
-    
+
     mapping = {'a': 'а', 'e': 'е', 'o': 'о', 'p': 'р'}
     result = []
     for char in text:

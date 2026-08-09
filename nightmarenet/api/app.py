@@ -233,6 +233,7 @@ WEBHOOKS_FILE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
 )
 
+
 def _get_test_count() -> Optional[int]:
     """Return the number of collected tests, cached (optionally, dev-only)."""
     flag = os.environ.get("NIGHTMARENET_HEALTH_TEST_COUNT", "0").lower()
@@ -1141,9 +1142,7 @@ async def save_webhook_settings(
         return WebhookSettingsResponse(webhooks=body.webhooks)
     except Exception as e:
         logger.error("Failed to save webhooks: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to save webhook settings."
-        ) from None
+        raise HTTPException(status_code=500, detail="Failed to save webhook settings.") from None
 
 
 @app.get(

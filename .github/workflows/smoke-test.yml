@@ -14,15 +14,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-          
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-          
+
       - name: Install package with API extras
         run: pip install .[api]
-        
+
       - name: Run minimal import smoke test
         run: python -c "import nightmarenet.api"
-        

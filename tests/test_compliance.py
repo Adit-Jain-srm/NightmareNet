@@ -1,6 +1,15 @@
 import json
 from pathlib import Path
 
+import jsonschema
+import pytest
+from jose import jwt
+
+from nightmarenet.compliance.json_export import (
+    export_signed_json,
+    get_schema,
+    verify_signed_json,
+)
 from nightmarenet.compliance.report import generate_report
 
 
@@ -74,11 +83,6 @@ def test_config_defaults_to_no_compliance_report():
     assert config["tracking"]["compliance_report"] is False
 
 
-import pytest
-from jose import jwk, jwt
-from nightmarenet.compliance.json_export import export_signed_json, verify_signed_json, get_schema
-import jsonschema
-
 @pytest.fixture
 def dummy_report():
     return {
@@ -87,10 +91,12 @@ def dummy_report():
         "robustness": {"delta": 0.07},
     }
 
+
 @pytest.fixture
 def rsa_key_pem():
-    from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
     private_key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -98,24 +104,24 @@ def rsa_key_pem():
     pem = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
-        encryption_algorithm=serialization.NoEncryption()
+        encryption_algorithm=serialization.NoEncryption(),
     )
-    return pem.decode('utf-8')
+    return pem.decode("utf-8")
 
 
 def test_signed_json_export(dummy_report, rsa_key_pem):
     token = export_signed_json(dummy_report, rsa_key_pem)
-    assert token.count('.') == 2
+    assert token.count(".") == 2
 
 
 def test_signed_json_schema(dummy_report, rsa_key_pem):
     token = export_signed_json(dummy_report, rsa_key_pem)
     payload = jwt.decode(token, rsa_key_pem, algorithms=["RS256"])
-    
+
     schema = get_schema()
     # This should not raise an exception
     jsonschema.validate(instance=payload, schema=schema)
-    
+
     assert payload["model_id"] == "test-model-123"
     assert "version_hash" in payload
     assert "timestamp" in payload
@@ -131,22 +137,26 @@ def test_jws_verification(dummy_report, rsa_key_pem):
 def test_tampered_jws_is_invalid(dummy_report, rsa_key_pem):
     token = export_signed_json(dummy_report, rsa_key_pem)
     # token is header.payload.signature
-    parts = token.split('.')
+    parts = token.split(".")
     import base64
     import json
+
     # decode payload, modify it, encode it back
-    payload_json = base64.urlsafe_b64decode(parts[1] + '==').decode('utf-8')
+    payload_json = base64.urlsafe_b64decode(parts[1] + "==").decode("utf-8")
     payload = json.loads(payload_json)
     payload["model_id"] = "hacked-model"
-    new_payload = base64.urlsafe_b64encode(json.dumps(payload).encode('utf-8')).decode('utf-8').rstrip('=')
+    encoded_payload = json.dumps(payload).encode("utf-8")
+    new_payload = base64.urlsafe_b64encode(encoded_payload).decode("utf-8").rstrip("=")
     tampered_token = f"{parts[0]}.{new_payload}.{parts[2]}"
-    
+
     result = verify_signed_json(tampered_token, rsa_key_pem)
     assert not result.is_valid
-    # Either signature verification fails (which it will, because the signature is for the old payload)
-    
+    # Either signature verification fails (which it will, because the signature
+    # is for the old payload)
+
     # What if we just tamper the version hash? Actually, if signature fails it fails first.
-    # To test version_hash failure specifically, one would need to re-sign it with the same key but wrong hash.
+    # To test version_hash failure specifically, one would need to re-sign it
+    # with the same key but wrong hash.
     # Let's do that.
     payload["version_hash"] = "wrong-hash"
     tampered_token2 = jwt.encode(payload, rsa_key_pem, algorithm="RS256")
@@ -165,12 +175,14 @@ def test_verification_reports_metadata(dummy_report, rsa_key_pem):
 
 def test_missing_signing_key_produces_error(dummy_report):
     # Pass an invalid or empty key
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         export_signed_json(dummy_report, "")
 
 
 def test_pdf_export_is_unchanged():
-    # We didn't change pdf export. The test_generate_compliance_report already tests the report building.
+    # We didn't change pdf export. The test_generate_compliance_report already tests
+    # the report building.
     # This just ensures we haven't broken the import or signature.
     from nightmarenet.compliance.report import generate_pdf
+
     assert callable(generate_pdf)

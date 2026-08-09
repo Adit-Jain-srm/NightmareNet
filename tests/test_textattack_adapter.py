@@ -16,16 +16,12 @@ class TestImportFallback:
     """Test graceful behavior when textattack is not installed."""
 
     def test_run_textattack_evaluation_raises_import_error(self, monkeypatch):
-        monkeypatch.setitem(
-            __import__("sys").modules, "textattack", None
-        )
+        monkeypatch.setitem(__import__("sys").modules, "textattack", None)
         with pytest.raises(ImportError, match="textattack is not installed"):
             run_textattack_evaluation(None, None)
 
     def test_get_recipe_raises_import_error_without_textattack(self, monkeypatch):
-        monkeypatch.setitem(
-            __import__("sys").modules, "textattack", None
-        )
+        monkeypatch.setitem(__import__("sys").modules, "textattack", None)
         with pytest.raises(ImportError, match="textattack is not installed"):
             get_recipe("textfooler", None)
 

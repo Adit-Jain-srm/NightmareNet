@@ -98,7 +98,7 @@ def apply_leet_speak(text: str, strength: float, seed: int = None) -> str:
 
     leet_dict = {"e": "3", "a": "4", "o": "0", "i": "1", "t": "7"}
     chars = list(text.lower())
-    
+
     # Randomly apply according to strength
     import random
     if seed is not None:
@@ -188,7 +188,7 @@ def test_custom_swap_contract():
 def test_registry_integration():
     registry = get_registry()
     engine = RandomSwapDistortion()
-    
+
     registry.register(engine.name, engine.distort, {"source": "custom"})
     assert engine.name in registry.engine_names
 
