@@ -43,6 +43,19 @@ class TrainPhase(Phase):
         def _on_train_progress(event: dict[str, Any]) -> None:
             if event.get("event") == "cycle_end":
                 self._handle_cycle_end(context, event)
+                
+                # Check for global shutdown or cancellation between cycles
+                from nightmarenet.pipeline_runner import _global_shutdown_requested
+                if _global_shutdown_requested.is_set() or context.cancelled:
+                    logger.info("Graceful shutdown requested during training cycle. Saving checkpoint and stopping.")
+                    if context.trainer is not None:
+                        if hasattr(context.trainer, "save_checkpoint"):
+                            try:
+                                context.trainer.save_checkpoint()
+                            except Exception:
+                                logger.exception("Failed to save checkpoint during shutdown.")
+                        context.trainer.request_stop()
+
             if self.on_progress is not None:
                 self.on_progress(event)
 

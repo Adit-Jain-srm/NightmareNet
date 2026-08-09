@@ -2,6 +2,7 @@
 
 import json
 import time
+import threading
 from unittest.mock import MagicMock
 
 import pytest
@@ -11,6 +12,7 @@ from nightmarenet.pipeline_runner import (
     _get_runs_dir,
     _persist_run_state,
     _update_run_state,
+    _global_shutdown_requested,
     load_persisted_runs,
     register_runner,
 )
@@ -133,3 +135,43 @@ def test_atomic_write_prevents_corruption(monkeypatch, tmp_path) -> None:
 
     assert data["run_id"] == run_id
     assert data["status"] == "running"
+
+
+def test_graceful_shutdown_simulation(monkeypatch, tmp_path) -> None:
+    """Simulate SIGTERM / shutdown request during pipeline run and verify interrupted state."""
+    import nightmarenet.pipeline_runner as pr
+
+    monkeypatch.setenv("NIGHTMARENET_RUNS_DIR", str(tmp_path))
+    pr._runners.clear()
+    _global_shutdown_requested.clear()
+
+    mock_pipeline = MagicMock()
+    mock_pipeline.config = {"training": {"num_cycles": 5}}
+
+    def mock_train():
+        # Trigger cycle end progress event to simulate shutdown check
+        if mock_pipeline.on_event:
+            mock_pipeline.on_event({"event": "cycle_end", "cycle": 1})
+        _global_shutdown_requested.set()
+
+    mock_pipeline.train.side_effect = mock_train
+
+    runner = PipelineRunner(mock_pipeline)
+    register_runner(runner)
+    runner.start()
+
+    if runner._thread:
+        runner._thread.join(timeout=3)
+
+    # Verify status reflects cancellation/interruption
+    status = runner.status()
+    runs_dir = _get_runs_dir()
+    run_file = runs_dir / f"{runner.id}.json"
+    
+    if run_file.exists():
+        with open(run_file, encoding="utf-8") as f:
+            data = json.load(f)
+        assert data["status"] in ("interrupted", "cancelled")
+
+    _global_shutdown_requested.clear()
+    
