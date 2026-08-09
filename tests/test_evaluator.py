@@ -33,7 +33,7 @@ class _CertNoiseSignClassifier(nn.Module):
     def get_input_embeddings(self):
         return self.embedding
 
-    def forward(self, input_ids=None, attention_mask=None):
+    def forward(self, input_ids=None, attention_mask=None, **kwargs):
         embeds = self.embedding(input_ids)
         means = embeds.mean(dim=(1, 2))
         logits = torch.stack([-means, means], dim=1)
@@ -385,3 +385,47 @@ class TestCertificationIntegration:
         assert "0.142" in report
         assert "0.128" in report
         assert "44" in report
+
+
+class TestEvaluatorCalibration:
+    """Tests for calibration metrics and scaling integration in Evaluator."""
+
+    def test_run_calibration_respects_temperature_scaling_false(self):
+        from unittest.mock import patch
+
+        # Construct Evaluator with temperature_scaling: false
+        config = {
+            "evaluation": {
+                "metrics": ["calibration"],
+                "calibration": {
+                    "enabled": True,
+                    "ece_bins": 10,
+                    "temperature_scaling": False,
+                },
+            },
+        }
+
+        # Mock model & tokenizer
+        model = _CertNoiseSignClassifier()
+        tokenizer = _CertFakeTokenizer()
+        evaluator = Evaluator(model, tokenizer, config)
+
+        # Mock dataloader yielding a single batch
+        batch = {
+            "input_ids": torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9], [1, 2, 3]]),
+            "labels": torch.tensor([1, 0, 1, 0]),
+        }
+        dataloader = [batch]
+
+        # Patch TemperatureScaler to verify it isn't fitted
+        with patch("nightmarenet.evaluation.calibration.TemperatureScaler") as mock_scaler:
+            # Run calibration
+            results = evaluator._run_calibration(dataloader)
+
+            # Assert fit was never called
+            mock_scaler.assert_not_called()
+
+        # Verify that temperature is 1.0 (no scaling fit occurred)
+        assert results["optimal_temperature"] == 1.0
+        # Since no temperature scaling is performed, ECE before and after must be exactly equal
+        assert results["ece_before"] == results["ece_after"]

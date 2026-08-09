@@ -52,6 +52,7 @@ number_swap = "financial_distortions.numbers:NumberSwap"
 from nightmarenet.distortions.base import BaseDistortion
 from typing import Optional
 
+
 class TickerCorruption(BaseDistortion):
     """Corrupt stock ticker symbols in financial text."""
 
@@ -61,6 +62,7 @@ class TickerCorruption(BaseDistortion):
 
     def distort(self, text: str, strength: float, seed: Optional[int] = None) -> str:
         import random
+
         if seed is not None:
             random.seed(seed)
 
@@ -95,21 +97,23 @@ from nightmarenet.distortions.registry import get_registry
 
 registry = get_registry()
 
-@registry.register_decorator('homoglyph', phase='nightmare', description='Latin to Cyrillic swap')
+
+@registry.register_decorator("homoglyph", phase="nightmare", description="Latin to Cyrillic swap")
 def homoglyph(text: str, strength: float, seed: int = None) -> str:
     """Replace Latin characters with visually similar Cyrillic characters."""
     import random
+
     if seed is not None:
         random.seed(seed)
 
-    mapping = {'a': 'а', 'e': 'е', 'o': 'о', 'p': 'р'}
+    mapping = {"a": "а", "e": "е", "o": "о", "p": "р"}
     result = []
     for char in text:
         if random.random() < strength and char.lower() in mapping:
             result.append(mapping[char.lower()])
         else:
             result.append(char)
-    return ''.join(result)
+    return "".join(result)
 ```
 
 ### Usage
@@ -174,8 +178,10 @@ else:
 ```python
 from nightmarenet.distortions.testing import validate_distortion_function
 
+
 def my_distortion(text: str, strength: float, seed: int = None) -> str:
     return text.upper()
+
 
 failures = validate_distortion_function(my_distortion)
 if not failures:

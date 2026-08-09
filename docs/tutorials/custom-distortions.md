@@ -42,6 +42,7 @@ import random
 from typing import Optional
 from nightmarenet.distortions.base import BaseDistortion
 
+
 class RandomSwapDistortion(BaseDistortion):
     """Perturbs text by randomly replacing characters with '*' based on strength."""
 
@@ -87,10 +88,11 @@ from nightmarenet.distortions.registry import get_registry
 
 registry = get_registry()
 
+
 @registry.register_decorator(
     name="leet_speak",
     phase="dream",
-    description="Transforms characters to simple leetspeak equivalents."
+    description="Transforms characters to simple leetspeak equivalents.",
 )
 def apply_leet_speak(text: str, strength: float, seed: int = None) -> str:
     if strength <= 0.0 or not text:
@@ -101,6 +103,7 @@ def apply_leet_speak(text: str, strength: float, seed: int = None) -> str:
 
     # Randomly apply according to strength
     import random
+
     if seed is not None:
         random.seed(seed)
 
@@ -134,8 +137,8 @@ registry.register(
     metadata={
         "phase": swap_engine.phase,
         "description": swap_engine.description,
-        "source": "custom"
-    }
+        "source": "custom",
+    },
 )
 ```
 
@@ -167,6 +170,7 @@ import pytest
 from custom_swap import RandomSwapDistortion
 from nightmarenet.distortions.registry import get_registry
 
+
 def test_custom_swap_contract():
     engine = RandomSwapDistortion()
     text = "Hello World"
@@ -184,6 +188,7 @@ def test_custom_swap_contract():
 
     # Test output bounds
     assert "*" in engine.distort(text, strength=0.8)
+
 
 def test_registry_integration():
     registry = get_registry()

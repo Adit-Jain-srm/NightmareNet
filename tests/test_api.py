@@ -29,9 +29,11 @@ class TestHealthEndpoint:
         assert "version" in data
 
     def test_health_includes_version(self):
+        from nightmarenet import __version__
+
         response = client.get("/api/v1/health")
         data = response.json()
-        assert data["version"] == "0.2.0"
+        assert data["version"] == __version__
 
 
 class TestDreamEndpoint:
@@ -205,7 +207,7 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
 
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
@@ -231,7 +233,7 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
 
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
@@ -251,7 +253,7 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
 
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
@@ -272,7 +274,7 @@ class TestAuthentication:
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
         import importlib
 
-        from nightmarenet.api import app as app_module
+        app_module = importlib.import_module("nightmarenet.api.app")
 
         importlib.reload(app_module)
         from nightmarenet.api.app import app as reloaded_app
@@ -578,7 +580,9 @@ class TestUploadEndpoint:
         assert "Unsupported file type" in response.json()["detail"]
 
     def test_upload_rejects_too_large(self, monkeypatch):
-        import nightmarenet.api.app as api_module
+        import importlib
+
+        api_module = importlib.import_module("nightmarenet.api.app")
 
         monkeypatch.setattr(api_module, "_MAX_UPLOAD_BYTES", 10)
         response = client.post(
@@ -946,8 +950,8 @@ class TestAPIVersionHeader:
     def test_unauthorized_has_version_header(self, monkeypatch):
         import importlib
 
+        app_module = importlib.import_module("nightmarenet.api.app")
         from nightmarenet import __version__
-        from nightmarenet.api import app as app_module
 
         monkeypatch.setenv("NIGHTMARENET_API_KEY", "test-secret-key")
 

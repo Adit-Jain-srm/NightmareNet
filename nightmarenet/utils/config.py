@@ -93,6 +93,10 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "distortion": {
         "dream_strength": 0.25,
         "nightmare_strength": 0.8,
+        # null = DP disabled; float = Gaussian DP noise in Dream phase
+        "dream_dp_epsilon": None,
+        "dream_dp_delta": 1e-5,
+        "dream_dp_sensitivity": 1.0,
         "strength_schedule": "uniform",
         "schedule_across_cycles": False,
         "strength_min": 0.2,
@@ -177,6 +181,9 @@ _SCHEMA: dict[str, tuple] = {
     "tracking.project": (str, None, None, False),
     "distortion.dream_strength": (float, 0.0, 1.0, True),
     "distortion.nightmare_strength": (float, 0.0, 1.0, True),
+    "distortion.dream_dp_epsilon": (float, 1e-6, 1e6, False),
+    "distortion.dream_dp_delta": (float, 1e-12, 1.0, False),
+    "distortion.dream_dp_sensitivity": (float, 0.0, 1e6, False),
     "distortion.strength_schedule": (str, None, None, False),
     "distortion.schedule_across_cycles": (bool, None, None, False),
     "distortion.strength_min": (float, 0.0, 1.0, False),

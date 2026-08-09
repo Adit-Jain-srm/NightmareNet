@@ -1,0 +1,55 @@
+title: "[Q&A]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ask a question about using or contributing to NightmareNet.
+        Check the [FAQ](https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/q-a) and [CONTRIBUTING.md](https://github.com/Adit-Jain-srm/NightmareNet/blob/main/CONTRIBUTING.md) first.
+        Use [Issues](https://github.com/Adit-Jain-srm/NightmareNet/issues) for bugs and feature requests.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do, and where are you stuck?
+      placeholder: How do I run a short Wake → Dream cycle on SST-2 with CPU only?
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Help us reproduce context (OS, Python, install method).
+      placeholder: |
+        - OS: macOS 15 / Ubuntu 22.04 / Windows 11
+        - Python: 3.12.x
+        - Install: pip install -e ".[dev,api]"
+        - GPU: none / CUDA 12.x
+    validations:
+      required: true
+
+  - type: input
+    id: package-version
+    attributes:
+      label: NightmareNet version (if known)
+      description: Output of `python -c "import nightmarenet; print(nightmarenet.__version__)"` or the git commit.
+      placeholder: 0.2.1 or git SHA
+    validations:
+      required: false
+
+  - type: textarea
+    id: tried
+    attributes:
+      label: What you already tried
+      placeholder: Commands run, docs/pages checked, error text (if any).
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before posting
+      options:
+        - label: I searched existing Discussions and Issues for a similar question
+          required: true
