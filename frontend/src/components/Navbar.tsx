@@ -9,6 +9,7 @@ import {
   Shield,
   Layers,
   Activity,
+  Users,
   Menu,
   X,
   Code2,
@@ -149,6 +150,15 @@ export default function Navbar() {
             >
               <LayoutDashboard aria-hidden="true" className="w-3.5 h-3.5" />
               Dashboard
+            </a>
+
+            {/* Contributors Link */}
+            <a
+              href="/contributors"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-text-dim hover:text-text hover:bg-white/[0.03] transition-all cursor-pointer"
+            >
+              <Users aria-hidden="true" className="w-3.5 h-3.5" />
+              Contributors
             </a>
 
             {/* Theme Toggle */}
