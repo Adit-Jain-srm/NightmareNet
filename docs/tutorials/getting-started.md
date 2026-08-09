@@ -118,8 +118,12 @@ model.to(device)
 
 # 2. Setup a dummy dataset and loader
 dataset = load_dataset("sst2", split="validation[:10]")
+
+
 def tokenize_fn(examples):
     return tokenizer(examples["sentence"], truncation=True, padding="max_length", max_length=128)
+
+
 tokenized = dataset.map(tokenize_fn, batched=True)
 tokenized.set_format("torch", columns=["input_ids", "attention_mask"])
 dataloader = DataLoader(tokenized, batch_size=2)
@@ -128,11 +132,8 @@ dataloader = DataLoader(tokenized, batch_size=2)
 config = {
     "model": {"name": model_name, "max_length": 128},
     "dataset": {"text_column": "sentence"},
-    "evaluation": {
-        "metrics": ["recall", "robustness"],
-        "robustness_strengths": [0.2, 0.5, 0.8]
-    },
-    "training": {"batch_size": 2}
+    "evaluation": {"metrics": ["recall", "robustness"], "robustness_strengths": [0.2, 0.5, 0.8]},
+    "training": {"batch_size": 2},
 }
 
 # 4. Initialize and run
@@ -143,7 +144,7 @@ results = evaluator.evaluate(
     clean_dataloader=dataloader,
     base_dataset=dataset,
     distortion_fn=registry.apply,
-    label="baseline_evaluation"
+    label="baseline_evaluation",
 )
 
 print(f"Clean Recall (Token Accuracy): {results['recall']['token_accuracy']:.2%}")

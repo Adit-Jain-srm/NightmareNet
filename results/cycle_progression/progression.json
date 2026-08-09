@@ -1,0 +1,77 @@
+{
+  "timestamp": "2026-07-24T16:58:33.407903+00:00",
+  "source": "calibrate",
+  "device": "n/a",
+  "model": "distilbert-base-uncased",
+  "seed": 42,
+  "train_samples": 500,
+  "eval_samples": 200,
+  "n_cycles": 5,
+  "config": "configs/benchmark_5cycle_progression.yaml",
+  "strengths": [
+    0.1,
+    0.3,
+    0.5,
+    0.7,
+    0.9
+  ],
+  "per_cycle": [
+    {
+      "cycle": 1,
+      "clean_accuracy": 0.75,
+      "avg_distorted_accuracy": 0.6675,
+      "auc_robustness": 0.53075,
+      "distorted_accuracy": null
+    },
+    {
+      "cycle": 2,
+      "clean_accuracy": 0.753529,
+      "avg_distorted_accuracy": 0.705487,
+      "auc_robustness": 0.560955,
+      "distorted_accuracy": null
+    },
+    {
+      "cycle": 3,
+      "clean_accuracy": 0.756021,
+      "avg_distorted_accuracy": 0.722613,
+      "auc_robustness": 0.574572,
+      "distorted_accuracy": null
+    },
+    {
+      "cycle": 4,
+      "clean_accuracy": 0.757779,
+      "avg_distorted_accuracy": 0.730333,
+      "auc_robustness": 0.580711,
+      "distorted_accuracy": null
+    },
+    {
+      "cycle": 5,
+      "clean_accuracy": 0.759021,
+      "avg_distorted_accuracy": 0.733814,
+      "auc_robustness": 0.583478,
+      "distorted_accuracy": null
+    }
+  ],
+  "classification": {
+    "label": "accumulate_then_plateau",
+    "monotonic_nondecreasing": true,
+    "late_plateau": true,
+    "diminishing_deltas": true,
+    "deltas": [
+      0.030205,
+      0.013617,
+      0.006139,
+      0.002767
+    ],
+    "plateau_eps": 0.005,
+    "note": "Robustness AUC rises across cycles then approaches a plateau (final |\u0394| < 0.005); deltas are diminishing."
+  },
+  "plot": "results/cycle_progression/auc_vs_cycle.svg",
+  "calibrate_note": "Cycle 1 AUC/clean match results/gpu_benchmark.json nightmarenet; cycles 2\u20135 are a saturating extrapolation. Replace with --run --device cuda.",
+  "anchor": {
+    "cycle_1_auc": 0.53075,
+    "cycle_1_clean": 0.75,
+    "auc_max": 0.58575,
+    "tau_auc": 1.2552
+  }
+}

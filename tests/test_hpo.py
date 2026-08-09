@@ -10,6 +10,7 @@ import pytest
 def _optuna_available() -> bool:
     try:
         import optuna  # noqa: F401
+
         return True
     except ImportError:
         return False
@@ -20,17 +21,13 @@ class TestHyperparameterOptimizer:
 
     def test_import_error_without_optuna(self, monkeypatch):
         """Raises ImportError with install instructions when optuna is missing."""
-        monkeypatch.setattr(
-            "nightmarenet.optimization.hpo.OPTUNA_AVAILABLE", False
-        )
+        monkeypatch.setattr("nightmarenet.optimization.hpo.OPTUNA_AVAILABLE", False)
         from nightmarenet.optimization.hpo import HyperparameterOptimizer
 
         with pytest.raises(ImportError, match="Optuna is required"):
             HyperparameterOptimizer("configs/default.yaml")
 
-    @pytest.mark.skipif(
-        not _optuna_available(), reason="optuna not installed"
-    )
+    @pytest.mark.skipif(not _optuna_available(), reason="optuna not installed")
     def test_optimizer_loads_config(self, tmp_path):
         """Optimizer reads hpo section from config."""
         import yaml
@@ -39,8 +36,12 @@ class TestHyperparameterOptimizer:
             "model": {"name": "gpt2", "type": "causal_lm", "max_length": 64, "device": "cpu"},
             "dataset": {"name": "wikitext", "config": "wikitext-2-raw-v1", "text_column": "text"},
             "training": {
-                "wake_epochs": 1, "dream_epochs": 0, "nightmare_epochs": 0,
-                "compression_rounds": 0, "num_cycles": 1, "batch_size": 4,
+                "wake_epochs": 1,
+                "dream_epochs": 0,
+                "nightmare_epochs": 0,
+                "compression_rounds": 0,
+                "num_cycles": 1,
+                "batch_size": 4,
                 "learning_rate": 5e-5,
             },
             "distortion": {"dream_strength": 0.2, "nightmare_strength": 0.7},
@@ -52,7 +53,10 @@ class TestHyperparameterOptimizer:
                 "storage": f"sqlite:///{tmp_path / 'test.db'}",
                 "search_space": {
                     "training.learning_rate": {
-                        "type": "float", "low": 1e-5, "high": 1e-3, "log": True,
+                        "type": "float",
+                        "low": 1e-5,
+                        "high": 1e-3,
+                        "log": True,
                     },
                 },
             },
@@ -67,9 +71,7 @@ class TestHyperparameterOptimizer:
         assert opt.study_name == "test-study"
         assert "training.learning_rate" in opt.search_space
 
-    @pytest.mark.skipif(
-        not _optuna_available(), reason="optuna not installed"
-    )
+    @pytest.mark.skipif(not _optuna_available(), reason="optuna not installed")
     def test_optimize_runs_trials(self, tmp_path):
         """optimize() executes trials and returns a study."""
         import yaml
@@ -78,8 +80,12 @@ class TestHyperparameterOptimizer:
             "model": {"name": "gpt2", "type": "causal_lm", "max_length": 64, "device": "cpu"},
             "dataset": {"name": "wikitext", "config": "wikitext-2-raw-v1", "text_column": "text"},
             "training": {
-                "wake_epochs": 1, "dream_epochs": 0, "nightmare_epochs": 0,
-                "compression_rounds": 0, "num_cycles": 1, "batch_size": 4,
+                "wake_epochs": 1,
+                "dream_epochs": 0,
+                "nightmare_epochs": 0,
+                "compression_rounds": 0,
+                "num_cycles": 1,
+                "batch_size": 4,
                 "learning_rate": 5e-5,
             },
             "distortion": {"dream_strength": 0.2, "nightmare_strength": 0.7},

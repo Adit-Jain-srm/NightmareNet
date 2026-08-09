@@ -1,0 +1,42 @@
+# Full Wake→Dream→Nightmare→Compress on IMDB (binary, long-form reviews)
+# Repro (canonical trainer): python scripts/train.py --config configs/benchmark_imdb.yaml
+# Metrics suite: python scripts/run_multi_dataset_benchmark.py --datasets imdb
+# max_length 256 to accommodate longer reviews on free-tier GPUs.
+
+model:
+  name: distilbert-base-uncased
+  type: seq_classification
+  max_length: 256
+  num_labels: 2
+  device: auto
+
+dataset:
+  name: imdb
+  text_column: text
+  label_column: label
+  max_samples: 500
+
+training:
+  wake_epochs: 2
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 3
+  batch_size: 4
+  learning_rate: 3.0e-5
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.75
+
+compression:
+  pruning_ratio: 0.15
+  distill_temperature: 2.0
+
+evaluation:
+  strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+
+tracking:
+  enabled: false
+
+seed: 42

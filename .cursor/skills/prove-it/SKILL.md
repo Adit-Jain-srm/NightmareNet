@@ -28,7 +28,7 @@ Before ANY statement claiming work is complete:
 2. WHAT EVIDENCE proves this claim? (name the specific command/test/verification)
 3. RUN the evidence NOW (not "I could run..." — actually run it)
 4. READ the output (full output, not just exit code)
-5. DOES the output CONFIRM the claim? 
+5. DOES the output CONFIRM the claim?
    YES → show the evidence, THEN make the claim
    NO  → fix the issue, then re-run from step 3
 ```
@@ -37,7 +37,7 @@ Before ANY statement claiming work is complete:
 
 **BAD:** "Fixed the authentication bug." ← Where's the proof?
 
-**GOOD:** 
+**GOOD:**
 ```
 Claim: "Login now works with expired refresh tokens"
 Evidence: Running test suite
@@ -72,7 +72,7 @@ Confirmed: feature works.
 ## What Does NOT Count
 
 - "It should work" ← run it
-- "Based on the code changes" ← that's what you WROTE, not what RUNS  
+- "Based on the code changes" ← that's what you WROTE, not what RUNS
 - "The logic is correct" ← prove it with execution
 - Citing your own diff as proof ← the diff is the CLAIM, not the EVIDENCE
 - A passing linter ← linter checks syntax, not behavior
