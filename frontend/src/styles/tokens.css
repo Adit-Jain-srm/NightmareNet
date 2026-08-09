@@ -12,22 +12,22 @@
   --color-muted: #64748b;
   --color-text: #f1f5f9;
   --color-text-dim: #94a3b8;
-  
+
   --color-dream: #818cf8;
   --color-dream-glow: #6366f1;
   --color-dream-soft: #a5b4fc;
-  
+
   --color-nightmare: #f87171;
   --color-nightmare-glow: #dc2626;
   --color-nightmare-soft: #fca5a5;
-  
+
   --color-neural: #22d3ee;
   --color-neural-glow: #06b6d4;
   --color-neural-soft: #67e8f9;
-  
+
   --color-success: #34d399;
   --color-success-glow: #10b981;
-  
+
   --color-warning: #fbbf24;
   --color-warning-glow: #f59e0b;
 
@@ -103,7 +103,7 @@
   --color-muted: #475569;
   --color-text: #0f172a;
   --color-text-dim: #334155;
-  
+
   /* Additional modifications to glows/accents to make them visible/subtle in light mode */
   --shadow-glow: 0 2px 8px rgba(14, 116, 144, 0.15);
   --shadow-glow-dream: 0 2px 8px rgba(79, 70, 229, 0.1);
