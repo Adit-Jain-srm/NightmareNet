@@ -53,6 +53,9 @@ def export_signed_json(report: Dict[str, Any], signing_key: str, *, version: str
 
     payload["version_hash"] = hashlib.sha256(canonical_json).hexdigest()
 
+    if not signing_key:
+        raise ValueError("Signing key must be provided")
+
     # Validate against schema
     schema = get_schema()
     jsonschema.validate(instance=payload, schema=schema)
