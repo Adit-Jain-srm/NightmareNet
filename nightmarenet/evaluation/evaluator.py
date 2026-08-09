@@ -118,7 +118,10 @@ class Evaluator:
             if config.get("model", {}).get("type") == "image_classification"
             else ["recall", "generalization", "robustness", "hallucination"]
         )
-        self.enabled_metrics = self.eval_config.get("metrics", default_metrics)
+        self.enabled_metrics = list(self.eval_config.get("metrics", default_metrics))
+        calibration_enabled = self.eval_config.get("calibration", {}).get("enabled", False)
+        if calibration_enabled and "calibration" not in self.enabled_metrics:
+            self.enabled_metrics.append("calibration")
         self.output_dir = self.eval_config.get("output_dir", "results")
         self.significance_alpha = self.eval_config.get("significance_alpha", 0.05)
         os.makedirs(self.output_dir, exist_ok=True)
@@ -290,6 +293,16 @@ class Evaluator:
                 logger.error("Failed to compute certification: %s", e)
                 results["certification"] = {"error": str(e)}
 
+        if "calibration" in self.enabled_metrics:
+            logger.info("Evaluating: calibration")
+            try:
+                results["calibration"] = self._run_calibration(clean_dataloader)
+                if self.tracker:
+                    self._log_eval("calibration", results["calibration"])
+            except Exception as e:
+                logger.error("Failed to compute calibration: %s", e)
+                results["calibration"] = {"error": str(e)}
+
         return results
 
     def _run_certification(self, base_dataset) -> dict:
@@ -361,6 +374,99 @@ class Evaluator:
             "certified_accuracy": cert_result["certified_accuracy"],
             "samples_certified": cert_result["n_samples"],
             "budget_exceeded": budget_exceeded,
+        }
+
+    def _run_calibration(self, dataloader: DataLoader) -> dict:
+        """Run ECE computation and temperature scaling on the dataloader."""
+        import torch
+
+        from nightmarenet.evaluation.calibration import (
+            TemperatureScaler,
+            compute_ece,
+            reliability_diagram_data,
+        )
+
+        self.model.eval()
+        all_logits = []
+        all_labels = []
+
+        try:
+            with torch.no_grad():
+                for batch in dataloader:
+                    batch = {k: v.to(self.device) for k, v in batch.items()}
+                    outputs = self.model(**batch)
+                    logits = outputs.logits if hasattr(outputs, "logits") else outputs
+
+                    if "labels" in batch:
+                        labels = batch["labels"]
+                    elif "label" in batch:
+                        labels = batch["label"]
+                    else:
+                        continue
+
+                    all_logits.append(logits.cpu())
+                    all_labels.append(labels.cpu())
+        except Exception as e:
+            logger.error("Error during calibration metrics forward pass: %s", e)
+            raise RuntimeError("Error during calibration metrics forward pass") from e
+
+        if not all_logits:
+            raise ValueError("No logits or labels found in dataloader for calibration.")
+
+        all_logits = torch.cat(all_logits, dim=0)
+        all_labels = torch.cat(all_labels, dim=0)
+
+        n_samples = len(all_logits)
+        if n_samples < 2:
+            raise ValueError(f"Too few samples for calibration split: {n_samples}")
+
+        # Split into calibration and test set (50/50 split)
+        split_idx = n_samples // 2
+        calib_logits = all_logits[:split_idx]
+        calib_labels = all_labels[:split_idx]
+        test_logits = all_logits[split_idx:]
+        test_labels = all_labels[split_idx:]
+
+        calibration_cfg = self.eval_config.get("calibration", {})
+        ece_bins = calibration_cfg.get("ece_bins", 15)
+        use_scaling = calibration_cfg.get("temperature_scaling", True)
+
+        # Fit TemperatureScaler if enabled
+        optimal_temp = 1.0
+        if use_scaling:
+            scaler = TemperatureScaler()
+            optimal_temp = scaler.fit(calib_logits, calib_labels)
+            calib_test_logits = scaler.calibrate(test_logits)
+        else:
+            calib_test_logits = test_logits
+
+        # Compute uncalibrated ECE on test split
+        probs_before = torch.softmax(test_logits, dim=-1)
+        conf_before, preds_before = probs_before.max(dim=-1)
+
+        ece_before = compute_ece(
+            conf_before.numpy(), preds_before.numpy(), test_labels.numpy(), n_bins=ece_bins
+        )
+
+        # Compute calibrated/final ECE and reliability data on test split
+        probs_after = torch.softmax(calib_test_logits, dim=-1)
+        conf_after, preds_after = probs_after.max(dim=-1)
+
+        ece_after = compute_ece(
+            conf_after.numpy(), preds_after.numpy(), test_labels.numpy(), n_bins=ece_bins
+        )
+
+        rel_data = reliability_diagram_data(
+            conf_after.numpy(), preds_after.numpy(), test_labels.numpy(), n_bins=ece_bins
+        )
+
+        return {
+            "ece_before": ece_before,
+            "ece_after": ece_after,
+            "optimal_temperature": optimal_temp,
+            "bin_confidences": rel_data["bin_confidences"],
+            "bin_accuracies": rel_data["bin_accuracies"],
+            "bin_counts": rel_data["bin_counts"],
         }
 
     def compare(self, baseline_results: dict, trained_results: dict) -> dict:
@@ -667,6 +773,23 @@ class Evaluator:
                 ]
             )
             for key in ["hallucination_rate", "avg_hallucination_confidence"]:
+                bl = r.get("baseline", {}).get(key, "N/A")
+                tr = r.get("trained", {}).get(key, "N/A")
+                delta = r.get("deltas", {}).get(key, "N/A")
+                lines.append(f"| {key} | {_fmt(bl)} | {_fmt(tr)} | {_fmt(delta, signed=True)} |")
+            lines.append("")
+
+        if "calibration" in metrics and _metric_ok(metrics["calibration"]):
+            r = metrics["calibration"]
+            lines.extend(
+                [
+                    "### Calibration",
+                    "",
+                    "| Metric | Baseline | Trained | Delta |",
+                    "|--------|----------|---------|-------|",
+                ]
+            )
+            for key in ["ece_before", "ece_after", "optimal_temperature"]:
                 bl = r.get("baseline", {}).get(key, "N/A")
                 tr = r.get("trained", {}).get(key, "N/A")
                 delta = r.get("deltas", {}).get(key, "N/A")

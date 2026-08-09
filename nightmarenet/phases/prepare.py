@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import logging
+from typing import Any, Optional
 
 from nightmarenet.data.generator import create_generators_from_config
 from nightmarenet.distortions.text import apply_text_distortions
@@ -26,7 +27,7 @@ _MIN_EVAL_SAMPLES = 25
 class PreparePhase(Phase):
     name = "prepare"
 
-    def __init__(self, on_training_event=None) -> None:
+    def __init__(self, on_training_event: Optional[Any] = None) -> None:
         # Optional callback wired into the CallbackManager, e.g. for
         # orchestrator-level logging of training events.
         self.on_training_event = on_training_event

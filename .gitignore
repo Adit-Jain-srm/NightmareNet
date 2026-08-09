@@ -75,8 +75,14 @@ mypy_output.txt
 pyright_output.txt
 
 # Benchmark / experiment outputs
-results/
+results/*
 !results/gpu_benchmark.json
+!results/convergence/
+!results/convergence/**
+!results/multi_dataset_benchmark.json
+!results/gpt2_validation.json
+!results/bert_base_scaling.json
+!results/dp_dream_noise.json
 checkpoints/
 logs/
 

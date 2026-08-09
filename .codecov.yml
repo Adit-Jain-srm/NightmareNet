@@ -1,0 +1,23 @@
+# .codecov.yml — NightmareNet Codecov configuration
+# See: https://docs.codecov.com/docs/codecovyml-reference
+
+coverage:
+  status:
+    project:
+      default:
+        # Overall project coverage must not drop below 70%.
+        target: 70%
+        # Allow up to 2% fluctuation before marking as failed.
+        threshold: 2%
+    patch:
+      default:
+        # New code introduced in every PR must be at least 80% covered.
+        target: 80%
+        threshold: 5%
+
+comment:
+  # Show diff, per-file breakdown, flags, and reachability in PR comments.
+  layout: "reach,diff,flags,files"
+  behavior: default
+  # Only post a comment when coverage actually changes.
+  require_changes: true
