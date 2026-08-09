@@ -2,14 +2,72 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import logging
+import socket
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from typing import Any, Dict, Optional
 
+from nightmarenet.utils.message_builders import build_webhook_payload
+
 logger = logging.getLogger(__name__)
+
+
+def validate_webhook_url(url: str) -> bool:
+    """Validate a webhook URL against the allowlist and block internal IPs.
+
+    Args:
+        url: The webhook URL to validate. Must be HTTPS and resolve to
+            a public (non-private, non-loopback) IP address.
+
+    Returns:
+        True if the URL passes all validation checks, False otherwise.
+    """
+    try:
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme != "https":
+            return False
+
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+
+        # Allowlist check with path restrictions
+        allowed = False
+        if hostname == "hooks.slack.com" and parsed.path.startswith("/services/"):
+            allowed = True
+        elif hostname in ("discord.com", "discordapp.com") and parsed.path.startswith(
+            "/api/webhooks/"
+        ):
+            allowed = True
+        elif hostname.endswith(".webhook.office.com"):
+            allowed = True
+
+        if not allowed:
+            return False
+
+        # Resolve all addresses and reject if any is non-global
+        try:
+            addr_infos = socket.getaddrinfo(hostname, None, socket.AF_UNSPEC)
+        except socket.gaierror:
+            return False
+
+        if not addr_infos:
+            return False
+
+        for addr_info in addr_infos:
+            ip_str = addr_info[4][0]
+            ip = ipaddress.ip_address(ip_str)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_multicast:
+                return False
+
+        return True
+    except Exception:
+        return False
 
 
 def trigger_webhook(
@@ -46,85 +104,13 @@ def trigger_webhook(
 
 
 def _send_webhook_request(url: str, event_type: str, message: str, details: Dict[str, Any]) -> None:
-    # Build payload based on URL/destination
-    payload: Dict[str, Any] = {}
-
-    details_str = ""
-    if details:
-        details_str = "\n".join(f"- **{k}**: {v}" for k, v in details.items())
-
-    if "slack.com" in url:
-        payload = {
-            "text": f"*{message}*",
-            "blocks": [
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": f"NightmareNet: {event_type.upper()}",
-                        "emoji": True,
-                    },
-                },
-                {
-                    "type": "section",
-                    "text": {
-                        "type": "mrkdwn",
-                        "text": f"{message}\n\n{details_str}" if details_str else message,
-                    },
-                },
-            ],
-        }
-    elif "discord.com" in url or "discordapp.com" in url:
-        payload = {
-            "embeds": [
-                {
-                    "title": f"NightmareNet: {event_type.upper()}",
-                    "description": message,
-                    "color": (
-                        16738304
-                        if event_type in ("alert", "regression_detected")
-                        else 3447003
-                    ),
-                    "fields": [
-                        {"name": k, "value": str(v), "inline": True} for k, v in details.items()
-                    ]
-                    if details
-                    else [],
-                }
-            ]
-        }
-    elif "office.com" in url or "microsoft.com" in url or "webhook.office.com" in url:
-        payload = {
-            "@type": "MessageCard",
-            "@context": "http://schema.org/extensions",
-            "themeColor": (
-                "FF0000"
-                if event_type in ("alert", "regression_detected")
-                else "0078D7"
-            ),
-            "summary": message,
-            "title": f"NightmareNet: {event_type.upper()}",
-            "sections": [
-                {
-                    "activityTitle": message,
-                    "facts": [{"name": k, "value": str(v)} for k, v in details.items()]
-                    if details
-                    else [],
-                    "markdown": True,
-                }
-            ],
-        }
-    else:
-        # Generic compatibility payload
-        payload = {
-            "event": event_type,
-            "message": message,
-            "details": details,
-            "text": f"{message}\n\n{details_str}" if details_str else message,
-            "content": f"**NightmareNet: {event_type.upper()}**\n{message}\n\n{details_str}"
-            if details_str
-            else message,
-        }
+    # Build payload based on URL/destination using rich formatters
+    dashboard_url = details.get("dashboard_url") if details else None
+    # Remove dashboard_url from details before passing to builder
+    details_copy = details.copy() if details else {}
+    if dashboard_url and "dashboard_url" in details_copy:
+        details_copy.pop("dashboard_url")
+    payload = build_webhook_payload(url, event_type, message, details_copy, dashboard_url)
 
     data = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
@@ -144,7 +130,8 @@ def _send_webhook_request(url: str, event_type: str, message: str, details: Dict
                 if attempt < max_retries:
                     logger.warning(
                         "Webhook request to %s failed with status %d. Retrying in 2 seconds...",
-                        url, e.code
+                        url,
+                        e.code,
                     )
                     time.sleep(2)
                     continue

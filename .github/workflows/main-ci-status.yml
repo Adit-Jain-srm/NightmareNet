@@ -1,0 +1,88 @@
+name: Main CI Status
+
+# Tracks the health of CI on main. When main goes red, every open PR starts
+# failing too (PR checks run against a merge with current main), which confuses
+# contributors. This workflow opens a ci-status issue while main is red and
+# closes it when main recovers, so contributors can self-triage.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  issues: write
+
+# Serialize runs so two CI completions can't race and create duplicate issues.
+concurrency:
+  group: main-ci-status
+  cancel-in-progress: false
+
+jobs:
+  update-status-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const conclusion = context.payload.workflow_run.conclusion;
+            if (conclusion !== "failure" && conclusion !== "success") return;
+
+            const runUrl = context.payload.workflow_run.html_url;
+            const sha = context.payload.workflow_run.head_sha.slice(0, 7);
+            const title = "[CI]: main branch is failing";
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: "open",
+              labels: "ci-status",
+            });
+            const existing = issues.find((i) => i.title === title);
+
+            if (conclusion === "failure") {
+              const body = [
+                `CI on \`main\` is red as of \`${sha}\`: ${runUrl}`,
+                "",
+                "**Contributors:** PR checks merge your branch with current `main`,",
+                "so your PR CI may fail on code you never touched. If your failures",
+                "point at files outside your diff, wait for this issue to close,",
+                "then update your branch (merge `main` in, or click *Update branch*).",
+                "Note: *Re-run jobs* re-tests the same merge snapshot and will NOT",
+                "pick up the fixed `main`.",
+              ].join("\n");
+              if (existing) {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  body,
+                });
+              } else {
+                await github.rest.issues.create({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  title,
+                  body,
+                  labels: ["ci-status"],
+                });
+              }
+            } else if (existing) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body:
+                  `CI on \`main\` is green again as of \`${sha}\`: ${runUrl}\n\n` +
+                  "If your PR failed during this window, update your branch " +
+                  "(merge `main` in, or click *Update branch* on the PR) to " +
+                  "get a fresh merge commit, then let CI re-run.",
+              });
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                state: "closed",
+              });
+            }

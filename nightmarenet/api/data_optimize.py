@@ -85,12 +85,11 @@ def _evict_completed() -> None:
     if len(_registry) < _MAX_REGISTRY_SIZE:
         return
     terminal_states = (
-        OptimizationState.COMPLETED, OptimizationState.FAILED, OptimizationState.CANCELLED
+        OptimizationState.COMPLETED,
+        OptimizationState.FAILED,
+        OptimizationState.CANCELLED,
     )
-    completed = [
-        (rid, r) for rid, r in _registry.items()
-        if r.state in terminal_states
-    ]
+    completed = [(rid, r) for rid, r in _registry.items() if r.state in terminal_states]
     completed.sort(key=lambda x: x[1].completed_at or 0)
     while len(_registry) >= _MAX_REGISTRY_SIZE and completed:
         rid, _ = completed.pop(0)
@@ -249,9 +248,7 @@ def _run_optimization_sync(
         optimized_dataset, quality = result
         has_text_col = "text" in optimized_dataset.column_names
         optimized_texts = optimized_dataset["text"] if has_text_col else []
-        run.after_stats = (
-            _compute_text_stats(list(optimized_texts)) if optimized_texts else None
-        )
+        run.after_stats = _compute_text_stats(list(optimized_texts)) if optimized_texts else None
 
         run.result = {
             "optimized_count": len(optimized_dataset),
@@ -386,9 +383,7 @@ def register_data_optimize_routes(app: Any, limiter: Limiter) -> None:
         elapsed = round(time.time() - start_time, 2)
 
         optimized_texts = (
-            list(optimized_dataset["text"])
-            if "text" in optimized_dataset.column_names
-            else []
+            list(optimized_dataset["text"]) if "text" in optimized_dataset.column_names else []
         )
         after_stats = _compute_text_stats(optimized_texts) if optimized_texts else None
 
@@ -513,36 +508,42 @@ def register_data_optimize_routes(app: Any, limiter: Limiter) -> None:
             while run.state in active_states:
                 if run.progress_pct != last_pct:
                     last_pct = run.progress_pct
-                    yield _sse_encode({
-                        "event": "progress",
-                        "run_id": run_id,
-                        "state": run.state.value,
-                        "progress_pct": round(run.progress_pct, 1),
-                        "message": run.message,
-                    })
+                    yield _sse_encode(
+                        {
+                            "event": "progress",
+                            "run_id": run_id,
+                            "state": run.state.value,
+                            "progress_pct": round(run.progress_pct, 1),
+                            "message": run.message,
+                        }
+                    )
                 await asyncio.sleep(0.5)
 
             if run.state == OptimizationState.COMPLETED:
-                yield _sse_encode({
-                    "event": "complete",
-                    "run_id": run_id,
-                    "state": "completed",
-                    "progress_pct": 100.0,
-                    "message": run.message,
-                    "result": run.result,
-                    "before_stats": run.before_stats,
-                    "after_stats": run.after_stats,
-                    "elapsed_seconds": round(
-                        (run.completed_at or time.time()) - (run.started_at or time.time()), 2
-                    ),
-                })
+                yield _sse_encode(
+                    {
+                        "event": "complete",
+                        "run_id": run_id,
+                        "state": "completed",
+                        "progress_pct": 100.0,
+                        "message": run.message,
+                        "result": run.result,
+                        "before_stats": run.before_stats,
+                        "after_stats": run.after_stats,
+                        "elapsed_seconds": round(
+                            (run.completed_at or time.time()) - (run.started_at or time.time()), 2
+                        ),
+                    }
+                )
             else:
-                yield _sse_encode({
-                    "event": "error",
-                    "run_id": run_id,
-                    "state": run.state.value,
-                    "error": run.error or "Unknown failure",
-                })
+                yield _sse_encode(
+                    {
+                        "event": "error",
+                        "run_id": run_id,
+                        "state": run.state.value,
+                        "error": run.error or "Unknown failure",
+                    }
+                )
 
         return StreamingResponse(
             event_generator(),
@@ -583,7 +584,9 @@ def register_data_optimize_routes(app: Any, limiter: Limiter) -> None:
                 result = await asyncio.get_running_loop().run_in_executor(
                     _executor,
                     lambda: optimizer.optimize_from_huggingface(
-                        body.url, body.files, body.column_mapping,
+                        body.url,
+                        body.files,
+                        body.column_mapping,
                         brand_controls=body.brand_controls,
                         recipe_specification=body.recipe_specification,
                     ),
@@ -592,15 +595,15 @@ def register_data_optimize_routes(app: Any, limiter: Limiter) -> None:
                 result = await asyncio.get_running_loop().run_in_executor(
                     _executor,
                     lambda: optimizer.optimize_from_kaggle(
-                        body.url, body.files, body.column_mapping,
+                        body.url,
+                        body.files,
+                        body.column_mapping,
                         brand_controls=body.brand_controls,
                         recipe_specification=body.recipe_specification,
                     ),
                 )
         except Exception as exc:
-            raise HTTPException(
-                status_code=500, detail=f"Import failed: {exc}"
-            ) from exc
+            raise HTTPException(status_code=500, detail=f"Import failed: {exc}") from exc
 
         if result is None:
             raise HTTPException(status_code=503, detail="Import optimization failed.")
@@ -639,9 +642,7 @@ def register_data_optimize_routes(app: Any, limiter: Limiter) -> None:
         try:
             from datasets import Dataset
         except ImportError as exc:
-            raise HTTPException(
-                status_code=503, detail="datasets library not available."
-            ) from exc
+            raise HTTPException(status_code=503, detail="datasets library not available.") from exc
 
         dataset = Dataset.from_dict({"text": body.texts})
         optimizer = AdaptionOptimizer()
@@ -659,9 +660,7 @@ def register_data_optimize_routes(app: Any, limiter: Limiter) -> None:
                 ),
             )
         except Exception as exc:
-            raise HTTPException(
-                status_code=500, detail=f"Estimation failed: {exc}"
-            ) from exc
+            raise HTTPException(status_code=500, detail=f"Estimation failed: {exc}") from exc
 
         if estimate is None:
             raise HTTPException(status_code=503, detail="Estimation failed.")

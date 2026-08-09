@@ -1,8 +1,8 @@
 import json
 import os
-import sys
-import urllib.request
 import urllib.error
+import urllib.request
+
 
 def main():
     token = os.environ.get("GITHUB_TOKEN")
@@ -14,7 +14,7 @@ def main():
         return
 
     try:
-        with open(event_path, "r") as f:
+        with open(event_path) as f:
             event_data = json.load(f)
     except Exception:
         print(f"Could not read event data from {event_path}")
@@ -25,9 +25,9 @@ def main():
         return
 
     pr_number = event_data["pull_request"]["number"]
-    
+
     try:
-        with open("comment_body.md", "r", encoding="utf-8") as f:
+        with open("comment_body.md", encoding="utf-8") as f:
             body = f.read()
     except Exception:
         print("Could not read comment_body.md")
@@ -37,7 +37,7 @@ def main():
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/vnd.github.v3+json",
-        "X-GitHub-Api-Version": "2022-11-28"
+        "X-GitHub-Api-Version": "2022-11-28",
     }
 
     # Fetch existing comments
@@ -69,6 +69,7 @@ def main():
             print(f"Successfully posted comment. Status: {response.status}")
     except urllib.error.URLError as e:
         print(f"Failed to post comment: {e}")
+
 
 if __name__ == "__main__":
     main()

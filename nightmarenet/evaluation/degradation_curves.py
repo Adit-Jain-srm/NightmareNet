@@ -28,10 +28,6 @@ def calculate_degradation_curves(model_results: dict[str, dict]) -> dict[str, li
             accuracies = dist_results.get("accuracies", [])
 
             for s, acc in zip(strengths, accuracies):
-                curve.append({
-                    "distortion": distortion,
-                    "strength": s,
-                    "robustness": acc
-                })
+                curve.append({"distortion": distortion, "strength": s, "robustness": acc})
         curves[model_name] = curve
     return curves

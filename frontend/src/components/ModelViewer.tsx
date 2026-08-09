@@ -108,7 +108,7 @@ export default function ModelViewer() {
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                     selectedType === t.key
                       ? "text-text glass-card !border-dream/20 box-glow-dream"
-                      : "text-muted hover:text-text-dim bg-white/[0.01] border border-white/[0.04] rounded-xl"
+                      : "text-slate-400 hover:text-text-dim bg-white/[0.01] border border-white/[0.04] rounded-xl"
                   }`}
                 >
                   <t.icon className="w-3.5 h-3.5" />
@@ -142,14 +142,14 @@ export default function ModelViewer() {
                             {layer.name}
                           </span>
                           <ChevronRight
-                            className={`w-4 h-4 text-muted transition-transform duration-200 ${
+                            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
                               expandedLayer === i ? "rotate-90" : ""
                             }`}
                           />
                         </div>
                         <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[10px] font-mono text-muted">{layer.type}</span>
-                          <span className="text-[10px] font-mono text-muted/60">•</span>
+                          <span className="text-[10px] font-mono text-slate-400">{layer.type}</span>
+                          <span className="text-[10px] font-mono text-slate-400/60">•</span>
                           <span className={`text-[10px] font-mono text-${layer.color}/70`}>
                             {layer.params} params
                           </span>
@@ -167,7 +167,7 @@ export default function ModelViewer() {
                           className="overflow-hidden"
                         >
                           <div className="pt-3 ml-4 border-t border-white/[0.04] mt-3">
-                            <p className="text-xs text-muted leading-relaxed">
+                            <p className="text-xs text-slate-400 leading-relaxed">
                               {layer.desc}
                             </p>
                           </div>
@@ -181,7 +181,7 @@ export default function ModelViewer() {
 
             {/* Total params */}
             <div className="mt-4 flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-              <span className="text-xs text-muted font-mono">Total Parameters</span>
+              <span className="text-xs text-slate-400 font-mono">Total Parameters</span>
               <span className="text-sm font-bold text-gradient-neural font-mono">{activeModel.totalParams}</span>
             </div>
           </motion.div>
@@ -209,21 +209,21 @@ export default function ModelViewer() {
                 </div>
                 <div>
                   <h4 className="text-sm font-semibold text-text mb-0.5">{f.label}</h4>
-                  <p className="text-xs text-muted leading-relaxed">{f.desc}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed">{f.desc}</p>
                 </div>
               </motion.div>
             ))}
 
             {/* Model info card */}
             <div className="glass-card p-5 mt-6">
-              <h4 className="text-xs font-mono text-muted uppercase tracking-wider mb-3">Default Model</h4>
+              <h4 className="text-xs font-mono text-slate-400 uppercase tracking-wider mb-3">Default Model</h4>
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-dream/5 border border-dream/10 flex items-center justify-center">
                   <Brain className="w-5 h-5 text-dream" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-text">{activeModel.modelName}</p>
-                  <p className="text-[10px] font-mono text-muted">{activeModel.modelDesc}</p>
+                  <p className="text-[10px] font-mono text-slate-400">{activeModel.modelDesc}</p>
                 </div>
               </div>
             </div>

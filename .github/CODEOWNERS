@@ -1,0 +1,70 @@
+# NightmareNet code ownership
+#
+# GitHub uses the last matching pattern, so the repository-wide fallback comes
+# first and more specific ownership areas follow it.
+# All owners listed here must have write access to the repository.
+
+# Repository-wide fallback
+* @Adit-Jain-srm
+
+# Core Python packages
+/nightmarenet/ @Adit-Jain-srm
+/nightmarenet_server/ @Adit-Jain-srm
+
+# Python tests
+/tests/ @Adit-Jain-srm
+
+# Frontend application and frontend tests
+/frontend/ @Adit-Jain-srm
+
+# Configuration, distortion presets, and experiment definitions
+/configs/ @Adit-Jain-srm
+/distortions/ @Adit-Jain-srm
+
+# Documentation and examples
+/docs/ @Adit-Jain-srm
+/notebooks/ @Adit-Jain-srm
+/README.md @Adit-Jain-srm
+/CONTRIBUTING.md @Adit-Jain-srm
+/CHANGELOG.md @Adit-Jain-srm
+/SECURITY.md @Adit-Jain-srm
+/CLAUDE.md @Adit-Jain-srm
+
+# Automation, repository policy, and dependency management
+/.github/workflows/ @Adit-Jain-srm
+/.github/actions/ @Adit-Jain-srm
+/.github/ISSUE_TEMPLATE/ @Adit-Jain-srm
+/.github/DISCUSSION_TEMPLATE/ @Adit-Jain-srm
+/.github/dependabot.yml @Adit-Jain-srm
+/.github/pull_request_template.md @Adit-Jain-srm
+/.github/release.yml @Adit-Jain-srm
+/.github/FUNDING.yml @Adit-Jain-srm
+
+# Protect ownership policy from unowned changes
+/.github/CODEOWNERS @Adit-Jain-srm
+
+# Packaging, release, and Python tooling
+/pyproject.toml @Adit-Jain-srm
+/alembic.ini @Adit-Jain-srm
+/.python-version @Adit-Jain-srm
+/.pre-commit-config.yaml @Adit-Jain-srm
+
+# Containers and deployment
+/Dockerfile @Adit-Jain-srm
+/docker-compose.yml @Adit-Jain-srm
+/docker-compose.prod.yml @Adit-Jain-srm
+/.dockerignore @Adit-Jain-srm
+/docker/ @Adit-Jain-srm
+
+# Data versioning and tracked datasets
+/.dvc/ @Adit-Jain-srm
+/.dvcignore @Adit-Jain-srm
+/data/ @Adit-Jain-srm
+
+# Developer tooling and utility scripts
+/scripts/ @Adit-Jain-srm
+/.cursor/ @Adit-Jain-srm
+/.editorconfig @Adit-Jain-srm
+/.gitattributes @Adit-Jain-srm
+/.gitignore @Adit-Jain-srm
+/.nvmrc @Adit-Jain-srm

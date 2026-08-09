@@ -98,8 +98,8 @@ export function PipelineGraph() {
       <svg
         viewBox="0 0 400 280"
         className="h-full w-full"
-        role="img"
-        aria-label="Pipeline phase graph showing Wake, Dream, Nightmare, and Compress phases orbiting a central model node"
+        role="group"
+        aria-label="Interactive pipeline phase graph"
       >
         <defs>
           <filter id="pg-glow">

@@ -47,7 +47,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={[
-              "w-full rounded-lg border bg-black/30 text-sm text-slate-100 placeholder:text-slate-600",
+              "w-full rounded-lg border bg-black/30 text-sm text-slate-100 placeholder:text-slate-300",
               "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-neural/50",
               leftIcon ? "pl-10" : "pl-3",
               rightSlot ? "pr-10" : "pr-3",

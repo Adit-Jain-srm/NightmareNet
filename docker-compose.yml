@@ -1,18 +1,30 @@
 # NightmareNet — local development orchestration
 #
-# Boots the full hosted stack: API + worker + Postgres + Redis + Next.js
-# frontend. Use `docker compose up` for a fresh stack, or target a single
-# service with `docker compose up api`.
+# By default (`docker compose up`), this starts only the services that are
+# actually functional today: `api` and `frontend`. The `db`, `redis`, and
+# `worker` services are part of the planned hosted-platform architecture
+# (see CONTRIBUTING.md — `nightmarenet_server/` is future work) and are
+# gated behind the `hosted` profile since nothing in the OSS core currently
+# connects to them:
+#   - `worker` has no Celery tasks defined yet.
+#   - `api` (nightmarenet/api/app.py) never connects to Postgres or Redis;
+#     rate limiting uses slowapi's in-memory backend.
+#
+# Run the functional stack:
+#   docker compose up api frontend
+#
+# Run the full (currently non-functional) hosted stack, once
+# nightmarenet_server/ exists:
+#   docker compose --profile hosted up
 #
 # All services share the `nightmarenet` network and mount the repo .env
 # file when present. See docker/Dockerfile.api and docker/Dockerfile.worker.
-
 name: nightmarenet
-
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    profiles: ["hosted"]
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nightmarenet}
       POSTGRES_USER: ${POSTGRES_USER:-nightmare}
@@ -34,6 +46,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    profiles: ["hosted"]
     command: ["redis-server", "--save", "60", "1", "--loglevel", "warning"]
     volumes:
       - redis_data:/data
@@ -47,6 +60,19 @@ services:
     networks:
       - nightmarenet
 
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    restart: unless-stopped
+    profiles: ["hosted"]
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+      - "4318:4318"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    networks:
+      - nightmarenet
+
   api:
     build:
       context: .
@@ -56,15 +82,14 @@ services:
       - path: ./.env
         required: false
     environment:
-      NIGHTMARENET_DATABASE_URL: ${NIGHTMARENET_DATABASE_URL:-postgresql+psycopg://nightmare:nightmare@db:5432/nightmarenet}
-      NIGHTMARENET_REDIS_URL: ${NIGHTMARENET_REDIS_URL:-redis://redis:6379/0}
-      NIGHTMARENET_CORS_ORIGINS: ${NIGHTMARENET_CORS_ORIGINS:-*}
+      # NIGHTMARENET_DATABASE_URL / NIGHTMARENET_REDIS_URL are reserved for
+      # the future hosted platform (nightmarenet_server/) and are not read
+      # by the OSS API today. Left here (commented) for forward reference;
+      # uncomment once nightmarenet_server/ lands and actually consumes them.
+      # NIGHTMARENET_DATABASE_URL: ${NIGHTMARENET_DATABASE_URL:-postgresql+psycopg://nightmare:nightmare@db:5432/nightmarenet}
+      # NIGHTMARENET_REDIS_URL: ${NIGHTMARENET_REDIS_URL:-redis://redis:6379/0}
+      NIGHTMARENET_CORS_ORIGINS: ${NIGHTMARENET_CORS_ORIGINS:-http://localhost:3000}
       NIGHTMARENET_LOG_LEVEL: ${NIGHTMARENET_LOG_LEVEL:-info}
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     ports:
       - "${API_PORT:-8000}:8000"
     volumes:
@@ -85,6 +110,7 @@ services:
       context: .
       dockerfile: docker/Dockerfile.worker
     restart: unless-stopped
+    profiles: ["hosted"]
     env_file:
       - path: ./.env
         required: false

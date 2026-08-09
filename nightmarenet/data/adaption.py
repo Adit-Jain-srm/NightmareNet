@@ -22,22 +22,22 @@ logger = logging.getLogger(__name__)
 try:
     from adaption import Adaption
 except ImportError:
-    Adaption = None  # type: ignore[assignment, misc]
+    Adaption = None
 
 try:
     from adaption import AsyncAdaption
 except ImportError:
-    AsyncAdaption = None  # type: ignore[assignment, misc]
+    AsyncAdaption = None
 
 try:
     from adaption import DatasetTimeout
 except ImportError:
-    DatasetTimeout = None  # type: ignore[assignment, misc]
+    DatasetTimeout = None
 
 try:
     from datasets import Dataset as HFDataset
 except ImportError:
-    HFDataset = None  # type: ignore[assignment, misc]
+    HFDataset = None
 
 __all__ = ["Adaption", "AsyncAdaption", "AdaptionOptimizer"]
 
@@ -49,14 +49,30 @@ __all__ = ["Adaption", "AsyncAdaption", "AdaptionOptimizer"]
 _MAX_RETRIES = 3
 _RETRY_BACKOFF: Tuple[float, ...] = (1.0, 2.0, 4.0)
 
-_VALID_COLUMN_ROLES: FrozenSet[str] = frozenset({
-    "prompt", "completion", "instruction", "input", "output",
-    "question", "answer", "context", "system", "text", "chat",
-})
+_VALID_COLUMN_ROLES: FrozenSet[str] = frozenset(
+    {
+        "prompt",
+        "completion",
+        "instruction",
+        "input",
+        "output",
+        "question",
+        "answer",
+        "context",
+        "system",
+        "text",
+        "chat",
+    }
+)
 
-_VALID_LENGTHS: FrozenSet[str] = frozenset({
-    "minimal", "concise", "detailed", "extensive",
-})
+_VALID_LENGTHS: FrozenSet[str] = frozenset(
+    {
+        "minimal",
+        "concise",
+        "detailed",
+        "extensive",
+    }
+)
 
 
 def _timeout_seconds() -> float:
@@ -80,6 +96,7 @@ def _generate_idempotency_key() -> str:
 # Retry helper
 # ---------------------------------------------------------------------------
 
+
 def _retry_call(
     fn: Callable[..., Any],
     args: Tuple[Any, ...] = (),
@@ -101,13 +118,19 @@ def _retry_call(
                 delay = _RETRY_BACKOFF[attempt]
                 logger.warning(
                     "Adaption %s failed (attempt %d/%d), retrying in %.1fs: %s",
-                    description, attempt + 1, _MAX_RETRIES, delay, exc,
+                    description,
+                    attempt + 1,
+                    _MAX_RETRIES,
+                    delay,
+                    exc,
                 )
                 time.sleep(delay)
             else:
                 logger.error(
                     "Adaption %s failed after %d attempts: %s",
-                    description, _MAX_RETRIES, exc,
+                    description,
+                    _MAX_RETRIES,
+                    exc,
                 )
 
     raise last_exc  # type: ignore[misc]
@@ -116,6 +139,7 @@ def _retry_call(
 # ---------------------------------------------------------------------------
 # Temp file management
 # ---------------------------------------------------------------------------
+
 
 @contextmanager
 def _managed_temp_files() -> Generator[List[str], None, None]:
@@ -158,17 +182,31 @@ def _managed_temp_files() -> Generator[List[str], None, None]:
 # Quality metrics parsing
 # ---------------------------------------------------------------------------
 
+
 def _parse_quality_metrics(status: Any) -> Dict[str, Any]:
     """Extract all available quality metrics from a status response."""
     metrics: Dict[str, Any] = {}
 
     field_names = [
-        "status", "row_count", "column_count", "quality_score",
-        "completeness_score", "consistency_score", "accuracy_score",
-        "duplicates_removed", "rows_improved", "rows_filtered",
-        "total_tokens", "estimated_credits_consumed", "processing_time_seconds",
-        "error_message", "warnings", "created_at", "completed_at",
-        "original_row_count", "optimized_row_count",
+        "status",
+        "row_count",
+        "column_count",
+        "quality_score",
+        "completeness_score",
+        "consistency_score",
+        "accuracy_score",
+        "duplicates_removed",
+        "rows_improved",
+        "rows_filtered",
+        "total_tokens",
+        "estimated_credits_consumed",
+        "processing_time_seconds",
+        "error_message",
+        "warnings",
+        "created_at",
+        "completed_at",
+        "original_row_count",
+        "optimized_row_count",
     ]
 
     for field in field_names:
@@ -188,6 +226,7 @@ def _parse_quality_metrics(status: Any) -> Dict[str, Any]:
 # Validation
 # ---------------------------------------------------------------------------
 
+
 def _validate_column_mapping(
     column_mapping: Dict[str, Union[str, List[str]]],
     dataset_columns: Optional[List[str]] = None,
@@ -202,9 +241,7 @@ def _validate_column_mapping(
         raise ValueError("column_mapping must not be empty")
 
     if not isinstance(column_mapping, dict):
-        raise ValueError(
-            f"column_mapping must be a dict, got {type(column_mapping).__name__}"
-        )
+        raise ValueError(f"column_mapping must be a dict, got {type(column_mapping).__name__}")
 
     for role, col_name in column_mapping.items():
         if not isinstance(role, str) or not role.strip():
@@ -217,13 +254,9 @@ def _validate_column_mapping(
                             f"context list entries must be non-empty strings, got {c!r}"
                         )
             elif not isinstance(col_name, str) or not col_name.strip():
-                raise ValueError(
-                    "column_mapping 'context' must be a string or list of strings"
-                )
+                raise ValueError("column_mapping 'context' must be a string or list of strings")
         elif not isinstance(col_name, str) or not col_name.strip():
-            raise ValueError(
-                f"column_mapping value for role {role!r} must be a non-empty string"
-            )
+            raise ValueError(f"column_mapping value for role {role!r} must be a non-empty string")
 
     if dataset_columns is not None:
         dataset_col_set = set(dataset_columns)
@@ -247,8 +280,7 @@ def _validate_brand_controls(brand_controls: Optional[Dict[str, Any]]) -> None:
     length = brand_controls.get("length")
     if length is not None and length not in _VALID_LENGTHS:
         raise ValueError(
-            f"brand_controls.length must be one of {sorted(_VALID_LENGTHS)}, "
-            f"got {length!r}"
+            f"brand_controls.length must be one of {sorted(_VALID_LENGTHS)}, got {length!r}"
         )
     safety = brand_controls.get("safety_categories")
     if safety is not None and not isinstance(safety, list):
@@ -261,6 +293,7 @@ def _validate_brand_controls(brand_controls: Optional[Dict[str, Any]]) -> None:
 # ---------------------------------------------------------------------------
 # Main optimizer class
 # ---------------------------------------------------------------------------
+
 
 class AdaptionOptimizer:
     """Optimize datasets using the Adaption Labs API.
@@ -406,9 +439,7 @@ class AdaptionOptimizer:
 
                 _emit(30.0, "optimizing")
                 timeout = _timeout_seconds()
-                status = client.datasets.wait_for_completion(
-                    dataset_id, timeout=int(timeout)
-                )
+                status = client.datasets.wait_for_completion(dataset_id, timeout=int(timeout))
                 logger.info(
                     "Adaption optimization complete: status=%s",
                     getattr(status, "status", "done"),
@@ -423,9 +454,7 @@ class AdaptionOptimizer:
 
                 import urllib.request
 
-                with tempfile.NamedTemporaryFile(
-                    suffix=".csv", delete=False, mode="wb"
-                ) as out_tmp:
+                with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="wb") as out_tmp:
                     out_path = out_tmp.name
                     temp_paths.append(out_path)
                     urllib.request.urlretrieve(download_url, out_path)
@@ -464,8 +493,12 @@ class AdaptionOptimizer:
         if async_client is None:
             return await asyncio.to_thread(
                 self.optimize_dataset,
-                dataset, column_mapping, max_rows,
-                brand_controls, recipe_specification, job_specification,
+                dataset,
+                column_mapping,
+                max_rows,
+                brand_controls,
+                recipe_specification,
+                job_specification,
                 on_progress,
             )
 
@@ -523,22 +556,19 @@ class AdaptionOptimizer:
                 status = await async_client.datasets.wait_for_completion(
                     dataset_id, timeout=int(timeout)
                 )
-                logger.info("Async optimization complete: status=%s",
-                            getattr(status, "status", "done"))
+                logger.info(
+                    "Async optimization complete: status=%s", getattr(status, "status", "done")
+                )
 
                 _emit(75.0, "downloading")
                 download_url = await async_client.datasets.download(dataset_id)
 
                 import urllib.request
 
-                with tempfile.NamedTemporaryFile(
-                    suffix=".csv", delete=False, mode="wb"
-                ) as out_tmp:
+                with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="wb") as out_tmp:
                     out_path = out_tmp.name
                     temp_paths.append(out_path)
-                    await asyncio.to_thread(
-                        urllib.request.urlretrieve, download_url, out_path
-                    )
+                    await asyncio.to_thread(urllib.request.urlretrieve, download_url, out_path)
 
                 _emit(90.0, "loading_result")
                 optimized = HFDataset.from_csv(out_path)
@@ -772,9 +802,7 @@ class AdaptionOptimizer:
                 )
                 import urllib.request
 
-                with tempfile.NamedTemporaryFile(
-                    suffix=".csv", delete=False, mode="wb"
-                ) as out_tmp:
+                with tempfile.NamedTemporaryFile(suffix=".csv", delete=False, mode="wb") as out_tmp:
                     out_path = out_tmp.name
                     temp_paths.append(out_path)
                     urllib.request.urlretrieve(download_url, out_path)

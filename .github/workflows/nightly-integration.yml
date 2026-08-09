@@ -1,0 +1,38 @@
+name: Nightly Integration Test
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Run at 2:00 AM UTC every day
+  workflow_dispatch:      # Allow manual triggering
+
+jobs:
+  integration-test:
+    name: Run End-to-End Pipeline Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run E2E Integration Test
+        run: |
+          PYTHONPATH=. pytest -m slow tests/test_pipeline_e2e.py -v --tb=short
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::The nightly end-to-end integration test failed!"
+          # Replace with actual notification logic if required (e.g. slack webhook)

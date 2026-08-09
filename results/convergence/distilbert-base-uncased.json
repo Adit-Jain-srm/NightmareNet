@@ -1,0 +1,34 @@
+{
+  "model": "distilbert-base-uncased",
+  "source": "calibrate",
+  "robustness_by_cycle": [
+    0.6675,
+    0.706521,
+    0.72454,
+    0.732861,
+    0.736703,
+    0.738478,
+    0.739297,
+    0.739675,
+    0.73985,
+    0.739931,
+    0.739968,
+    0.739985,
+    0.739993,
+    0.739997,
+    0.739999,
+    0.739999,
+    0.74,
+    0.74,
+    0.74,
+    0.74
+  ],
+  "diminishing_returns": {
+    "cycle": 5,
+    "target_fraction": 0.95,
+    "baseline": 0.6675,
+    "peak": 0.74,
+    "target_score": 0.736375,
+    "note": "95% of max robustness gain (0.6675 \u2192 0.7400) first reached at cycle 5"
+  }
+}

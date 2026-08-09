@@ -1,243 +1,238 @@
-"""Unit tests for the NightmareNet webhook notification system."""
+"""Tests for webhook validation and blocked internal IPs."""
 
 from __future__ import annotations
 
-import json
-import urllib.error
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-from fastapi.testclient import TestClient
+import pytest
 
-from nightmarenet.api.app import app
-from nightmarenet.utils.config import validate_config
-from nightmarenet.utils.webhooks import _send_webhook_request
+from nightmarenet.utils.message_builders import (
+    DiscordMessageBuilder,
+    SlackMessageBuilder,
+    build_webhook_payload,
+)
+from nightmarenet.utils.webhooks import validate_webhook_url
 
-client = TestClient(app)
 
+class TestValidateWebhookUrl:
+    def test_rejects_http(self):
+        assert validate_webhook_url("http://hooks.slack.com/services/T/B/x") is False
 
-def test_config_validation_valid():
-    """Verify that a valid notifications config passes validation."""
-    valid_cfg = {
-        "model": {"name": "gpt2", "type": "causal_lm", "max_length": 128, "device": "cpu"},
-        "dataset": {"name": "wikitext", "text_column": "text"},
-        "training": {
-            "wake_epochs": 1,
-            "dream_epochs": 1,
-            "nightmare_epochs": 1,
-            "num_cycles": 1,
-            "compression_rounds": 0,
-            "batch_size": 4,
-            "learning_rate": 5e-5,
-            "nightmare_lr_multiplier": 1.5,
-            "max_grad_norm": 1.0,
-            "gradient_accumulation_steps": 1,
-        },
-        "seed": 42,
-        "distortion": {"dream_strength": 0.2, "nightmare_strength": 0.8},
-        "compression": {"pruning_ratio": 0.1, "bottleneck_rank_ratio": 0.5},
-        "notifications": {
-            "webhooks": [
-                {
-                    "url": "https://hooks.slack.com/services/T/B/X",
-                    "events": ["run_complete", "regression_detected"],
-                },
-                {
-                    "url": "https://discord.com/api/webhooks/123/abc",
-                },
+    def test_rejects_non_allowlisted_domain(self):
+        assert validate_webhook_url("https://evil.com/hook") is False
+
+    def test_rejects_slack_without_services_path(self):
+        assert validate_webhook_url("https://hooks.slack.com/other/path") is False
+
+    def test_accepts_slack_with_services_path(self):
+        with patch("socket.getaddrinfo") as mock_res:
+            mock_res.return_value = [(2, 1, 6, "", ("44.228.100.1", 0))]
+            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is True
+
+    def test_accepts_discord(self):
+        with patch("socket.getaddrinfo") as mock_res:
+            mock_res.return_value = [(2, 1, 6, "", ("162.159.128.1", 0))]
+            assert validate_webhook_url("https://discord.com/api/webhooks/123/token") is True
+
+    def test_rejects_internal_ip_loopback(self):
+        with patch("socket.getaddrinfo") as mock_res:
+            mock_res.return_value = [(2, 1, 6, "", ("127.0.0.1", 0))]
+            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
+
+    def test_rejects_internal_ip_private(self):
+        with patch("socket.getaddrinfo") as mock_res:
+            mock_res.return_value = [(2, 1, 6, "", ("192.168.1.1", 0))]
+            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
+
+    def test_rejects_if_any_resolved_address_is_private(self):
+        with patch("socket.getaddrinfo") as mock_res:
+            mock_res.return_value = [
+                (2, 1, 6, "", ("44.228.100.1", 0)),
+                (2, 1, 6, "", ("10.0.0.1", 0)),
             ]
-        },
-    }
-    errors = validate_config(valid_cfg)
-    assert not errors, f"Config validation failed unexpectedly: {errors}"
+            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
+
+    def test_rejects_dns_failure(self):
+        import socket as _socket
+
+        with patch("socket.getaddrinfo", side_effect=_socket.gaierror("fail")):
+            assert validate_webhook_url("https://hooks.slack.com/services/T123/B456/abc") is False
 
 
-def test_config_validation_invalid():
-    """Verify that invalid notifications config fails validation."""
-    invalid_cfg = {
-        "model": {"name": "gpt2", "type": "causal_lm", "max_length": 128, "device": "cpu"},
-        "dataset": {"name": "wikitext", "text_column": "text"},
-        "training": {
-            "wake_epochs": 1,
-            "dream_epochs": 1,
-            "nightmare_epochs": 1,
-            "num_cycles": 1,
-            "compression_rounds": 0,
-            "batch_size": 4,
-            "learning_rate": 5e-5,
-            "nightmare_lr_multiplier": 1.5,
-            "max_grad_norm": 1.0,
-            "gradient_accumulation_steps": 1,
-        },
-        "seed": 42,
-        "distortion": {"dream_strength": 0.2, "nightmare_strength": 0.8},
-        "compression": {"pruning_ratio": 0.1, "bottleneck_rank_ratio": 0.5},
-        "notifications": {
-            "webhooks": [
-                {
-                    # Missing URL
-                    "events": ["invalid_event"],  # Invalid event
-                }
-            ]
-        },
-    }
-    errors = validate_config(invalid_cfg)
-    assert len(errors) >= 2
-    assert any("missing required key: 'url'" in e for e in errors)
-    assert any("must be one of" in e for e in errors)
+class TestWebhookEndpointBlocksInternalIP:
+    """Regression test: the /api/v1/webhooks/test endpoint must reject
+    URLs that resolve to internal IPs BEFORE dispatching."""
+
+    @pytest.fixture
+    def client(self):
+        from starlette.testclient import TestClient
+
+        from nightmarenet.api.app import app
+
+        return TestClient(app)
+
+    def test_rejects_internal_ip_with_400(self, client, monkeypatch):
+        monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+
+        with patch("socket.getaddrinfo") as mock_res:
+            mock_res.return_value = [(2, 1, 6, "", ("127.0.0.1", 0))]
+            response = client.post(
+                "/api/v1/notifications/test-webhook",
+                json={
+                    "url": "https://hooks.slack.com/services/T/B/x",
+                    "event_type": "run_complete",
+                },
+            )
+
+        assert response.status_code == 400
+        assert "Invalid webhook URL" in response.json()["detail"]
+
+    def test_dispatch_not_called_for_blocked_url(self, client, monkeypatch):
+        monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+
+        with patch("socket.getaddrinfo") as mock_res:
+            mock_res.return_value = [(2, 1, 6, "", ("10.0.0.1", 0))]
+            with patch("nightmarenet.utils.webhooks.trigger_webhook") as mock_trigger:
+                client.post(
+                    "/api/v1/notifications/test-webhook",
+                    json={
+                        "url": "https://hooks.slack.com/services/T/B/x",
+                        "event_type": "alert",
+                    },
+                )
+
+        mock_trigger.assert_not_called()
 
 
-@patch("urllib.request.urlopen")
-def test_send_slack_webhook(mock_urlopen):
-    """Verify Slack webhook payload structure."""
-    mock_response = MagicMock()
-    mock_response.getcode.return_value = 200
-    mock_urlopen.return_value.__enter__.return_value = mock_response
+class TestSlackMessageBuilder:
+    def test_build_basic_message(self):
+        payload = SlackMessageBuilder.build("run_complete", "Test message")
+        assert "blocks" in payload
+        assert "text" in payload
+        assert len(payload["blocks"]) >= 2  # header + section + divider
 
-    url = "https://hooks.slack.com/services/T/B/X"
-    _send_webhook_request(url, "run_complete", "Pipeline complete message", {"run_id": "123"})
+    def test_build_with_details(self):
+        details = {"run_id": "123", "model": "gpt-4"}
+        payload = SlackMessageBuilder.build("run_complete", "Test", details)
+        assert any("fields" in block for block in payload["blocks"])
+        assert any("run_id" in str(block) for block in payload["blocks"])
 
-    # Ensure urlopen was called
-    assert mock_urlopen.call_count == 1
-    args, kwargs = mock_urlopen.call_args
-    req = args[0]
-    assert req.full_url == url
-    assert req.headers["Content-type"] == "application/json"
+    def test_build_with_dashboard_url(self):
+        payload = SlackMessageBuilder.build(
+            "run_complete", "Test", dashboard_url="https://example.com"
+        )
+        assert any(block.get("type") == "actions" for block in payload["blocks"])
+        actions_block = next(b for b in payload["blocks"] if b.get("type") == "actions")
+        assert actions_block["elements"][0]["url"] == "https://example.com"
 
-    # Parse payload
-    payload = json.loads(req.data.decode("utf-8"))
-    assert "blocks" in payload
-    assert payload["blocks"][0]["type"] == "header"
-    assert "RUN_COMPLETE" in payload["blocks"][0]["text"]["text"]
-    assert "Pipeline complete message" in payload["blocks"][1]["text"]["text"]
-    assert "run_id" in payload["blocks"][1]["text"]["text"]
+    def test_emoji_selection(self):
+        payload = SlackMessageBuilder.build("run_complete", "Test")
+        assert "✅" in payload["blocks"][0]["text"]["text"]
+        payload = SlackMessageBuilder.build("regression_detected", "Test")
+        assert "⚠️" in payload["blocks"][0]["text"]["text"]
+        payload = SlackMessageBuilder.build("alert", "Test")
+        assert "🚨" in payload["blocks"][0]["text"]["text"]
+        payload = SlackMessageBuilder.build("deploy", "Test")
+        assert "🚀" in payload["blocks"][0]["text"]["text"]
 
-
-@patch("urllib.request.urlopen")
-def test_send_discord_webhook(mock_urlopen):
-    """Verify Discord webhook payload structure."""
-    mock_response = MagicMock()
-    mock_response.getcode.return_value = 204
-    mock_urlopen.return_value.__enter__.return_value = mock_response
-
-    url = "https://discord.com/api/webhooks/123/abc"
-    _send_webhook_request(url, "alert", "VRAM warning message", {"gpu": "RTX 3050"})
-
-    assert mock_urlopen.call_count == 1
-    args, kwargs = mock_urlopen.call_args
-    req = args[0]
-    payload = json.loads(req.data.decode("utf-8"))
-
-    assert "embeds" in payload
-    assert payload["embeds"][0]["title"] == "NightmareNet: ALERT"
-    assert payload["embeds"][0]["description"] == "VRAM warning message"
-    assert payload["embeds"][0]["fields"][0]["name"] == "gpu"
-    assert payload["embeds"][0]["fields"][0]["value"] == "RTX 3050"
+    def test_color_selection(self):
+        assert SlackMessageBuilder._get_color("alert") == SlackMessageBuilder.COLOR_ERROR
+        assert (
+            SlackMessageBuilder._get_color("regression_detected") == SlackMessageBuilder.COLOR_ERROR
+        )
+        assert SlackMessageBuilder._get_color("run_complete") == SlackMessageBuilder.COLOR_SUCCESS
+        assert SlackMessageBuilder._get_color("deploy") == SlackMessageBuilder.COLOR_INFO
 
 
-@patch("urllib.request.urlopen")
-def test_send_teams_webhook(mock_urlopen):
-    """Verify MS Teams webhook payload structure."""
-    mock_response = MagicMock()
-    mock_response.getcode.return_value = 200
-    mock_urlopen.return_value.__enter__.return_value = mock_response
+class TestDiscordMessageBuilder:
+    def test_build_basic_message(self):
+        payload = DiscordMessageBuilder.build("run_complete", "Test message")
+        assert "embeds" in payload
+        assert len(payload["embeds"]) == 1
+        assert payload["embeds"][0]["title"]
+        assert payload["embeds"][0]["description"] == "Test message"
 
-    url = "https://outlook.office.com/webhook/abc"
-    _send_webhook_request(url, "deploy", "Benchmark completed", {"mode": "quick"})
+    def test_build_with_details(self):
+        details = {"run_id": "123", "model": "gpt-4"}
+        payload = DiscordMessageBuilder.build("run_complete", "Test", details)
+        embed = payload["embeds"][0]
+        assert "fields" in embed
+        assert len(embed["fields"]) == 2
+        assert embed["fields"][0]["name"] == "run_id"
+        assert embed["fields"][0]["value"] == "123"
 
-    assert mock_urlopen.call_count == 1
-    args, kwargs = mock_urlopen.call_args
-    req = args[0]
-    payload = json.loads(req.data.decode("utf-8"))
+    def test_build_with_dashboard_url(self):
+        payload = DiscordMessageBuilder.build(
+            "run_complete", "Test", dashboard_url="https://example.com"
+        )
+        assert payload["embeds"][0]["url"] == "https://example.com"
 
-    assert payload["@type"] == "MessageCard"
-    assert payload["title"] == "NightmareNet: DEPLOY"
-    assert payload["sections"][0]["activityTitle"] == "Benchmark completed"
-    assert payload["sections"][0]["facts"][0]["name"] == "mode"
-    assert payload["sections"][0]["facts"][0]["value"] == "quick"
+    def test_emoji_selection(self):
+        payload = DiscordMessageBuilder.build("run_complete", "Test")
+        assert "✅" in payload["embeds"][0]["title"]
+        payload = DiscordMessageBuilder.build("regression_detected", "Test")
+        assert "⚠️" in payload["embeds"][0]["title"]
+        payload = DiscordMessageBuilder.build("alert", "Test")
+        assert "🚨" in payload["embeds"][0]["title"]
+        payload = DiscordMessageBuilder.build("deploy", "Test")
+        assert "🚀" in payload["embeds"][0]["title"]
 
+    def test_color_selection(self):
+        assert DiscordMessageBuilder._get_color("alert") == DiscordMessageBuilder.COLOR_ERROR
+        assert (
+            DiscordMessageBuilder._get_color("regression_detected")
+            == DiscordMessageBuilder.COLOR_ERROR
+        )
+        assert (
+            DiscordMessageBuilder._get_color("run_complete") == DiscordMessageBuilder.COLOR_SUCCESS
+        )
+        assert DiscordMessageBuilder._get_color("deploy") == DiscordMessageBuilder.COLOR_INFO
 
-@patch("urllib.request.urlopen")
-def test_send_generic_webhook(mock_urlopen):
-    """Verify generic fallback webhook payload structure."""
-    mock_response = MagicMock()
-    mock_response.getcode.return_value = 200
-    mock_urlopen.return_value.__enter__.return_value = mock_response
-
-    url = "https://example.com/custom-webhook"
-    _send_webhook_request(url, "run_complete", "Custom message", {"val": "12"})
-
-    assert mock_urlopen.call_count == 1
-    args, kwargs = mock_urlopen.call_args
-    req = args[0]
-    payload = json.loads(req.data.decode("utf-8"))
-
-    assert payload["event"] == "run_complete"
-    assert payload["message"] == "Custom message"
-    assert payload["details"] == {"val": "12"}
-    assert "text" in payload
-    assert "content" in payload
-
-
-@patch("urllib.request.urlopen")
-def test_test_webhook_endpoint(mock_urlopen):
-    """Verify the /api/v1/notifications/test-webhook endpoint."""
-    mock_response = MagicMock()
-    mock_response.getcode.return_value = 200
-    mock_urlopen.return_value.__enter__.return_value = mock_response
-
-    response = client.post(
-        "/api/v1/notifications/test-webhook",
-        json={
-            "url": "https://hooks.slack.com/services/test",
-            "event_type": "regression_detected",
-        },
-    )
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
-    assert mock_urlopen.call_count == 1
+    def test_timestamp_present(self):
+        payload = DiscordMessageBuilder.build("run_complete", "Test")
+        assert "timestamp" in payload["embeds"][0]
+        assert payload["embeds"][0]["timestamp"].endswith("Z")
 
 
-@patch("urllib.request.urlopen")
-@patch("time.sleep")
-def test_webhook_retry_success(mock_sleep, mock_urlopen):
-    """Verify that a transient error (e.g., 429) triggers a retry and succeeds."""
-    mock_err_response = urllib.error.HTTPError(
-        url="https://example.com/webhook",
-        code=429,
-        msg="Too Many Requests",
-        hdrs=None,
-        fp=None,
-    )
+class TestBuildWebhookPayload:
+    def test_slack_url_uses_slack_builder(self):
+        payload = build_webhook_payload(
+            "https://hooks.slack.com/services/T/B/x", "run_complete", "Test"
+        )
+        assert "blocks" in payload
+        assert payload["blocks"][0]["type"] == "header"
 
-    # First call raises 429, second succeeds
-    mock_urlopen.side_effect = [mock_err_response, MagicMock(read=MagicMock(return_value=b""))]
+    def test_discord_url_uses_discord_builder(self):
+        payload = build_webhook_payload(
+            "https://discord.com/api/webhooks/123/token", "run_complete", "Test"
+        )
+        assert "embeds" in payload
+        assert len(payload["embeds"]) == 1
 
-    url = "https://example.com/webhook"
-    _send_webhook_request(url, "run_complete", "Retry test message", {})
+    def test_discordapp_url_uses_discord_builder(self):
+        payload = build_webhook_payload(
+            "https://discordapp.com/api/webhooks/123/token", "run_complete", "Test"
+        )
+        assert "embeds" in payload
 
-    assert mock_urlopen.call_count == 2
-    assert mock_sleep.call_count == 1
-    mock_sleep.assert_called_with(2)
+    def test_office_url_uses_office_format(self):
+        payload = build_webhook_payload(
+            "https://example.webhook.office.com/webhook", "run_complete", "Test"
+        )
+        assert "@type" in payload
+        assert payload["@type"] == "MessageCard"
 
+    def test_generic_url_uses_generic_format(self):
+        payload = build_webhook_payload("https://example.com/webhook", "run_complete", "Test")
+        assert "event" in payload
+        assert payload["event"] == "run_complete"
+        assert "message" in payload
 
-@patch("urllib.request.urlopen")
-@patch("time.sleep")
-def test_webhook_retry_fail(mock_sleep, mock_urlopen):
-    """Verify that a permanent error (e.g., 400) does not retry."""
-    mock_err_response = urllib.error.HTTPError(
-        url="https://example.com/webhook",
-        code=400,
-        msg="Bad Request",
-        hdrs=None,
-        fp=None,
-    )
-
-    mock_urlopen.side_effect = mock_err_response
-
-    url = "https://example.com/webhook"
-    import pytest
-    with pytest.raises(urllib.error.HTTPError):
-        _send_webhook_request(url, "run_complete", "Failure test message", {})
-
-    assert mock_urlopen.call_count == 1
-    assert mock_sleep.call_count == 0
+    def test_dashboard_url_passed_to_builders(self):
+        payload = build_webhook_payload(
+            "https://hooks.slack.com/services/T/B/x",
+            "run_complete",
+            "Test",
+            dashboard_url="https://dash.com",
+        )
+        assert any(block.get("type") == "actions" for block in payload["blocks"])

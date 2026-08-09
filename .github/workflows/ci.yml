@@ -10,16 +10,20 @@ jobs:
   test:
     name: Tests & Lint (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.11", "3.12"]
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -29,8 +33,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev,api]"
 
-      - name: Lint with ruff
-        run: ruff check nightmarenet/ scripts/ tests/
+      # Ruff lint/format run in .github/workflows/pre-commit.yml (avoids duplicate checks)
 
       - name: Type check with mypy (strict, baseline-enforced)
         # Strict mode is enforced repo-wide, but pre-existing violations in
@@ -52,44 +55,98 @@ jobs:
           echo "No new type errors. All findings are pre-existing and tracked in mypy_baseline.txt."
 
       - name: Run tests with coverage
-        run: pytest --cov=nightmarenet --cov-report=xml --cov-report=term-missing
+        env:
+          HF_HUB_DOWNLOAD_TIMEOUT: 60
+          HF_DATASETS_TIMEOUT: 60
+        run: >
+          PYTHONPATH=.
+          pytest -m "not slow"
+          --cov=nightmarenet
+          --cov-report=xml
+          --cov-report=term-missing
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          flags: unittests
+          name: nightmarenet-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Check OpenAPI spec drift
+        if: matrix.python-version == '3.12'
+        run: PYTHONPATH=. python scripts/export_openapi.py --check
 
       - name: Set up Node.js
         if: matrix.python-version == '3.12'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install frontend dependencies
         if: matrix.python-version == '3.12'
         working-directory: frontend
+        env:
+          NPM_CONFIG_FETCH_RETRIES: 5
+          NPM_CONFIG_FETCH_RETRY_MINTIMEOUT: 20000
+          NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT: 120000
+          NPM_CONFIG_FETCH_TIMEOUT: 300000
         run: npm ci
 
-      - name: Type check frontend (tsc --noEmit, strict)
-        # tsconfig.json already has "strict": true; this just fails fast,
-        # before the full production build, on any type error.
+      - name: Lint frontend
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check frontend
         if: matrix.python-version == '3.12'
         working-directory: frontend
         run: npx tsc --noEmit
 
-      - name: Lint frontend (ESLint)
-        # no-explicit-any is a warning for now (see eslint.config.mjs); this
-        # step is informational only and does not fail CI until the
-        # pre-existing violations are cleaned up.
+      - name: Run frontend unit tests
         if: matrix.python-version == '3.12'
         working-directory: frontend
-        run: npm run lint || true
+        run: npm test
 
       - name: Build frontend
         if: matrix.python-version == '3.12'
         working-directory: frontend
         run: npm run build
 
+      - name: Check frontend bundle size
+        if: matrix.python-version == '3.12' && github.event_name == 'pull_request'
+        uses: andresz1/size-limit-action@94bc357df29c36c8f8d50ea497c3e225c3c95d1d # v1.8.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          directory: frontend
+          skip_step: build
+
+      - name: Install Playwright Chromium
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Run accessibility tests
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npm run test:a11y -- --project=chromium
+
+      - name: Upload Playwright report
+        if: always() && matrix.python-version == '3.12'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: playwright-accessibility-report
+          path: frontend/playwright-report/
+          if-no-files-found: ignore
+
       - name: Upload coverage
         if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report
           path: coverage.xml
@@ -101,10 +158,10 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
           cache: pip
@@ -134,7 +191,7 @@ jobs:
 
       - name: Upload security reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: security-reports
           path: |
@@ -157,13 +214,13 @@ jobs:
             dockerfile: docker/Dockerfile.worker
             tag: nightmarenet/worker:ci
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
       - name: Build ${{ matrix.image }} image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}

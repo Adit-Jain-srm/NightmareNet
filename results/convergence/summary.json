@@ -1,0 +1,84 @@
+{
+  "timestamp": "2026-07-23T17:19:54.309067+00:00",
+  "target_fraction": 0.95,
+  "models": {
+    "distilbert-base-uncased": {
+      "robustness_by_cycle": [
+        0.6675,
+        0.706521,
+        0.72454,
+        0.732861,
+        0.736703,
+        0.738478,
+        0.739297,
+        0.739675,
+        0.73985,
+        0.739931,
+        0.739968,
+        0.739985,
+        0.739993,
+        0.739997,
+        0.739999,
+        0.739999,
+        0.74,
+        0.74,
+        0.74,
+        0.74
+      ],
+      "diminishing_returns": {
+        "cycle": 5,
+        "target_fraction": 0.95,
+        "baseline": 0.6675,
+        "peak": 0.74,
+        "target_score": 0.736375,
+        "note": "95% of max robustness gain (0.6675 \u2192 0.7400) first reached at cycle 5"
+      },
+      "source": "calibrate"
+    },
+    "prajjwal1/bert-tiny": {
+      "robustness_by_cycle": [
+        0.630176,
+        0.671587,
+        0.700733,
+        0.721247,
+        0.735686,
+        0.745849,
+        0.753001,
+        0.758036,
+        0.761579,
+        0.764073,
+        0.765828,
+        0.767064,
+        0.767933,
+        0.768545,
+        0.768976,
+        0.769279,
+        0.769493,
+        0.769643,
+        0.769749,
+        0.769823
+      ],
+      "diminishing_returns": {
+        "cycle": 10,
+        "target_fraction": 0.95,
+        "baseline": 0.630176,
+        "peak": 0.769823,
+        "target_score": 0.762841,
+        "note": "95% of max robustness gain (0.6302 \u2192 0.7698) first reached at cycle 10"
+      },
+      "source": "calibrate"
+    }
+  },
+  "plot": "results/convergence/robustness_vs_cycle.svg",
+  "recommendations": {
+    "num_cycles": 12,
+    "convergence_threshold": 0.005,
+    "convergence_patience": 2,
+    "auto_terminate": true,
+    "rationale": "95% of peak robustness gain arrived by cycle 5\u201310 across models; default num_cycles=12 leaves headroom, with auto_terminate (threshold=0.005, patience=2) to stop earlier when deltas flatten.",
+    "observed_95pct_cycles": {
+      "min": 5,
+      "max": 10
+    }
+  }
+}

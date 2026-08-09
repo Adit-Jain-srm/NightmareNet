@@ -6,6 +6,7 @@ import { Panel } from "./Panel";
 import { Badge } from "@/components/ui/Badge";
 import { Select } from "@/components/ui/Select";
 import { Progress } from "@/components/ui/Progress";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useDemoMode } from "@/lib/hooks";
 import { IconTrend } from "./icons";
 
@@ -104,6 +105,7 @@ export function ModelComparison() {
   const [a, setA] = useState("base");
   const [b, setB] = useState("hardened");
   const { isLive } = useDemoMode();
+  const hasEnoughModels = Object.keys(MODELS).length >= 2;
   const ma = MODELS[a];
   const mb = MODELS[b];
 
@@ -114,56 +116,69 @@ export function ModelComparison() {
       icon={<IconTrend size={14} />}
       glow="neural"
       toolbar={
-        <div className="flex items-center gap-2">
-          {!isLive && <Badge variant="warning" size="xs">demo data</Badge>}
-          <Badge variant="neural" size="xs">5 metrics</Badge>
-        </div>
+        hasEnoughModels ? (
+          <div className="flex items-center gap-2">
+            {!isLive && <Badge variant="warning" size="xs">demo data</Badge>}
+            <Badge variant="neural" size="xs">5 metrics</Badge>
+          </div>
+        ) : undefined
       }
     >
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Select
-          size="sm"
-          label="Model A"
-          value={a}
-          onChange={setA}
-          options={Object.values(MODELS).map((m) => ({ value: m.id, label: m.name }))}
+      {!hasEnoughModels ? (
+        <EmptyState
+          icon={<IconTrend size={18} />}
+          title="Insufficient models"
+          description="Model comparison requires at least two models. Add another model to compare performance."
+          primary={{ label: "Add Model", onClick: () => {} }}
         />
-        <Select
-          size="sm"
-          label="Model B"
-          value={b}
-          onChange={setB}
-          options={Object.values(MODELS).map((m) => ({ value: m.id, label: m.name }))}
-        />
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Select
+              size="sm"
+              label="Model A"
+              value={a}
+              onChange={setA}
+              options={Object.values(MODELS).map((m) => ({ value: m.id, label: m.name }))}
+            />
+            <Select
+              size="sm"
+              label="Model B"
+              value={b}
+              onChange={setB}
+              options={Object.values(MODELS).map((m) => ({ value: m.id, label: m.name }))}
+            />
+          </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
-        <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] p-2.5">
-          <p className="text-[10px] uppercase tracking-widest text-emerald-300">Model A</p>
-          <p className="truncate text-sm text-slate-100">{ma.name}</p>
-          <p className="text-[10px] text-slate-400">{ma.size} · {ma.flops} · trained on {ma.trainedOn}</p>
-        </div>
-        <div className="rounded-lg border border-slate-500/15 bg-white/[0.02] p-2.5">
-          <p className="text-[10px] uppercase tracking-widest text-slate-400">Model B</p>
-          <p className="truncate text-sm text-slate-100">{mb.name}</p>
-          <p className="text-[10px] text-slate-400">{mb.size} · {mb.flops} · trained on {mb.trainedOn}</p>
-        </div>
-      </div>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] p-2.5">
+              <p className="text-[10px] uppercase tracking-widest text-emerald-300">Model A</p>
+              <p className="truncate text-sm text-slate-100">{ma.name}</p>
+              <p className="text-[10px] text-slate-400">{ma.size} · {ma.flops} · trained on {ma.trainedOn}</p>
+            </div>
+            <div className="rounded-lg border border-slate-500/15 bg-white/[0.02] p-2.5">
+              <p className="text-[10px] uppercase tracking-widest text-slate-400">Model B</p>
+              <p className="truncate text-sm text-slate-100">{mb.name}</p>
+              <p className="text-[10px] text-slate-400">{mb.size} · {mb.flops} · trained on {mb.trainedOn}</p>
+            </div>
+          </div>
 
-      <div className="mt-4 space-y-1 border-t border-white/[0.04] pt-2">
-        <MetricRow label="Robustness" a={ma.robustness} b={mb.robustness} format={(n) => n.toFixed(0)} />
-        <MetricRow label="Accuracy" a={ma.accuracy} b={mb.accuracy} format={(n) => `${n.toFixed(1)}%`} />
-        <MetricRow label="Latency" a={ma.latency} b={mb.latency} higherIsBetter={false} format={(n) => `${n}ms`} />
-        <MetricRow label="Compute Cost" a={ma.cost} b={mb.cost} higherIsBetter={false} format={(n) => `${n.toFixed(2)}×`} />
-      </div>
+          <div className="mt-4 space-y-1 border-t border-white/[0.04] pt-2">
+            <MetricRow label="Robustness" a={ma.robustness} b={mb.robustness} format={(n) => n.toFixed(0)} />
+            <MetricRow label="Accuracy" a={ma.accuracy} b={mb.accuracy} format={(n) => `${n.toFixed(1)}%`} />
+            <MetricRow label="Latency" a={ma.latency} b={mb.latency} higherIsBetter={false} format={(n) => `${n}ms`} />
+            <MetricRow label="Compute Cost" a={ma.cost} b={mb.cost} higherIsBetter={false} format={(n) => `${n.toFixed(2)}×`} />
+          </div>
 
-      <div className="mt-3">
-        <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Composite score</p>
-        <div className="grid grid-cols-2 gap-2">
-          <Progress value={(ma.robustness + ma.accuracy) / 2} tone="success" size="sm" showValue label={ma.name.split(" · ")[1] ?? "A"} />
-          <Progress value={(mb.robustness + mb.accuracy) / 2} tone="neural" size="sm" showValue label={mb.name.split(" · ")[1] ?? "B"} />
-        </div>
-      </div>
+          <div className="mt-3">
+            <p className="mb-1 text-[10px] uppercase tracking-widest text-slate-400">Composite score</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Progress value={(ma.robustness + ma.accuracy) / 2} tone="success" size="sm" showValue label={ma.name.split(" · ")[1] ?? "A"} />
+              <Progress value={(mb.robustness + mb.accuracy) / 2} tone="neural" size="sm" showValue label={mb.name.split(" · ")[1] ?? "B"} />
+            </div>
+          </div>
+        </>
+      )}
     </Panel>
   );
 }

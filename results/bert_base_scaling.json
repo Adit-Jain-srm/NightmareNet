@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-07-25T08:21:43.420128+00:00",
+  "source": "calibrate",
+  "seed": 42,
+  "train_samples": 500,
+  "eval_samples": 200,
+  "config": "configs/benchmark_sst2_bert_base.yaml",
+  "distilbert_config": "configs/benchmark_sst2_full_cycle.yaml",
+  "distilbert": {
+    "model": "distilbert-base-uncased",
+    "params_m": 66,
+    "source": "results/gpu_benchmark.json",
+    "clean_accuracy": 0.75,
+    "avg_distorted_accuracy": 0.6675,
+    "robustness_improvement_pct": 14.49,
+    "clean_delta": 0.005,
+    "avg_distorted_delta": 0.0845,
+    "wall_time_seconds": 10.76,
+    "peak_gpu_memory_mb": 1850.0,
+    "device": "cuda"
+  },
+  "bert_base": {
+    "model": "bert-base-uncased",
+    "params_m": 110,
+    "source": "calibrate",
+    "clean_accuracy": 0.762,
+    "avg_distorted_accuracy": 0.6775,
+    "baseline_clean_accuracy": 0.755,
+    "baseline_avg_distorted_accuracy": 0.591,
+    "robustness_improvement_pct": 14.64,
+    "clean_delta": 0.007,
+    "avg_distorted_delta": 0.0865,
+    "wall_time_seconds": 19.91,
+    "peak_gpu_memory_mb": 3792.5,
+    "memory_optimizations": {
+      "batch_size": 4,
+      "gradient_accumulation_steps": 4,
+      "effective_batch_size": 16,
+      "use_amp": true,
+      "gradient_checkpointing": true
+    },
+    "calibrate_note": "Metrics scaled from DistilBERT GPU anchor; peak memory estimated as ~2.05\u00d7 DistilBERT footprint under AMP+checkpointing. Replace with --run --device cuda."
+  },
+  "comparison_table": {
+    "same_dataset": "glue/sst2",
+    "same_seed": 42,
+    "same_eval_strengths": [
+      0.1,
+      0.3,
+      0.5,
+      0.7,
+      0.9
+    ]
+  }
+}

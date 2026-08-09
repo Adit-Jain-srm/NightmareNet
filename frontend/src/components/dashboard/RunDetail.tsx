@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Panel } from "./Panel";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
 import { useToast } from "@/components/ui/Toast";
-import { cancelPipeline, getPipelineReport } from "@/lib/api";
+import { cancelPipeline, getPipelineReport, createPipeline } from "@/lib/api";
 import {
   IconActivity,
   IconClock,
@@ -19,9 +20,14 @@ import {
 type PhaseTab = "wake" | "dream" | "nightmare" | "compress";
 
 interface RunConfig {
+  sourceType: "urls" | "huggingface" | "text";
   modelName: string;
+  modelType: string;
   nightmareStrength: number;
   dreamStrength: number;
+  numCycles: number;
+  textContent: string;
+  seed?: number;
 }
 
 interface MutationPreset {
@@ -29,14 +35,18 @@ interface MutationPreset {
   label: string;
   detail: string;
   mutate: (cfg: RunConfig) => RunConfig;
-  // Inline diff description rendered next to each preset.
   diff: (cfg: RunConfig) => string;
 }
 
 const BASE_CONFIG: RunConfig = {
+  sourceType: "text",
   modelName: "DistilBERT",
+  modelType: "causal_lm",
   nightmareStrength: 0.5,
   dreamStrength: 0.25,
+  numCycles: 5,
+  textContent: "",
+  seed: 42,
 };
 
 const PRESETS: MutationPreset[] = [
@@ -151,11 +161,13 @@ const PHASE_DATA: Record<
 function ReRunMenu({ config }: { config: RunConfig }) {
   const [open, setOpen] = useState(false);
   const [focusIdx, setFocusIdx] = useState(0);
+  const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const inFlight = useRef(false);
 
-  // Close on Escape and on outside click.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
@@ -186,28 +198,50 @@ function ReRunMenu({ config }: { config: RunConfig }) {
     };
   }, [open]);
 
-  // Move focus when the active index changes (keyboard nav).
   useEffect(() => {
     if (!open) return;
     buttonRefs.current[focusIdx]?.focus();
   }, [focusIdx, open]);
 
-  const fire = (preset: MutationPreset) => {
-    const next = preset.mutate(config);
-    toast.push({
-      title: `Re-run queued · ${preset.label}`,
-      description:
-        preset.id === "same"
-          ? "Reusing the original configuration."
-          : preset.diff(config),
-      variant: "info",
-      durationMs: 3200,
-    });
-    // TODO: wire to POST /api/v1/pipeline/create with this mutated config.
-    // For now the queue surface lives only client-side so reviewers can
-    // exercise the UX without an active training cluster.
-    console.log("[RunDetail] re-run requested", { preset: preset.id, config: next });
-    setOpen(false);
+  const fire = async (preset: MutationPreset) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setLoading(true);
+    try {
+      const next = preset.mutate(config);
+      const res = await createPipeline({
+        source_type: next.sourceType,
+        model_name: next.modelName,
+        model_type: next.modelType,
+        num_cycles: next.numCycles,
+        nightmare_strength: next.nightmareStrength,
+        dream_strength: next.dreamStrength,
+        ...(next.textContent ? { text_content: next.textContent } : {}),
+        ...(next.seed !== undefined ? { seed: next.seed } : {}),
+      });
+
+      toast.push({
+        title: `Re-run queued · ${preset.label}`,
+        description:
+          preset.id === "same"
+            ? "Reusing the original configuration."
+            : preset.diff(config),
+        variant: "info",
+        durationMs: 3200,
+      });
+      setOpen(false);
+      router.push(`/run/${res.run_id}`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "An unexpected error occurred";
+      toast.push({
+        title: "Re-run failed",
+        description: message,
+        variant: "error",
+      });
+    } finally {
+      inFlight.current = false;
+      setLoading(false);
+    }
   };
 
   return (
@@ -218,8 +252,10 @@ function ReRunMenu({ config }: { config: RunConfig }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        loading={loading}
+        disabled={loading}
       >
-        <IconRunning size={12} /> Re-run
+        <IconRunning size={12} /> {loading ? "Re-running..." : "Re-run"}
       </Button>
       <AnimatePresence>
         {open && (
@@ -249,6 +285,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
                     }}
                     type="button"
                     role="menuitem"
+                    disabled={loading}
                     onClick={() => fire(preset)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") {
@@ -260,6 +297,7 @@ function ReRunMenu({ config }: { config: RunConfig }) {
                     className={[
                       "group flex w-full cursor-pointer flex-col gap-1 px-3 py-2 text-left transition-colors",
                       "hover:bg-white/[0.04] focus-visible:bg-white/[0.04] focus-visible:outline-none",
+                      "disabled:cursor-not-allowed disabled:opacity-50",
                     ].join(" ")}
                   >
                     <span className="flex items-center justify-between">

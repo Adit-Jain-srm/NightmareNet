@@ -8,7 +8,7 @@ The task streams pipeline events to two sinks:
    subscribed WebSocket client for live UI updates.
 
 When Celery is not installed, ``run_pipeline_task`` degrades to a plain
-synchronous function so the rest of the platform (and the existing 297-test
+synchronous function so the rest of the platform (and the existing 522+-test
 suite) continues to work unmodified.
 """
 
@@ -87,6 +87,36 @@ def _update_run_status(
     except Exception:
         logger.exception("Failed to update run %s", run_id)
         session.rollback()
+    finally:
+        session.close()
+
+
+def _upsert_search_index(session_factory: Any, run_id: str) -> None:
+    """Best-effort semantic indexing for completed runs."""
+    try:
+        from nightmarenet_server.models import AuditLog, Run
+        from nightmarenet_server.search.embedder import ExperimentEmbedder, document_from_orm
+        from nightmarenet_server.search.endpoints import get_index
+    except ImportError:
+        return
+
+    session = session_factory()
+    try:
+        run = session.get(Run, run_id)
+        if run is None:
+            return
+        experiment = getattr(run, "experiment", None)
+        audit_logs = []
+        if experiment is not None:
+            audit_logs = (
+                session.query(AuditLog)
+                .filter(AuditLog.resource_id.in_([run.id, experiment.id]))
+                .all()
+            )
+        doc = document_from_orm(run, experiment=experiment, audit_logs=audit_logs)
+        get_index().add(doc.run_id, ExperimentEmbedder().embed_run(doc), doc.metadata())
+    except Exception:
+        logger.exception("Failed to update search index for run %s", run_id)
     finally:
         session.close()
 
@@ -185,6 +215,7 @@ def execute_pipeline(run_id: str, config: Dict[str, Any]) -> Dict[str, Any]:
         run_id,
         {"type": "completed", "run_id": run_id, "metrics": metrics},
     )
+    _upsert_search_index(session_factory, run_id)
     return metrics
 
 

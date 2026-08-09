@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect, useMemo } from "react";
+import { motion, Reorder } from "framer-motion";
+import { useVisitTracker } from "../../hooks/useVisitTracker";
 import {
   IconActivity,
   IconBeaker,
@@ -17,6 +19,8 @@ import {
   IconSparkle,
   IconTrend,
   IconWand,
+  IconChevronRight,
+  IconX,
 } from "./icons";
 
 export type DashboardSectionKey =
@@ -70,113 +74,260 @@ const NAV: NavGroup[] = [
   },
 ];
 
+const ALL_ITEMS = NAV.flatMap((g) => g.items);
+const VALID_KEYS = ALL_ITEMS.map((i) => i.key);
+
 export interface SidebarProps {
   activeSection: DashboardSectionKey;
   onSectionChange: (key: DashboardSectionKey) => void;
   collapsed?: boolean;
+  onToggleCollapse?: () => void;
+  mobileMenuOpen?: boolean;
+  onMobileMenuClose?: () => void;
 }
 
 export function Sidebar({
   activeSection,
   onSectionChange,
   collapsed = false,
+  onToggleCollapse,
+  mobileMenuOpen = false,
+  onMobileMenuClose,
 }: SidebarProps) {
+  const { isLoaded, totalVisits, visitCounts, customOrder, registerVisit, setCustomOrder } =
+    useVisitTracker(VALID_KEYS);
+
+  useEffect(() => {
+    if (isLoaded) {
+      registerVisit(activeSection);
+    }
+  }, [activeSection, isLoaded, registerVisit]);
+
+  const displayItems = useMemo(() => {
+    if (customOrder.length > 0) {
+      const itemMap = new Map(ALL_ITEMS.map((item) => [item.key, item]));
+      const result = [];
+      for (const key of customOrder) {
+        if (itemMap.has(key)) {
+          result.push(itemMap.get(key)!);
+          itemMap.delete(key);
+        }
+      }
+      for (const item of ALL_ITEMS) {
+        if (itemMap.has(item.key)) {
+          result.push(item);
+        }
+      }
+      return result;
+    }
+
+    if (totalVisits >= 10) {
+      return [...ALL_ITEMS].sort((a, b) => {
+        const countA = visitCounts[a.key] || 0;
+        const countB = visitCounts[b.key] || 0;
+        if (countB !== countA) return countB - countA;
+        return ALL_ITEMS.indexOf(a) - ALL_ITEMS.indexOf(b);
+      });
+    }
+
+    return null;
+  }, [customOrder, totalVisits, visitCounts]);
+
   return (
-    <aside
-      className={[
-        "sticky top-0 hidden h-screen shrink-0 border-r border-white/[0.05] bg-void/80 backdrop-blur-xl md:flex md:flex-col",
-        collapsed ? "w-[68px]" : "w-[232px]",
-        "transition-[width] duration-200",
-      ].join(" ")}
-    >
-      <div className="flex h-14 items-center gap-2 border-b border-white/[0.05] px-4">
-        <motion.span
-          initial={{ scale: 0.85, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          className="relative flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-dream to-neural shadow-[0_0_16px_rgba(34,211,238,0.4)]"
+    <>
+      {/* Mobile Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity md:hidden"
+          onClick={onMobileMenuClose}
           aria-hidden="true"
-        >
-          <IconShield size={14} />
-        </motion.span>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-sm font-semibold tracking-tight text-slate-100">NightmareNet</p>
-            <p className="text-[10px] uppercase tracking-widest text-slate-400">Sprint · 03</p>
-          </div>
-        )}
-      </div>
-
-      <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {NAV.map((group, gi) => (
-          <div key={group.label} className={gi > 0 ? "mt-4" : ""}>
+        />
+      )}
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 z-40 flex h-full flex-col border-r border-white/[0.05] bg-void/95 backdrop-blur-xl transition-all duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:shrink-0 md:bg-void/80",
+          mobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0 md:shadow-none",
+          collapsed ? "md:w-[68px]" : "md:w-[232px]",
+          "w-[260px]",
+        ].join(" ")}
+        aria-label="Sidebar navigation"
+      >
+        <div className="flex h-14 items-center justify-between gap-2 border-b border-white/[0.05] px-4">
+          <div className="flex items-center gap-2">
+            <motion.span
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              className="relative flex h-7 w-7 items-center justify-center rounded-md bg-gradient-to-br from-dream to-neural shadow-[0_0_16px_rgba(34,211,238,0.4)]"
+              aria-hidden="true"
+            >
+              <IconShield size={14} />
+            </motion.span>
             {!collapsed && (
-              <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-600">
-                {group.label}
-              </p>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold tracking-tight text-slate-100">NightmareNet</p>
+                <p className="text-[10px] uppercase tracking-widest text-slate-400">Sprint · 03</p>
+              </div>
             )}
-            <ul className="space-y-0.5">
-              {group.items.map((item) => {
-                const active = activeSection === item.key;
-                return (
-                  <li key={item.key}>
-                    <button
-                      type="button"
-                      onClick={() => onSectionChange(item.key)}
-                      className={[
-                        "group relative flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-[13px] cursor-pointer",
-                        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50",
-                        active
-                          ? "bg-neural/[0.08] text-neural"
-                          : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
-                      ].join(" ")}
-                      aria-current={active ? "page" : undefined}
-                      title={collapsed ? item.label : undefined}
-                    >
-                      {active && (
-                        <motion.span
-                          layoutId="sidebar-active"
-                          className="absolute left-0 top-1.5 h-5 w-0.5 rounded-r bg-neural shadow-[0_0_8px_var(--color-neural)]"
-                        />
-                      )}
-                      <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
-                      {!collapsed && (
-                        <>
-                          <span className="flex-1 truncate">{item.label}</span>
-                          {item.badge && (
-                            <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
-                              {item.badge}
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
           </div>
-        ))}
-      </nav>
+          <div className="flex items-center gap-1">
+            {onToggleCollapse && (
+              <button
+                type="button"
+                onClick={onToggleCollapse}
+                className="hidden min-h-[36px] min-w-[36px] items-center justify-center rounded-md text-slate-400 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50 md:inline-flex"
+                aria-expanded={!collapsed}
+                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                <IconChevronRight className={["transition-transform duration-200", collapsed ? "" : "rotate-180"].join(" ")} size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onMobileMenuClose}
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-slate-400 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50 md:hidden"
+              aria-expanded={mobileMenuOpen}
+              aria-label="Close sidebar"
+            >
+              <IconX size={20} />
+            </button>
+          </div>
+        </div>
 
-      <div className="border-t border-white/[0.05] px-2 py-3">
-        {!collapsed ? (
-          <div className="rounded-lg border border-dream/20 bg-dream/[0.04] p-3">
-            <div className="mb-1.5 flex items-center gap-1.5">
-              <IconSparkle size={12} />
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-dream-soft">
-                Robustness
-              </span>
+        <nav className="flex-1 overflow-y-auto px-2 py-3">
+          {displayItems ? (
+            <div className="mt-2">
+              {!collapsed && (
+                <div className="mb-2 px-2 flex items-center justify-between">
+                  <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-300">
+                    Your Top Views
+                  </p>
+                </div>
+              )}
+              <Reorder.Group
+                axis="y"
+                values={displayItems}
+                onReorder={(newItems) => setCustomOrder(newItems.map((i) => i.key))}
+                className="space-y-0.5"
+              >
+                {displayItems.map((item) => {
+                  const active = activeSection === item.key;
+                  return (
+                    <Reorder.Item
+                      key={item.key}
+                      value={item.key}
+                      className="relative"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onSectionChange(item.key)}
+                        className={[
+                          "group relative flex w-full items-center gap-2.5 rounded-md px-2 min-h-[44px] md:min-h-0 md:py-1.5 text-left text-[13px] cursor-pointer",
+                          "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50",
+                          active
+                            ? "bg-neural/[0.08] text-neural"
+                            : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
+                        ].join(" ")}
+                        aria-label={item.label}
+                        aria-current={active ? "page" : undefined}
+                        title={collapsed ? item.label : undefined}
+                      >
+                        {active && (
+                          <motion.span
+                            layoutId="sidebar-active"
+                            className="absolute left-0 top-1.5 h-5 w-0.5 rounded-r bg-neural shadow-[0_0_8px_var(--color-neural)]"
+                          />
+                        )}
+                        <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
+                        {!collapsed && (
+                          <>
+                            <span className="flex-1 truncate">{item.label}</span>
+                            {item.badge && (
+                              <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
+                                {item.badge}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </button>
+                    </Reorder.Item>
+                  );
+                })}
+              </Reorder.Group>
             </div>
-            <p className="font-mono text-lg text-slate-100">82.4</p>
-            <p className="text-[10px] text-slate-400">+4.1 vs last cycle</p>
-          </div>
-        ) : (
-          <div className="flex h-9 items-center justify-center rounded-md bg-dream/[0.06] text-dream-soft">
-            <IconSparkle size={14} />
-          </div>
-        )}
-      </div>
-    </aside>
+          ) : (
+            NAV.map((group, gi) => (
+              <div key={group.label} className={gi > 0 ? "mt-4" : ""}>
+                {!collapsed && (
+                  <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-widest text-slate-300">
+                    {group.label}
+                  </p>
+                )}
+                <ul className="space-y-0.5">
+                  {group.items.map((item) => {
+                    const active = activeSection === item.key;
+                    return (
+                      <li key={item.key}>
+                        <button
+                          type="button"
+                          onClick={() => onSectionChange(item.key)}
+                          className={[
+                            "group relative flex w-full items-center gap-2.5 rounded-md px-2 min-h-[44px] md:min-h-0 md:py-1.5 text-left text-[13px] cursor-pointer",
+                            "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50",
+                            active
+                              ? "bg-neural/[0.08] text-neural"
+                              : "text-slate-400 hover:bg-white/[0.04] hover:text-slate-200",
+                          ].join(" ")}
+                          aria-label={item.label}
+                          aria-current={active ? "page" : undefined}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          {active && (
+                            <motion.span
+                              layoutId="sidebar-active"
+                              className="absolute left-0 top-1.5 h-5 w-0.5 rounded-r bg-neural shadow-[0_0_8px_var(--color-neural)]"
+                            />
+                          )}
+                          <span className="flex h-5 w-5 items-center justify-center">{item.icon}</span>
+                          {!collapsed && (
+                            <>
+                              <span className="flex-1 truncate">{item.label}</span>
+                              {item.badge && (
+                                <span className="rounded-full bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-mono text-slate-400">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))
+          )}
+        </nav>
+
+        <div className="border-t border-white/[0.05] px-2 py-3">
+          {!collapsed ? (
+            <div className="rounded-lg border border-dream/20 bg-dream/[0.04] p-3">
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <IconSparkle size={12} />
+                <span className="text-[10px] font-semibold uppercase tracking-widest text-dream-soft">
+                  Robustness
+                </span>
+              </div>
+              <p className="font-mono text-lg text-slate-100">82.4</p>
+              <p className="text-[10px] text-slate-400">+4.1 vs last cycle</p>
+            </div>
+          ) : (
+            <div className="flex h-9 items-center justify-center rounded-md bg-dream/[0.06] text-dream-soft">
+              <IconSparkle size={14} />
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }

@@ -1,0 +1,79 @@
+{
+  "timestamp": "2026-07-14T07:02:26.898272+00:00",
+  "device": "cpu",
+  "seed": 42,
+  "baseline": {
+    "label": "baseline",
+    "model": "distilbert-base-uncased",
+    "train_samples": 500,
+    "eval_samples": 200,
+    "train_seconds": 40.09,
+    "history": [
+      {
+        "phase": "wake",
+        "loss": 0.6661105496542794
+      }
+    ],
+    "clean_accuracy": 0.755,
+    "distorted_accuracy": {
+      "dream": {
+        "0.1": 0.65,
+        "0.3": 0.64,
+        "0.5": 0.59,
+        "0.7": 0.5,
+        "0.9": 0.52
+      },
+      "nightmare": {
+        "0.1": 0.65,
+        "0.3": 0.635,
+        "0.5": 0.59,
+        "0.7": 0.49,
+        "0.9": 0.55
+      }
+    },
+    "avg_distorted_accuracy": 0.5815,
+    "robustness_drop": 0.1735
+  },
+  "nightmarenet": {
+    "label": "nightmarenet",
+    "model": "distilbert-base-uncased",
+    "train_samples": 500,
+    "eval_samples": 200,
+    "train_seconds": 122.77,
+    "history": [
+      {
+        "phase": "wake",
+        "loss": 0.6536387228776538
+      },
+      {
+        "phase": "nightmare",
+        "loss": 0.6287822846382384
+      }
+    ],
+    "clean_accuracy": 0.775,
+    "distorted_accuracy": {
+      "dream": {
+        "0.1": 0.725,
+        "0.3": 0.72,
+        "0.5": 0.62,
+        "0.7": 0.58,
+        "0.9": 0.56
+      },
+      "nightmare": {
+        "0.1": 0.725,
+        "0.3": 0.72,
+        "0.5": 0.615,
+        "0.7": 0.57,
+        "0.9": 0.585
+      }
+    },
+    "avg_distorted_accuracy": 0.642,
+    "robustness_drop": 0.133
+  },
+  "comparison": {
+    "clean_delta": 0.02,
+    "avg_distorted_delta": 0.0605,
+    "robustness_improvement_pct": 10.4,
+    "robustness_drop_reduction": 0.0405
+  }
+}

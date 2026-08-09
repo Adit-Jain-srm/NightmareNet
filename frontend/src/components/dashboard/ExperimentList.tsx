@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Panel } from "./Panel";
 import { Badge, type BadgeVariant } from "@/components/ui/Badge";
@@ -15,9 +16,14 @@ import { Button } from "@/components/ui/Button";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { InlineEdit } from "@/components/InlineEdit";
+import { DateRangePicker, type DateRange, isInDateRange } from "./DateRangePicker";
+import { searchExperiments, deleteExperiment, updateExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
 import {
   IconBeaker,
   IconDownload,
@@ -25,6 +31,8 @@ import {
   IconKebab,
   IconPlus,
   IconSearch,
+  IconSpinner,
+  IconX,
 } from "./icons";
 
 interface Experiment {
@@ -36,6 +44,7 @@ interface Experiment {
   robustness: number;
   duration: string;
   createdAt: string;
+  config?: PipelineCreateRequest;
 }
 
 const SAMPLE: Experiment[] = [
@@ -67,6 +76,11 @@ interface ToastApi {
 interface RowActionsMenuProps {
   row: Experiment;
   toast: ToastApi;
+  onDelete: (id: string) => void;
+  onRerun: (row: Experiment) => void;
+  onExport: (id: string) => void;
+  onCompare: (id: string) => void;
+  loading: Set<string>;
 }
 
 interface MenuItemDef {
@@ -84,9 +98,12 @@ interface MenuItemDef {
  * outside click. The trigger acts as a stable anchor so the popover can
  * absolutely-position relative to the cell without measuring DOM.
  */
-function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
+function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, loading }: RowActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const router = useRouter();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -116,36 +133,68 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
         label: "Compare to baseline",
         ariaLabel: `Compare ${row.name} to baseline`,
         onSelect: () => {
-          toast.push({
-            title: "Comparing to baseline",
-            description: `${row.name} vs hardened baseline (Δ robustness pending).`,
-            variant: "info",
-          });
-          console.log("[ExperimentList] compare-to-baseline", row.id);
+          router.push(`/compare?ids=${row.id}`);
+          onCompare(row.id);
         },
       },
       {
         label: "Re-run with strength × 1.2",
         ariaLabel: `Re-run ${row.name} with strength × 1.2`,
-        onSelect: () => {
-          toast.push({
-            title: "Re-run queued",
-            description: `${row.name} will run at 1.2× the original strength.`,
-            variant: "success",
-          });
-          console.log("[ExperimentList] rerun-x1.2", row.id);
+        onSelect: async () => {
+          if (!row.config || typeof row.config.dream_strength !== "number" || typeof row.config.nightmare_strength !== "number") {
+            toast.push({
+              title: "Missing configuration",
+              description: "Cannot re-run because the experiment config is missing.",
+              variant: "error",
+            });
+            return;
+          }
+          setIsLoading(true);
+          try {
+            await createPipeline({
+              source_type: row.config.source_type || "text",
+              dream_strength: row.config.dream_strength * 1.2,
+              nightmare_strength: row.config.nightmare_strength * 1.2,
+              model_name: row.model,
+            });
+            toast.push({
+              title: "Re-run queued",
+              description: `${row.name} will run at 1.2× the original strength.`,
+              variant: "success",
+            });
+          } catch (e: any) {
+            toast.push({
+              title: "API Error",
+              description: e.message || "Failed to re-run",
+              variant: "error",
+            });
+          } finally {
+            setIsLoading(false);
+          }
         },
       },
       {
-        label: "Export run report (JSON)",
-        ariaLabel: `Export ${row.name} run report as JSON`,
-        onSelect: () => {
-          toast.push({
-            title: "Export prepared",
-            description: `Generating ${row.id}.json — check downloads in a moment.`,
-            variant: "info",
-          });
-          console.log("[ExperimentList] export-json", row.id);
+        label: "Export run report (CSV)",
+        ariaLabel: `Export ${row.name} run report as CSV`,
+        onSelect: async () => {
+          setIsLoading(true);
+          try {
+            const blob = await exportExperiment(row.id, "csv");
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `experiment-${row.id}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (e: any) {
+            toast.push({
+              title: "API Error",
+              description: e.message || "Failed to export",
+              variant: "error",
+            });
+          } finally {
+            setIsLoading(false);
+          }
         },
       },
       {
@@ -157,7 +206,6 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
             description: "Run-detail deep links land in the next sprint.",
             variant: "warning",
           });
-          console.log("[ExperimentList] open-new-tab", row.id);
         },
       },
       {
@@ -165,16 +213,11 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
         ariaLabel: `Delete ${row.name}`,
         variant: "danger",
         onSelect: () => {
-          toast.push({
-            title: "Delete requires confirmation",
-            description: `${row.name} stays for now — confirmation flow ships next.`,
-            variant: "warning",
-          });
-          console.log("[ExperimentList] delete-requested", row.id);
+          setDeleteConfirmOpen(true);
         },
       },
     ],
-    [row, toast]
+    [row, toast, router]
   );
 
   return (
@@ -188,7 +231,6 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
         "hover:opacity-100 focus-within:opacity-100",
         "[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover/row:opacity-100",
       ].join(" ")}
-      onClick={(e) => e.stopPropagation()}
     >
       <button
         type="button"
@@ -199,14 +241,16 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
           e.stopPropagation();
           setOpen((v) => !v);
         }}
+        disabled={loading.has(row.id)}
         className={[
           "inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md",
           "border border-transparent text-slate-400",
           "transition-colors hover:border-white/10 hover:bg-white/[0.05] hover:text-slate-100",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neural/50",
+          loading.has(row.id) ? "opacity-50 cursor-not-allowed" : "",
         ].join(" ")}
       >
-        <IconKebab size={14} />
+        {loading.has(row.id) ? <IconSpinner size={14} /> : <IconKebab size={14} />}
       </button>
       <AnimatePresence>
         {open && (
@@ -231,8 +275,9 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
                   type="button"
                   role="menuitem"
                   aria-label={item.ariaLabel}
-                  onClick={() => {
-                    item.onSelect();
+                  disabled={isLoading}
+                  onClick={async () => {
+                    await item.onSelect();
                     close();
                   }}
                   className={[
@@ -252,6 +297,49 @@ function RowActionsMenu({ row, toast }: RowActionsMenuProps) {
           </motion.div>
         )}
       </AnimatePresence>
+      <Modal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Delete Experiment"
+        subtitle={`Are you sure you want to delete ${row.name}?`}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              loading={isLoading}
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  await deleteExperiment(row.id);
+                  toast.push({
+                    title: "Experiment deleted",
+                    description: `${row.name} has been deleted.`,
+                    variant: "success",
+                  });
+                  setDeleteConfirmOpen(false);
+                } catch (e: any) {
+                  toast.push({
+                    title: "API Error",
+                    description: e.message || "Failed to delete",
+                    variant: "error",
+                  });
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              Confirm Delete
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-300">
+          This action cannot be undone. All data and metrics for this experiment will be permanently lost.
+        </p>
+      </Modal>
     </div>
   );
 }
@@ -267,26 +355,146 @@ export function ExperimentList({
   onSectionChange,
   experiments,
 }: ExperimentListProps = {}) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // Initialise date range from URL params for shareable filter state.
+  const [dateRange, setDateRange] = useState<DateRange>(() => {
+    const preset = (searchParams.get("dateRange") ?? "all") as DateRange["preset"];
+    return {
+      preset,
+      startDate: searchParams.get("startDate") ?? undefined,
+      endDate: searchParams.get("endDate") ?? undefined,
+    };
+  });
+
+  // Persist date range selection in URL query params.
+  const handleDateRangeChange = useCallback(
+    (range: DateRange) => {
+      setDateRange(range);
+      const params = new URLSearchParams(searchParams.toString());
+      if (range.preset === "all") {
+        params.delete("dateRange");
+        params.delete("startDate");
+        params.delete("endDate");
+      } else {
+        params.set("dateRange", range.preset);
+        if (range.preset === "custom") {
+          if (range.startDate) params.set("startDate", range.startDate);
+          else params.delete("startDate");
+          if (range.endDate) params.set("endDate", range.endDate);
+          else params.delete("endDate");
+        } else {
+          params.delete("startDate");
+          params.delete("endDate");
+        }
+      }
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [searchParams, pathname, router],
+  );
+
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | Experiment["status"]>("all");
+  const [modelFilter, setModelFilter] = useState<string>("all");
+  const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
+  const [semanticPending, setSemanticPending] = useState(false);
+  const [semanticError, setSemanticError] = useState<false | "rate_limit" | "generic">(false);
+  const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [experimentToDelete, setExperimentToDelete] = useState<string | null>(null);
   const toast = useToast();
+  const [localNames, setLocalNames] = useState<Record<string, string>>({});
 
   // `experiments` defaults to the demo sample — callers can pass `[]` to
   // exercise the empty state, or a real dataset once the runs API is wired.
-  const source = experiments ?? SAMPLE;
+  const source = useMemo(() => {
+    const base = experiments ?? SAMPLE;
+    if (Object.keys(localNames).length === 0) return base;
+    return base.map((exp) =>
+      localNames[exp.id] ? { ...exp, name: localNames[exp.id] } : exp
+    );
+  }, [experiments, localNames]);
+
+  const uniqueModels = useMemo(() => {
+    const models = new Set(source.map((r) => r.model).filter(Boolean));
+    return Array.from(models).sort();
+  }, [source]);
+
+  useEffect(() => {
+    if (modelFilter !== "all" && !uniqueModels.includes(modelFilter)) {
+      setModelFilter("all");
+    }
+  }, [modelFilter, uniqueModels]);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    setSemanticIds(null);
+    if (trimmed.length < 3) {
+      setSemanticPending(false);
+      setSemanticError(false);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      const statusFilter =
+        filter === "all"
+          ? undefined
+          : { status: filter === "complete" ? "completed" : filter };
+      setSemanticPending(true);
+      setSemanticError(false);
+      searchExperiments(trimmed, 12, statusFilter)
+        .then((response) => {
+          if (cancelled) return;
+          setSemanticIds(response.results.map((result) => result.run_id));
+        })
+        .catch((err) => {
+          if (cancelled) return;
+          setSemanticIds(null);
+          const isRateLimited = err?.status === 429 || err?.message?.includes("429");
+          setSemanticError(isRateLimited ? "rate_limit" : "generic");
+        })
+        .finally(() => {
+          if (!cancelled) setSemanticPending(false);
+        });
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [query, filter]);
 
   const rows = useMemo(() => {
-    return source.filter((r) => {
-      if (filter !== "all" && r.status !== filter) return false;
-      if (!query.trim()) return true;
-      const q = query.toLowerCase();
-      return (
-        r.name.toLowerCase().includes(q) ||
-        r.id.toLowerCase().includes(q) ||
-        r.model.toLowerCase().includes(q)
-      );
-    });
-  }, [query, filter, source]);
+    const semanticRank = new Map((semanticIds ?? []).map((id, idx) => [id, idx]));
+    return source
+      .filter((r) => {
+        // Status filter
+        if (filter !== "all" && r.status !== filter) return false;
+        // Date range filter (AND logic)
+        if (!isInDateRange(r.createdAt, dateRange)) return false;
+        if (modelFilter !== "all" && r.model !== modelFilter) return false;
+        // Text / semantic search filter
+        if (!query.trim()) return true;
+        if (semanticRank.has(r.id)) return true;
+        const q = query.toLowerCase();
+        return (
+          r.name.toLowerCase().includes(q) ||
+          r.id.toLowerCase().includes(q) ||
+          r.model.toLowerCase().includes(q)
+        );
+      })
+      .sort((a, b) => {
+        const aRank = semanticRank.get(a.id);
+        const bRank = semanticRank.get(b.id);
+        if (aRank === undefined && bRank === undefined) return 0;
+        if (aRank === undefined) return 1;
+        if (bRank === undefined) return -1;
+        return aRank - bRank;
+      });
+  }, [query, filter, dateRange, modelFilter, source, semanticIds]);
 
   const sourceEmpty = source.length === 0;
 
@@ -304,9 +512,150 @@ export function ExperimentList({
         description: "Open the Benchmarks section from the sidebar to start a run.",
         variant: "info",
       });
-      console.log("[ExperimentList] empty-state primary: no onSectionChange wired");
     }
   }, [onSectionChange, toast]);
+
+  const handleRename = useCallback(async (id: string, newName: string) => {
+    // Optimistic update
+    setLocalNames(prev => ({ ...prev, [id]: newName }));
+    try {
+      await updateExperiment(id, { name: newName });
+    } catch (error) {
+      // Revert on failure
+      setLocalNames(prev => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      toast.push({
+        title: "Rename failed",
+        description: "Failed to update experiment name.",
+        variant: "error",
+      });
+      throw error; // Let InlineEdit know it failed
+    }
+  }, [toast]);
+
+  const handleDelete = useCallback((id: string) => {
+    setExperimentToDelete(id);
+    setDeleteConfirmOpen(true);
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!experimentToDelete) return;
+
+    setLoadingActions((prev) => new Set(prev).add(experimentToDelete));
+
+    try {
+      await deleteExperiment(experimentToDelete);
+      toast.push({
+        title: "Experiment deleted",
+        description: "The experiment has been successfully removed.",
+        variant: "success",
+      });
+      // Note: List refresh requires architectural changes (experiments passed as props)
+      // Consider passing a refresh callback or moving to local state management
+    } catch (error) {
+      toast.push({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Failed to delete experiment",
+        variant: "error",
+      });
+    } finally {
+      setLoadingActions((prev) => {
+        const next = new Set(prev);
+        next.delete(experimentToDelete);
+        return next;
+      });
+      setDeleteConfirmOpen(false);
+      setExperimentToDelete(null);
+    }
+  }, [experimentToDelete, toast]);
+
+  const handleRerun = useCallback(async (row: Experiment) => {
+    setLoadingActions((prev) => new Set(prev).add(row.id));
+
+    try {
+      const baseConfig = row.config || {
+        source_type: "text" as const,
+        text_content: "",
+        model_name: row.model,
+        model_type: "causal_lm" as const,
+        num_cycles: row.cycles,
+        dream_strength: 0.25,
+        nightmare_strength: 0.8,
+      };
+
+      // Apply 1.2x strength multiplier for re-run
+      const config = {
+        ...baseConfig,
+        dream_strength: (baseConfig.dream_strength ?? 0.25) * 1.2,
+        nightmare_strength: (baseConfig.nightmare_strength ?? 0.8) * 1.2,
+      };
+
+      await createPipeline(config);
+      toast.push({
+        title: "Re-run queued",
+        description: `${row.name} will run at 1.2× the original strength.`,
+        variant: "success",
+      });
+    } catch (error) {
+      toast.push({
+        title: "Re-run failed",
+        description: error instanceof Error ? error.message : "Failed to queue re-run",
+        variant: "error",
+      });
+    } finally {
+      setLoadingActions((prev) => {
+        const next = new Set(prev);
+        next.delete(row.id);
+        return next;
+      });
+    }
+  }, [toast]);
+
+  const handleExport = useCallback(async (id: string) => {
+    setLoadingActions((prev) => new Set(prev).add(id));
+
+    try {
+      const response = await exportExperiment(id, "csv");
+      const url = URL.createObjectURL(response);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${id}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast.push({
+        title: "Export prepared",
+        description: `${id}.csv downloaded successfully.`,
+        variant: "info",
+      });
+    } catch (error) {
+      toast.push({
+        title: "Export failed",
+        description: error instanceof Error ? error.message : "Failed to export experiment",
+        variant: "error",
+      });
+    } finally {
+      setLoadingActions((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }, [toast]);
+
+  const handleCompare = useCallback((id: string) => {
+    // Navigate to compare page with selected experiment ID
+    // For now, we'll show a toast since the compare page doesn't exist yet
+    toast.push({
+      title: "Comparing to baseline",
+      description: `Navigate to /compare?ids=${id} to compare experiments.`,
+      variant: "info",
+    });
+    // In a real implementation: window.location.href = `/compare?ids=${id}`;
+  }, [toast]);
 
   const columns: DataTableColumn<Experiment>[] = [
     {
@@ -316,7 +665,11 @@ export function ExperimentList({
       sortable: true,
       cell: (r) => (
         <div className="min-w-0">
-          <p className="truncate text-sm text-slate-100">{r.name}</p>
+          <InlineEdit
+            value={r.name}
+            onSave={(newName) => handleRename(r.id, newName)}
+            className="truncate text-sm text-slate-100 block"
+          />
           <p className="font-mono text-[10px] text-slate-400">{r.id}</p>
         </div>
       ),
@@ -355,7 +708,7 @@ export function ExperimentList({
       align: "right",
       cell: (r) =>
         r.robustness === 0 ? (
-          <span className="text-slate-600">—</span>
+          <span className="text-slate-300">—</span>
         ) : (
           <span
             className={[
@@ -388,7 +741,17 @@ export function ExperimentList({
       accessor: () => "",
       align: "right",
       width: "44px",
-      cell: (r): ReactNode => <RowActionsMenu row={r} toast={toast} />,
+      cell: (r): ReactNode => (
+        <RowActionsMenu
+          row={r}
+          toast={toast}
+          onDelete={handleDelete}
+          onRerun={handleRerun}
+          onExport={handleExport}
+          onCompare={handleCompare}
+          loading={loadingActions}
+        />
+      ),
     },
   ];
 
@@ -405,8 +768,9 @@ export function ExperimentList({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             leftIcon={<IconSearch size={12} />}
-            containerClassName="w-44"
+            containerClassName="w-56"
             className="!py-1.5 !text-xs"
+            aria-label="Search experiments"
           />
           <Select
             size="sm"
@@ -421,6 +785,28 @@ export function ExperimentList({
               { value: "queued", label: "Queued" },
             ]}
           />
+          <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+          <Select
+            size="sm"
+            value={modelFilter}
+            onChange={(v) => setModelFilter(v)}
+            className="w-36"
+            options={[
+              { value: "all", label: "All models" },
+              ...uniqueModels.map((m) => ({ value: m, label: m })),
+            ]}
+          />
+          {modelFilter !== "all" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Clear model filter"
+              onClick={() => setModelFilter("all")}
+              title="Clear model filter"
+            >
+              <IconX size={12} />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" aria-label="Filter" onClick={() => setFilter(filter === "all" ? "running" : "all")} title="Toggle running filter">
             <IconFilter size={12} />
           </Button>
@@ -446,6 +832,15 @@ export function ExperimentList({
       }
       bodyClassName={loading || sourceEmpty ? "px-4 py-4" : "px-0 py-0"}
     >
+      {semanticPending || semanticError ? (
+        <div className="border-b border-white/[0.06] px-4 py-2 text-[11px] text-slate-400">
+          {semanticPending
+            ? "Searching experiment meaning..."
+            : semanticError === "rate_limit"
+              ? "Too many requests (429). Using local matches while cooling down."
+              : "Semantic search unavailable; using local matches."}
+        </div>
+      ) : null}
       {loading ? (
         <SkeletonRows rows={6} />
       ) : sourceEmpty ? (
@@ -463,7 +858,20 @@ export function ExperimentList({
           }}
         />
       ) : (
-        <ExperimentTable columns={columns} rows={rows} />
+        <>
+          <ExperimentTable columns={columns} rows={rows} />
+          <ConfirmDialog
+            open={deleteConfirmOpen}
+            onClose={() => setDeleteConfirmOpen(false)}
+            title="Delete experiment"
+            subtitle="This action cannot be undone. The experiment and all its data will be permanently removed."
+            confirmLabel="Delete"
+            cancelLabel="Cancel"
+            variant="danger"
+            onConfirm={handleConfirmDelete}
+            isLoading={loadingActions.has(experimentToDelete || "")}
+          />
+        </>
       )}
     </Panel>
   );

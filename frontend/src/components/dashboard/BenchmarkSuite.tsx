@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Progress } from "@/components/ui/Progress";
 import { useToast } from "@/components/ui/Toast";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { IconBenchmark, IconCheck, IconRunning } from "./icons";
 
 interface Benchmark {
@@ -41,6 +42,7 @@ const CATEGORY_LABEL: Record<Benchmark["category"], string> = {
 export function BenchmarkSuite() {
   const [running, setRunning] = useState<Record<string, number>>({});
   const toast = useToast();
+  const hasBenchmarks = BENCHMARKS.length > 0;
 
   const start = (b: Benchmark) => {
     if (running[b.id] !== undefined) return;
@@ -79,71 +81,82 @@ export function BenchmarkSuite() {
       icon={<IconBenchmark size={14} />}
       glow="neural"
       toolbar={
-        <Button variant="primary" size="sm" onClick={startAll}>
-          <IconRunning size={11} /> Run all
-        </Button>
+        hasBenchmarks ? (
+          <Button variant="primary" size="sm" onClick={startAll}>
+            <IconRunning size={11} /> Run all
+          </Button>
+        ) : undefined
       }
     >
-      <ul className="space-y-2">
-        {BENCHMARKS.map((b, idx) => {
-          const pct = running[b.id];
-          const isRunning = pct !== undefined;
-          return (
-            <motion.li
-              key={b.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: idx * 0.04 }}
-              className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3"
-            >
-              <div className="flex items-start gap-3">
-                <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-slate-300">
-                  <IconBenchmark size={13} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="text-sm font-semibold text-slate-100">{b.name}</p>
-                    <Badge variant="outline" size="xs">{CATEGORY_LABEL[b.category]}</Badge>
-                    {b.default && <Badge variant="neural" size="xs">default</Badge>}
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-slate-400">{b.description}</p>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
-                    <span>~ {b.duration}</span>
-                    {b.lastScore !== null && (
-                      <span>
-                        last:{" "}
-                        <span className="font-mono text-slate-300">{b.lastScore.toFixed(1)}</span>
-                      </span>
-                    )}
-                    <span className={b.trend >= 0 ? "text-emerald-300" : "text-nightmare-soft"}>
-                      {b.trend >= 0 ? "+" : ""}
-                      {b.trend.toFixed(1)} pts
-                    </span>
-                  </div>
-                  {isRunning && (
-                    <div className="mt-2">
-                      <Progress value={pct} tone="neural" size="xs" indeterminate={pct < 5} />
+      {!hasBenchmarks ? (
+        <EmptyState
+          icon={<IconBenchmark size={18} />}
+          title="No benchmarks available"
+          description="Your benchmark suite is empty. Create or configure benchmarks to begin testing."
+          primary={{ label: "Configure Benchmarks", onClick: () => {} }}
+        />
+      ) : (
+        <ul className="space-y-2">
+          {BENCHMARKS.map((b, idx) => {
+            const pct = running[b.id];
+            const isRunning = pct !== undefined;
+            return (
+              <motion.li
+                key={b.id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: idx * 0.04 }}
+                className="rounded-lg border border-white/[0.05] bg-white/[0.02] p-3"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-white/[0.04] text-slate-300">
+                    <IconBenchmark size={13} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-semibold text-slate-100">{b.name}</p>
+                      <Badge variant="outline" size="xs">{CATEGORY_LABEL[b.category]}</Badge>
+                      {b.default && <Badge variant="neural" size="xs">default</Badge>}
                     </div>
-                  )}
+                    <p className="mt-0.5 text-[11px] text-slate-400">{b.description}</p>
+                    <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-400">
+                      <span>~ {b.duration}</span>
+                      {b.lastScore !== null && (
+                        <span>
+                          last:{" "}
+                          <span className="font-mono text-slate-300">{b.lastScore.toFixed(1)}</span>
+                        </span>
+                      )}
+                      <span className={b.trend >= 0 ? "text-emerald-300" : "text-nightmare-soft"}>
+                        {b.trend >= 0 ? "+" : ""}
+                        {b.trend.toFixed(1)} pts
+                      </span>
+                    </div>
+                    {isRunning && (
+                      <div className="mt-2">
+                        <Progress value={pct} tone="neural" size="xs" indeterminate={pct < 5} />
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    variant={isRunning ? "ghost" : "secondary"}
+                    size="sm"
+                    onClick={() => start(b)}
+                    disabled={isRunning}
+                    loading={isRunning}
+                  >
+                    {isRunning ? "Running…" : (
+                      <>
+                        <IconCheck size={11} /> Run now
+                      </>
+                    )}
+                  </Button>
                 </div>
-                <Button
-                  variant={isRunning ? "ghost" : "secondary"}
-                  size="sm"
-                  onClick={() => start(b)}
-                  disabled={isRunning}
-                  loading={isRunning}
-                >
-                  {isRunning ? "Running…" : (
-                    <>
-                      <IconCheck size={11} /> Run now
-                    </>
-                  )}
-                </Button>
-              </div>
-            </motion.li>
-          );
-        })}
-      </ul>
+              </motion.li>
+            );
+          })}
+        </ul>
+      )}
     </Panel>
   );
 }

@@ -351,34 +351,31 @@ def _detect_llm_backend() -> Optional[str]:
     SDK availability is checked lazily so the OSS install path never requires
     these packages.
     """
-    if os.environ.get("AZURE_OPENAI_API_KEY") and os.environ.get(
-        "AZURE_OPENAI_ENDPOINT"
-    ):
+    if os.environ.get("AZURE_OPENAI_API_KEY") and os.environ.get("AZURE_OPENAI_ENDPOINT"):
         try:
             import openai  # noqa: F401
+
             return "azure"
         except ImportError:
-            logger.debug(
-                "AZURE_OPENAI_API_KEY set but `openai` SDK not importable"
-            )
+            logger.debug("AZURE_OPENAI_API_KEY set but `openai` SDK not importable")
     if os.environ.get("OPENAI_API_KEY"):
         try:
             import openai  # noqa: F401
+
             return "openai"
         except ImportError:
             logger.debug("OPENAI_API_KEY set but `openai` SDK not importable")
     if os.environ.get("ANTHROPIC_API_KEY"):
         try:
             import anthropic  # noqa: F401
+
             return "anthropic"
         except ImportError:
             logger.debug("ANTHROPIC_API_KEY set but `anthropic` SDK not importable")
     return None
 
 
-def _build_user_prompt(
-    question: str, section: str, context: Optional[Dict[str, Any]]
-) -> str:
+def _build_user_prompt(question: str, section: str, context: Optional[Dict[str, Any]]) -> str:
     """Render the user-side LLM prompt with enriched runtime context."""
     ctx = dict(context) if context else {}
 
@@ -386,9 +383,7 @@ def _build_user_prompt(
     try:
         import pathlib
 
-        bench_base = pathlib.Path(
-            os.environ.get("NIGHTMARENET_RESULTS_DIR", "results")
-        )
+        bench_base = pathlib.Path(os.environ.get("NIGHTMARENET_RESULTS_DIR", "results"))
         bench_path = bench_base / "gpu_benchmark.json"
         if bench_path.exists():
             bench = json.loads(bench_path.read_text(encoding="utf-8"))
@@ -416,9 +411,7 @@ def _build_user_prompt(
         from nightmarenet.pipeline_runner import list_runners
 
         runners = list_runners()
-        active = [
-            r for r in runners if r.get("status") in ("running", "preparing")
-        ]
+        active = [r for r in runners if r.get("status") in ("running", "preparing")]
         if active:
             ctx["active_runs"] = len(active)
     except Exception:
@@ -441,9 +434,7 @@ def _build_user_prompt(
 # ---------------------------------------------------------------------------
 
 
-def _heuristic_answer_text(
-    section: str, question: str, context: Optional[Dict[str, Any]]
-) -> str:
+def _heuristic_answer_text(section: str, question: str, context: Optional[Dict[str, Any]]) -> str:
     """Deterministic, context-aware answer string for the heuristic backend."""
     entry = _section_entry(section)
     parts: List[str] = []
@@ -484,9 +475,7 @@ def _openai_model() -> str:
 
 
 def _anthropic_model() -> str:
-    return os.environ.get(
-        "NIGHTMARENET_COPILOT_MODEL", "claude-3-5-haiku-latest"
-    )
+    return os.environ.get("NIGHTMARENET_COPILOT_MODEL", "claude-3-5-haiku-latest")
 
 
 def _azure_deployment() -> str:
@@ -548,9 +537,7 @@ async def _stream_azure(
     client = openai.AsyncAzureOpenAI(
         api_key=os.environ["AZURE_OPENAI_API_KEY"],
         azure_endpoint=os.environ["AZURE_OPENAI_ENDPOINT"],
-        api_version=os.environ.get(
-            "AZURE_OPENAI_API_VERSION", "2025-01-01-preview"
-        ),
+        api_version=os.environ.get("AZURE_OPENAI_API_VERSION", "2025-01-01-preview"),
     )
     prompt = _build_user_prompt(question, section, context)
     stream = await client.chat.completions.create(
@@ -669,8 +656,7 @@ async def _build_non_stream_response(body: CopilotAskRequest) -> Dict[str, Any]:
                 }
         except Exception as exc:
             logger.warning(
-                "Copilot LLM backend '%s' failed (non-stream), "
-                "falling back to heuristic: %s",
+                "Copilot LLM backend '%s' failed (non-stream), falling back to heuristic: %s",
                 backend,
                 exc,
             )
@@ -702,9 +688,7 @@ def register_copilot_routes(app: FastAPI, limiter: Limiter) -> None:
         summary="Ask the NightmareNet copilot",
         responses={
             200: {
-                "description": (
-                    "Either an SSE stream (when stream=true) or a JSON answer."
-                ),
+                "description": ("Either an SSE stream (when stream=true) or a JSON answer."),
                 "content": {
                     "text/event-stream": {
                         "schema": {

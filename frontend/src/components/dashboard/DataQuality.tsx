@@ -78,7 +78,7 @@ function QualitySparkline({ entries }: { entries: QualityEntry[] }) {
       width={width}
       height={height}
       className="w-full max-w-[200px]"
-      role="img"
+      role="group"
       aria-label={`Quality trend: ${entries.length} data points, latest score ${entries[entries.length - 1]?.score.toFixed(0)}%`}
     >
       <defs>

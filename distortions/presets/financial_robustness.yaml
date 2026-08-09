@@ -1,0 +1,22 @@
+name: financial_robustness
+description: Domain-specific distortion chain for financial text models
+version: 1
+
+chain:
+  - engine: dream
+    strength: 0.2
+    description: Simulate OCR/typo errors in scanned documents
+
+  - engine: dream
+    strength: 0.4
+    description: Apply semantic variations to financial terminology
+
+  - engine: nightmare
+    strength: 0.3
+    condition: strength > 0.5
+    description: Adversarial perturbations at higher difficulty levels
+
+defaults:
+  seed: 42
+  preserve_length: false
+  max_retries: 3

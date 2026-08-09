@@ -106,8 +106,10 @@ def main() -> int:
         print(f"Device:   {dev['name']}  (CC {dev['compute_capability']})")
         print(f"Memory:   {dev['free_memory_mb']}/{dev['total_memory_mb']} MB free")
         print(f"Tier:     {report['tier']}")
-        print(f"Mixed precision: fp16={report['mixed_precision']['fp16_supported']}, "
-              f"bf16={report['mixed_precision']['bf16_supported']}")
+        print(
+            f"Mixed precision: fp16={report['mixed_precision']['fp16_supported']}, "
+            f"bf16={report['mixed_precision']['bf16_supported']}"
+        )
     print()
     print("Recommendation:")
     print(f"  {report.get('recommendation', 'OK')}")

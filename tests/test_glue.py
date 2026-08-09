@@ -39,10 +39,12 @@ class TestTokenizeGlueTask:
     def test_single_sentence_task(self):
         from datasets import Dataset
 
-        ds = Dataset.from_dict({
-            "sentence": ["Hello world", "Test sentence"],
-            "label": [0, 1],
-        })
+        ds = Dataset.from_dict(
+            {
+                "sentence": ["Hello world", "Test sentence"],
+                "label": [0, 1],
+            }
+        )
         tokenizer = MagicMock()
         tokenizer.return_value = {
             "input_ids": [[1, 2, 3], [4, 5, 6]],
@@ -55,11 +57,13 @@ class TestTokenizeGlueTask:
     def test_sentence_pair_task(self):
         from datasets import Dataset
 
-        ds = Dataset.from_dict({
-            "sentence1": ["Hello", "Test"],
-            "sentence2": ["World", "Data"],
-            "label": [0, 1],
-        })
+        ds = Dataset.from_dict(
+            {
+                "sentence1": ["Hello", "Test"],
+                "sentence2": ["World", "Data"],
+                "label": [0, 1],
+            }
+        )
         tokenizer = MagicMock()
         tokenizer.return_value = {
             "input_ids": [[1, 2, 3], [4, 5, 6]],
@@ -83,10 +87,12 @@ class TestEvaluateGlueTask:
         """Mocked end-to-end for SST-2."""
         from datasets import Dataset
 
-        val_ds = Dataset.from_dict({
-            "sentence": ["good movie", "bad movie", "great film", "terrible show"],
-            "label": [1, 0, 1, 0],
-        })
+        val_ds = Dataset.from_dict(
+            {
+                "sentence": ["good movie", "bad movie", "great film", "terrible show"],
+                "label": [1, 0, 1, 0],
+            }
+        )
         mock_load.return_value = {"validation": val_ds}
 
         # Create a mock model that returns logits

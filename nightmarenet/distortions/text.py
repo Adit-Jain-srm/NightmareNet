@@ -10,25 +10,34 @@ import logging
 import random
 import string
 
+import regex
+
+from nightmarenet.distortions import char_maps
 from nightmarenet.utils.validation import validate_strength
 
 logger = logging.getLogger(__name__)
 
 
-# Keyboard adjacency map for simulating typos
-KEYBOARD_ADJACENT = {
-    "a": "sqwz", "b": "vngh", "c": "xdfv", "d": "sfcxer",
-    "e": "rdsw", "f": "dgcvrt", "g": "fhbvty", "h": "gjbnyu",
-    "i": "ujko", "j": "hknmui", "k": "jlmio", "l": "kop",
-    "m": "njk", "n": "bmhj", "o": "iklp", "p": "ol",
-    "q": "wa", "r": "etdf", "s": "adwxez", "t": "rfgy",
-    "u": "yhji", "v": "cfgb", "w": "qase", "x": "zsdc",
-    "y": "tghu", "z": "xsa",
-}
+# Keyboard adjacency map for simulating typos. Kept as a public alias of the
+# canonical Latin map in char_maps.latin for backward compatibility --
+# existing code importing KEYBOARD_ADJACENT from this module keeps working.
+KEYBOARD_ADJACENT = char_maps.latin.TYPO_MAP
+
+
+def _graphemes(text: str) -> list:
+    """Split text into grapheme clusters (user-perceived characters).
+
+    Unlike `list(text)`, which splits on raw Unicode code points, this keeps
+    combining marks attached to their base character -- e.g. Arabic tashkeel,
+    Devanagari matras, or accented Latin letters written as base + combining
+    accent. Operating on graphemes instead of code points is what makes the
+    distortions in this module safe to run on non-Latin scripts.
+    """
+    return regex.findall(r"\X", text)
 
 
 def char_swap(text, strength=0.3) -> str:
-    """Randomly swap adjacent characters in the text.
+    """Randomly swap adjacent grapheme clusters in the text.
 
     Args:
         text: Input text string.
@@ -37,9 +46,9 @@ def char_swap(text, strength=0.3) -> str:
     Returns:
         Corrupted text with some adjacent character pairs swapped.
     """
-    if len(text) < 2:
+    chars = _graphemes(text)
+    if len(chars) < 2:
         return text
-    chars = list(text)
     i = 0
     while i < len(chars) - 1:
         if random.random() < strength * 0.3:
@@ -53,6 +62,11 @@ def char_swap(text, strength=0.3) -> str:
 def char_insert(text, strength=0.3) -> str:
     """Randomly insert characters into the text.
 
+    Inserted characters are drawn from the same script as the grapheme they
+    follow (falling back to Latin lowercase for scripts without a typo map),
+    so CJK/Arabic/Cyrillic/Devanagari text doesn't get random Latin noise
+    spliced in.
+
     Args:
         text: Input text string.
         strength: Float 0–1 controlling the probability of insertion at each position.
@@ -62,17 +76,19 @@ def char_insert(text, strength=0.3) -> str:
     """
     if not text:
         return text
-    chars = list(text)
+    chars = _graphemes(text)
     result = []
     for ch in chars:
         result.append(ch)
         if random.random() < strength * 0.15:
-            result.append(random.choice(string.ascii_lowercase))
+            script = char_maps.detect_script(ch)
+            pool = list(char_maps.get_typo_map(script).keys()) or list(string.ascii_lowercase)
+            result.append(random.choice(pool))
     return "".join(result)
 
 
 def char_delete(text, strength=0.3) -> str:
-    """Randomly delete characters from the text.
+    """Randomly delete grapheme clusters from the text.
 
     Args:
         text: Input text string.
@@ -83,11 +99,15 @@ def char_delete(text, strength=0.3) -> str:
     """
     if not text:
         return text
-    return "".join(ch for ch in text if random.random() > strength * 0.15)
+    return "".join(ch for ch in _graphemes(text) if random.random() > strength * 0.15)
 
 
 def keyboard_typo(text, strength=0.3) -> str:
-    """Replace characters with keyboard-adjacent characters to simulate typos.
+    """Replace characters with QWERTY-keyboard-adjacent characters (Latin only).
+
+    Kept as a Latin-only, backward-compatible entry point. For script-aware
+    typo simulation across CJK/Arabic/Cyrillic/Devanagari text, use
+    `typo_injection` instead.
 
     Args:
         text: Input text string.
@@ -98,12 +118,79 @@ def keyboard_typo(text, strength=0.3) -> str:
     """
     if not text:
         return text
-    chars = list(text)
+    chars = _graphemes(text)
     for i, ch in enumerate(chars):
         if random.random() < strength * 0.2 and ch.lower() in KEYBOARD_ADJACENT:
             adjacent = KEYBOARD_ADJACENT[ch.lower()]
             replacement = random.choice(adjacent)
             chars[i] = replacement.upper() if ch.isupper() else replacement
+    return "".join(chars)
+
+
+def typo_injection(text, strength=0.3) -> str:
+    """Replace characters with script-appropriate confused characters.
+
+    Unicode-aware, multi-script equivalent of `keyboard_typo`: each grapheme
+    cluster is matched against the typo map for its own script (Latin
+    keyboard-adjacency, Cyrillic ЙЦУКЕН-adjacency, Arabic dotted-letter
+    confusion, CJK visually-similar-character confusion, Devanagari
+    consonant/matra confusion), so mixed-script text gets plausible
+    per-script noise instead of being skipped or corrupted.
+
+    Args:
+        text: Input text string.
+        strength: Float 0–1 controlling the probability of each character being replaced.
+
+    Returns:
+        Corrupted text with script-aware character replacements.
+    """
+    if not text:
+        return text
+    chars = _graphemes(text)
+    for i, ch in enumerate(chars):
+        if random.random() >= strength * 0.2:
+            continue
+        script = char_maps.detect_script(ch)
+        typo_map = char_maps.get_typo_map(script)
+        base = ch.lower() if script in ("latin", "cyrillic") else ch
+        if base not in typo_map:
+            continue
+        replacement = random.choice(typo_map[base])
+        if script in ("latin", "cyrillic") and ch.isupper():
+            replacement = replacement.upper()
+        chars[i] = replacement
+    return "".join(chars)
+
+
+def homoglyph_substitution(text, strength=0.3) -> str:
+    """Replace characters with visually-similar Unicode homoglyphs.
+
+    Uses a curated subset of the Unicode confusables database (see
+    char_maps/*.py) to substitute characters with look-alikes -- often from
+    a different script, e.g. Latin "a" -> Cyrillic "а". This simulates
+    homograph-style corruption (the same class of confusion used in IDN
+    homograph attacks) across Latin, Cyrillic, Arabic, CJK, and Devanagari
+    text.
+
+    Args:
+        text: Input text string.
+        strength: Float 0–1 controlling the probability of each character being replaced.
+
+    Returns:
+        Corrupted text with homoglyph substitutions applied.
+    """
+    if not text:
+        return text
+    chars = _graphemes(text)
+    for i, ch in enumerate(chars):
+        if random.random() >= strength * 0.2:
+            continue
+        script = char_maps.detect_script(ch)
+        confusables = char_maps.get_confusables(script)
+        base = ch.lower() if script in ("latin", "cyrillic") else ch
+        if base not in confusables or not confusables[base]:
+            continue
+        chars[i] = random.choice(confusables[base])
     return "".join(chars)
 
 
@@ -151,9 +238,7 @@ def token_mask(text, strength=0.3, mask_token="[MASK]") -> str:
     words = text.split()
     if not words:
         return text
-    return " ".join(
-        mask_token if random.random() < strength * 0.3 else w for w in words
-    )
+    return " ".join(mask_token if random.random() < strength * 0.3 else w for w in words)
 
 
 def token_replace(text, strength=0.3, vocabulary=None) -> str:
@@ -169,22 +254,86 @@ def token_replace(text, strength=0.3, vocabulary=None) -> str:
     """
     if vocabulary is None:
         vocabulary = [
-            "the", "of", "and", "to", "in", "is", "it", "that", "was", "for",
-            "on", "are", "with", "as", "his", "they", "be", "at", "one", "have",
-            "this", "from", "by", "hot", "word", "but", "what", "some", "we",
-            "can", "out", "other", "were", "all", "there", "when", "up", "use",
-            "your", "how", "each", "she", "which", "do", "their", "time", "if",
-            "will", "way", "about", "many", "then", "them", "would", "write",
-            "like", "so", "these", "her", "long", "make", "thing", "see", "him",
-            "two", "has", "look", "more", "day", "could", "go", "come", "did",
+            "the",
+            "of",
+            "and",
+            "to",
+            "in",
+            "is",
+            "it",
+            "that",
+            "was",
+            "for",
+            "on",
+            "are",
+            "with",
+            "as",
+            "his",
+            "they",
+            "be",
+            "at",
+            "one",
+            "have",
+            "this",
+            "from",
+            "by",
+            "hot",
+            "word",
+            "but",
+            "what",
+            "some",
+            "we",
+            "can",
+            "out",
+            "other",
+            "were",
+            "all",
+            "there",
+            "when",
+            "up",
+            "use",
+            "your",
+            "how",
+            "each",
+            "she",
+            "which",
+            "do",
+            "their",
+            "time",
+            "if",
+            "will",
+            "way",
+            "about",
+            "many",
+            "then",
+            "them",
+            "would",
+            "write",
+            "like",
+            "so",
+            "these",
+            "her",
+            "long",
+            "make",
+            "thing",
+            "see",
+            "him",
+            "two",
+            "has",
+            "look",
+            "more",
+            "day",
+            "could",
+            "go",
+            "come",
+            "did",
         ]
 
     words = text.split()
     if not words:
         return text
     return " ".join(
-        random.choice(vocabulary) if random.random() < strength * 0.2 else w
-        for w in words
+        random.choice(vocabulary) if random.random() < strength * 0.2 else w for w in words
     )
 
 
@@ -220,6 +369,8 @@ def apply_text_distortions(text, strength=0.3, config=None) -> str:
             "char_insert": char_insert,
             "char_delete": char_delete,
             "keyboard_typo": keyboard_typo,
+            "typo_injection": typo_injection,
+            "homoglyph_substitution": homoglyph_substitution,
             "word_shuffle": word_shuffle,
             "token_mask": token_mask,
         }

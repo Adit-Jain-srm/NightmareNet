@@ -49,10 +49,13 @@ def main():
 
         # Load config
         config = load_config(args.config)
-        urls = config.pop("scrape_urls", [
-            "https://en.wikipedia.org/wiki/Machine_learning",
-            "https://en.wikipedia.org/wiki/Neural_network_(machine_learning)",
-        ])
+        urls = config.pop(
+            "scrape_urls",
+            [
+                "https://en.wikipedia.org/wiki/Machine_learning",
+                "https://en.wikipedia.org/wiki/Neural_network_(machine_learning)",
+            ],
+        )
 
         logger.info("=" * 60)
         logger.info("NightmareNet Demo Pipeline")

@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useState,
   useCallback,
   type ReactNode,
@@ -32,8 +33,13 @@ function getSystemTheme(): ResolvedTheme {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>("system");
-  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>("dark");
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>("dark");
   const [mounted, setMounted] = useState(false);
+
+  const resolvedTheme = useMemo<ResolvedTheme>(
+    () => (theme === "system" ? systemTheme : theme),
+    [theme, systemTheme]
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -41,6 +47,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     if (stored && ["dark", "light", "system"].includes(stored)) {
       setThemeState(stored);
     }
+    setSystemTheme(getSystemTheme());
     const root = document.documentElement;
     if (!root.classList.contains("dark") && !root.classList.contains("light")) {
       root.classList.add("dark");
@@ -50,14 +57,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!mounted) return;
 
-    const resolved = theme === "system" ? getSystemTheme() : theme;
-    setResolvedTheme(resolved);
-
     const root = document.documentElement;
     root.classList.remove("dark", "light");
-    root.classList.add(resolved);
+    root.classList.add(resolvedTheme);
 
-    if (resolved === "light") {
+    if (resolvedTheme === "light") {
       root.style.setProperty("--color-void", "#ffffff");
       root.style.setProperty("--color-abyss", "#f8fafc");
       root.style.setProperty("--color-deep", "#e2e8f0");
@@ -74,14 +78,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       root.style.setProperty("--color-text", "#f1f5f9");
       root.style.setProperty("--color-text-dim", "#94a3b8");
     }
-  }, [theme, mounted]);
+  }, [resolvedTheme, mounted]);
 
   useEffect(() => {
     if (!mounted || theme !== "system") return;
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = () => {
-      setResolvedTheme(getSystemTheme());
+      setSystemTheme(getSystemTheme());
     };
 
     mediaQuery.addEventListener("change", handleChange);
