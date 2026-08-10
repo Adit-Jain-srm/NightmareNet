@@ -300,7 +300,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 def cmd_benchmark(args: argparse.Namespace) -> int:
     """Run inference-performance or robustness benchmarks."""
-    if getattr(args, "batch_sizes", None):
+    if getattr(args, "batch_sizes", None) is not None:
         import torch
         import yaml
         from transformers import (
