@@ -735,7 +735,7 @@ Run a standard benchmark suite (SST-2, AG News, IMDB) with reproducible seeds.
 nightmarenet benchmark --suite standard --model distilbert-base-uncased
 ```
 
-```markdown
+
 #### Inference Performance Benchmark
 
 Benchmark model inference performance across configurable batch sizes. The command reports average latency, throughput, and peak GPU memory when CUDA is available. At least five warmup iterations are excluded from timing.
