@@ -1,4 +1,4 @@
-.PHONY: help test lint typecheck format check frontend-build frontend-test openapi all clean
+.PHONY: help test lint typecheck format check frontend-build frontend-test openapi verify-stack all clean
 
 help:
 	@echo "Available targets:"
@@ -10,6 +10,7 @@ help:
 	@echo "  make openapi        - regenerate docs/api/openapi.json"
 	@echo "  make frontend-build - build the Next.js frontend"
 	@echo "  make frontend-test  - run frontend tests"
+	@echo "  make verify-stack   - verify a running docker compose stack is healthy"
 	@echo "  make all            - check + frontend-build (full CI equivalent)"
 
 # Mirrors: .github/workflows/ci.yml -> "Run tests with coverage"
@@ -29,6 +30,11 @@ format:
 
 openapi:
 	PYTHONPATH=. python scripts/export_openapi.py
+
+# Verifies a running `docker compose up` stack (or `--profile hosted`, via
+# VERIFY_STACK_ARGS) is healthy. See scripts/verify_docker_compose.py.
+verify-stack:
+	python scripts/verify_docker_compose.py $(VERIFY_STACK_ARGS)
 
 check: lint typecheck test
 	@echo "All checks passed."
