@@ -106,11 +106,8 @@ def homoglyph(text: str, strength: float, seed: int = None) -> str:
     if seed is not None:
         random.seed(seed)
 
- infra/542-configure-sqlalchemy-pool
-    mapping = {'a': 'а', 'e': 'е', 'o': 'о', 'p': 'р'}
-
     mapping = {"a": "а", "e": "е", "o": "о", "p": "р"}
- main
+
     result = []
     for char in text:
         if random.random() < strength and char.lower() in mapping:

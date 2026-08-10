@@ -227,14 +227,11 @@ def _char_similarity(a: str, b: str) -> float:
 _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
 
-
- infra/542-configure-sqlalchemy-pool
 WEBHOOKS_FILE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
 )
 
 
- main
 def _get_test_count() -> Optional[int]:
     """Return the number of collected tests, cached (optionally, dev-only)."""
     flag = os.environ.get("NIGHTMARENET_HEALTH_TEST_COUNT", "0").lower()
@@ -1078,48 +1075,7 @@ async def get_pipeline_report(run_id: str):
     )
 
 
- infra/542-configure-sqlalchemy-pool
-@app.get(
-    "/api/v1/settings/webhooks",
-    response_model=WebhookSettingsResponse,
-    summary="Get webhook settings",
-    tags=["settings"],
-)
-async def get_webhook_settings():
-    """Retrieve the current webhook settings."""
-    if not os.path.exists(WEBHOOKS_FILE_PATH):
-        return WebhookSettingsResponse(webhooks=[])
-    try:
-        with open(WEBHOOKS_FILE_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-            return WebhookSettingsResponse(webhooks=data.get("webhooks", []))
-    except Exception as e:
-        logger.error("Failed to read webhooks: %s", e)
-        return WebhookSettingsResponse(webhooks=[])
-
-
-@app.post(
-    "/api/v1/settings/webhooks",
-    response_model=WebhookSettingsResponse,
-    summary="Save webhook settings",
-    tags=["settings"],
-)
-async def save_webhook_settings(
-    request: Request,
-    body: WebhookSettingsRequest,
-):
-    """Save webhook settings."""
-    try:
-        os.makedirs(os.path.dirname(WEBHOOKS_FILE_PATH), exist_ok=True)
-        with open(WEBHOOKS_FILE_PATH, "w", encoding="utf-8") as f:
-            json.dump({"webhooks": [w.model_dump() for w in body.webhooks]}, f, indent=2)
-        return WebhookSettingsResponse(webhooks=body.webhooks)
-    except Exception as e:
-        logger.error("Failed to save webhooks: %s", e)
-        raise HTTPException(status_code=500, detail="Failed to save webhook settings.") from None
-
 app.include_router(router)
- main
 
 
 @app.get(

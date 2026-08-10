@@ -7,6 +7,7 @@ from sqlalchemy.engine import Engine
 
 # We will test two modules: nightmarenet_server.db and nightmarenet_server.models.base
 
+
 @pytest.fixture
 def clean_db_env():
     """Ensure environment variables are clean before each test."""
@@ -17,13 +18,13 @@ def clean_db_env():
         "NIGHTMARENET_DB_POOL_RECYCLE",
     ]
     original_env = {k: os.environ.get(k) for k in keys}
-    
+
     for k in keys:
         if k in os.environ:
             del os.environ[k]
-            
+
     yield
-    
+
     for k, v in original_env.items():
         if v is None:
             if k in os.environ:
@@ -35,8 +36,9 @@ def clean_db_env():
 def test_db_env_defaults(clean_db_env):
     """Test that default values are used when environment is not set."""
     import nightmarenet_server.db as db
+
     importlib.reload(db)
-    
+
     assert db.DB_POOL_SIZE == 10
     assert db.DB_MAX_OVERFLOW == 20
     assert db.DB_POOL_TIMEOUT == 30
@@ -49,10 +51,11 @@ def test_db_env_overrides(clean_db_env):
     os.environ["NIGHTMARENET_DB_MAX_OVERFLOW"] = "25"
     os.environ["NIGHTMARENET_DB_POOL_TIMEOUT"] = "35"
     os.environ["NIGHTMARENET_DB_POOL_RECYCLE"] = "3605"
-    
+
     import nightmarenet_server.db as db
+
     importlib.reload(db)
-    
+
     assert db.DB_POOL_SIZE == 15
     assert db.DB_MAX_OVERFLOW == 25
     assert db.DB_POOL_TIMEOUT == 35
@@ -63,10 +66,11 @@ def test_db_env_invalid_fallback(clean_db_env):
     """Test that invalid environment variables fall back to defaults gracefully."""
     os.environ["NIGHTMARENET_DB_POOL_SIZE"] = "invalid"
     os.environ["NIGHTMARENET_DB_MAX_OVERFLOW"] = "not_an_int"
-    
+
     import nightmarenet_server.db as db
+
     importlib.reload(db)
-    
+
     assert db.DB_POOL_SIZE == 10
     assert db.DB_MAX_OVERFLOW == 20
 
@@ -74,11 +78,12 @@ def test_db_env_invalid_fallback(clean_db_env):
 def test_engine_sqlite_behavior():
     """Test SQLite engine creation."""
     from nightmarenet_server.models.base import get_engine
-    
+
     engine = get_engine("sqlite:///./test.db")
     assert isinstance(engine, Engine)
     assert engine.url.drivername == "sqlite"
-    # SQLite engines shouldn't have pool_size (they use NullPool or SingletonThreadPool depending on args)
+    # SQLite engines shouldn't have pool_size
+    # (they use NullPool or SingletonThreadPool depending on args)
     # The important part is that we didn't pass pool_size to create_engine
     assert getattr(engine.pool, "_pool_size", None) is None
 
@@ -86,11 +91,11 @@ def test_engine_sqlite_behavior():
 @mock.patch("nightmarenet_server.models.base.create_engine")
 def test_engine_non_sqlite_arguments(mock_create_engine):
     """Test non-SQLite engine creation passes the right pool arguments."""
-    from nightmarenet_server.models.base import get_engine
     import nightmarenet_server.db as db
-    
+    from nightmarenet_server.models.base import get_engine
+
     get_engine("postgresql://user:pass@localhost/db")
-    
+
     mock_create_engine.assert_called_once()
     _, kwargs = mock_create_engine.call_args
     assert kwargs["pool_size"] == db.DB_POOL_SIZE
