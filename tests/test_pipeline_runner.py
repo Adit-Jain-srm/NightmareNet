@@ -19,8 +19,16 @@ from nightmarenet.pipeline_runner import (
 
 
 class _FakePipeline:
+    def __init__(self) -> None:
+        from nightmarenet.pipeline import PipelineMetrics
+        self.metrics = PipelineMetrics()
+        self.config: dict = {}
+
     def cancel(self) -> None:
         pass
+
+    def evaluate(self) -> dict:
+        return {}
 
 
 def test_register_evicts_completed_runners_first(monkeypatch) -> None:
