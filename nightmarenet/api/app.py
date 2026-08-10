@@ -39,14 +39,12 @@ logger = logging.getLogger(__name__)
 try:
     from fastapi import Body, FastAPI, HTTPException, Query, Request, UploadFile
     from fastapi.middleware.cors import CORSMiddleware
-    from slowapi import Limiter
     from slowapi.errors import RateLimitExceeded
     from slowapi.middleware import SlowAPIMiddleware
-    from slowapi.util import get_remote_address
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
-    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
+    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH, limiter
     from nightmarenet.api.schemas import (
         CompareRequest,
         CompareResponse,
@@ -151,7 +149,7 @@ _rate_limit_enabled = os.environ.get("RATELIMIT_ENABLED", "true").lower() not in
     "off",
     "no",
 )
-limiter = Limiter(key_func=get_remote_address, enabled=_rate_limit_enabled)
+limiter.enabled = _rate_limit_enabled
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 

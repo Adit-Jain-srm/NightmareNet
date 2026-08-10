@@ -64,7 +64,7 @@ class Evaluator:
         if self.tracker is None:
             return
         self.tracker.log_metrics(
-            {f"eval/{k}": v for k, v in metrics.items() if isinstance(v, (int, float))}
+            {f"eval/{prefix}_{k}": v for k, v in metrics.items() if isinstance(v, (int, float))}
         )
 
     def evaluate(
@@ -241,8 +241,10 @@ class Evaluator:
     def _run_certification(self, base_dataset: Any) -> dict[str, Any]:
         """Run certified-robustness verification (randomized smoothing) on a dataset."""
         import nightmarenet.evaluation.evaluator
+
         certify_fn = getattr(nightmarenet.evaluation.evaluator, "certify_dataset", None)
         from nightmarenet.evaluation.evaluator.runners import run_certification
+
         return run_certification(
             self.model,
             self.tokenizer,
@@ -256,9 +258,8 @@ class Evaluator:
     def _run_calibration(self, dataloader: DataLoader) -> dict[str, Any]:
         """Run ECE computation and temperature scaling on the dataloader."""
         from nightmarenet.evaluation.evaluator.runners import run_calibration
-        return run_calibration(
-            self.model, self.device, dataloader, self.eval_config
-        )
+
+        return run_calibration(self.model, self.device, dataloader, self.eval_config)
 
     def compare(
         self,
@@ -267,6 +268,7 @@ class Evaluator:
     ) -> dict[str, Any]:
         """Produce a comparison between baseline and trained model results."""
         from nightmarenet.evaluation.evaluator.comparators import compare_results
+
         return compare_results(self, baseline_results, trained_results)
 
     def save_results(
@@ -276,11 +278,13 @@ class Evaluator:
     ) -> None:
         """Save evaluation results to a JSON file."""
         from nightmarenet.evaluation.evaluator.reporters import save_results
+
         save_results(self, results, filename)
 
     def generate_report(self, comparison: dict[str, Any]) -> str:
         """Generate a markdown report from a comparison dict."""
         from nightmarenet.evaluation.evaluator.reporters import generate_report
+
         return generate_report(self, comparison)
 
     def save_report(
@@ -290,4 +294,5 @@ class Evaluator:
     ) -> str:
         """Generate and save a markdown report."""
         from nightmarenet.evaluation.evaluator.reporters import save_report
+
         return save_report(self, comparison, filename)

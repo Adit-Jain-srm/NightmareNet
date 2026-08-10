@@ -10,6 +10,19 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 
+def _validate_filename(filename: str) -> None:
+    """Validate that filename is a simple filename and does not traverse directories."""
+    if (
+        os.path.isabs(filename)
+        or ".." in filename
+        or "/" in filename
+        or "\\" in filename
+    ):
+        raise ValueError(
+            f"Invalid filename: {filename}. Filename must be a simple name without path components."
+        )
+
+
 def save_results(
     evaluator: Any,
     results: dict[str, Any],
@@ -22,6 +35,7 @@ def save_results(
         results: Results dictionary to save.
         filename: Name of the output file.
     """
+    _validate_filename(filename)
     path = os.path.join(evaluator.output_dir, filename)
     try:
         with open(path, "w") as f:
@@ -139,9 +153,9 @@ def generate_report(evaluator: Any, comparison: dict[str, Any]) -> str:
 
     def _metric_ok(metric_data: dict[str, Any]) -> bool:
         """Check a metric section has no errors in baseline or trained."""
-        return "error" not in metric_data.get(
-            "baseline", {}
-        ) and "error" not in metric_data.get("trained", {})
+        return "error" not in metric_data.get("baseline", {}) and "error" not in metric_data.get(
+            "trained", {}
+        )
 
     lines = [
         "# NightmareNet Evaluation Report",
@@ -240,9 +254,7 @@ def generate_report(evaluator: Any, comparison: dict[str, Any]) -> str:
         tr_auc = r.get("trained", {}).get("auc_robustness", "N/A")
         delta_auc = r.get("deltas", {}).get("auc_robustness", "N/A")
         lines.append(
-            f"| AUC Robustness | {_fmt(bl_auc)} "
-            f"| {_fmt(tr_auc)} "
-            f"| {_fmt(delta_auc, signed=True)} |"
+            f"| AUC Robustness | {_fmt(bl_auc)} | {_fmt(tr_auc)} | {_fmt(delta_auc, signed=True)} |"
         )
 
         # Add statistical significance information
@@ -379,6 +391,7 @@ def save_report(
     Returns:
         Markdown-formatted comparison report.
     """
+    _validate_filename(filename)
     report = generate_report(evaluator, comparison)
     path = os.path.join(evaluator.output_dir, filename)
     with open(path, "w") as f:

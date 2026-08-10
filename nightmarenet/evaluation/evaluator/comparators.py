@@ -97,12 +97,21 @@ def compare_results(
         if delta_auc is not None:
             comparison["robustness_delta"] = delta_auc
 
-    failure_categories = (
-        trained_results.get("failure_categories")
-        or trained_results.get("robustness", {}).get("failure_categories")
-        or baseline_results.get("failure_categories")
-        or baseline_results.get("robustness", {}).get("failure_categories")
-    )
+    failure_categories = None
+    for res in [
+        trained_results.get("failure_categories"),
+        trained_results.get("robustness", {}).get("failure_categories")
+        if isinstance(trained_results.get("robustness"), dict)
+        else None,
+        baseline_results.get("failure_categories"),
+        baseline_results.get("robustness", {}).get("failure_categories")
+        if isinstance(baseline_results.get("robustness"), dict)
+        else None,
+    ]:
+        if res is not None:
+            failure_categories = res
+            break
+
     if failure_categories is not None:
         comparison["failure_categories"] = failure_categories
 
