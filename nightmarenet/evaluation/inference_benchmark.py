@@ -52,6 +52,12 @@ def _build_inputs(
     """Build deterministic inputs suitable for text or generic PyTorch models."""
     if tokenizer is not None:
         text = "The quick brown fox jumps over the lazy dog."
+        if tokenizer.pad_token is None:
+            if tokenizer.eos_token is None:
+                raise ValueError(
+                    "Tokenizer has no pad_token or eos_token; cannot create padded benchmark inputs."
+                )
+            tokenizer.pad_token = tokenizer.eos_token
         return tokenizer(
             [text] * batch_size,
             padding="max_length",
