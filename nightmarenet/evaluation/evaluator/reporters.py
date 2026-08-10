@@ -12,12 +12,7 @@ logger = logging.getLogger(__name__)
 
 def _validate_filename(filename: str) -> None:
     """Validate that filename is a simple filename and does not traverse directories."""
-    if (
-        os.path.isabs(filename)
-        or ".." in filename
-        or "/" in filename
-        or "\\" in filename
-    ):
+    if os.path.isabs(filename) or ".." in filename or "/" in filename or "\\" in filename:
         raise ValueError(
             f"Invalid filename: {filename}. Filename must be a simple name without path components."
         )
