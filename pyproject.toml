@@ -195,5 +195,6 @@ strict_concatenate = true
 
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "nightmarenet_server*", "scripts"]
+
 [tool.setuptools.package-data]
-nightmarenet = ["py.typed"]
+nightmarenet = ["py.typed", "compliance/*.json"]

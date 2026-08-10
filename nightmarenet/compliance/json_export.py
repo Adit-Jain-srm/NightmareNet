@@ -9,7 +9,7 @@ from jose import jwt
 
 
 def get_schema() -> Dict[str, Any]:
-    schema_path = Path(__file__).parent.parent.parent / "docs" / "compliance-schema.json"
+    schema_path = Path(__file__).parent / "compliance-schema.json"
     with open(schema_path, encoding="utf-8") as f:
         return cast(Dict[str, Any], json.load(f))
 

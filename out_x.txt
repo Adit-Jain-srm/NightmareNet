@@ -1,0 +1,9 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.14, pytest-9.1.1, pluggy-1.6.0 -- C:\Users\Rathod milan\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe
+cachedir: .pytest_cache
+hypothesis profile 'default'
+rootdir: C:\Users\Rathod milan\.gemini\antigravity-ide\scratch\NightmareNet
+configfile: pyproject.toml
+plugins: anyio-4.14.2, Faker-33.1.0, hypothesis-6.161.5, asyncio-1.4.0, cov-7.1.0, django-4.12.0, split-0.11.0, xdist-3.8.0
+asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collecting ... 
