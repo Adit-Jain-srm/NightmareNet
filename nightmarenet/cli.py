@@ -404,13 +404,17 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
                 f"{memory:>20}"
             )
 
-        output_path = save_results(
-            results,
-            model_name=model_name,
-            output_dir=args.output or "results",
-        )
-        print(f"\nResults saved to: {output_path}")
+        try:
+            output_path = save_results(
+                results,
+                model_name=model_name,
+                output_dir=args.output or "results",
+            )
+        except (OSError, ValueError, TypeError) as exc:
+            logger.error("Failed to save benchmark results: %s", exc)
+            return 1
 
+        logger.info("Results saved to %s", output_path)
         return 0
 
     # Existing robustness/ensemble benchmark behavior.
