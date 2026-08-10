@@ -97,6 +97,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "dream_dp_epsilon": None,
         "dream_dp_delta": 1e-5,
         "dream_dp_sensitivity": 1.0,
+        "language": "english",
+        "keyboard_layout": "qwerty",
         "strength_schedule": "uniform",
         "schedule_across_cycles": False,
         "strength_min": 0.2,
