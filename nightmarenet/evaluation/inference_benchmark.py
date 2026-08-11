@@ -182,10 +182,17 @@ def save_results(
     output_path.mkdir(parents=True, exist_ok=True)
 
     timestamp = time.strftime("%Y%m%d_%H%M%S")
-    filename = f"benchmark_{_safe_model_name(model_name)}_{timestamp}.json"
-    result_path = output_path / filename
+    base_name = f"benchmark_{_safe_model_name(model_name)}_{timestamp}"
 
-    with result_path.open("w", encoding="utf-8") as handle:
-        json.dump(results, handle, indent=2)
+    for attempt in range(100):
+        suffix = "" if attempt == 0 else f"_{attempt}"
+        result_path = output_path / f"{base_name}{suffix}.json"
 
-    return result_path
+        try:
+            with result_path.open("x", encoding="utf-8") as handle:
+                json.dump(results, handle, indent=2)
+            return result_path
+        except FileExistsError:
+            continue
+
+    raise OSError("Could not create a unique benchmark result filename.")
