@@ -81,7 +81,7 @@ def _build_inputs(
     return torch.randn(batch_size, 10)
 
 
-@torch.inference_mode()
+@torch.inference_mode()  # type: ignore[untyped-decorator]
 def benchmark_batch(
     model: torch.nn.Module,
     tokenizer: Optional[Any],
