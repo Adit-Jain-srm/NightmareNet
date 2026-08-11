@@ -101,7 +101,7 @@ def register_layout(
     key = name.strip().lower()
     if not key:
         raise ValueError("layout name must be non-empty")
-    if key in _LAYOUT_ROWS and not overwrite:
+    if key in _LAYOUT_ROWS:
         raise ValueError(f"cannot overwrite builtin layout '{key}'")
     if key in _CUSTOM_LAYOUTS and not overwrite:
         raise ValueError(f"layout '{key}' already registered")

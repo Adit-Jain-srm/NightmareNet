@@ -7,12 +7,16 @@ Four error classes on layout neighbors:
   transpose — swap with next character
 
 ``strength`` in [0, 1] is treated as a character error rate target.
+Edits operate on Unicode grapheme clusters so Devanagari matras / viramas
+stay attached to their base letters.
 """
 
 from __future__ import annotations
 
 import random
 from typing import List, Optional, Sequence, Tuple
+
+import regex
 
 from nightmarenet.distortions.multilingual.keyboard_layouts import (
     get_layout,
@@ -23,6 +27,18 @@ from nightmarenet.distortions.multilingual.keyboard_layouts import (
 ERROR_TYPES = ("replace", "insert", "delete", "transpose")
 
 
+def _graphemes(text: str) -> List[str]:
+    """Split into user-perceived characters (keeps combining marks attached)."""
+    return regex.findall(r"\X", text)
+
+
+def _layout_key(cluster: str) -> str:
+    """Map a grapheme cluster to a layout key (first code point, lowercased)."""
+    if not cluster:
+        return ""
+    return cluster[0].lower()
+
+
 def _pick_neighbor(neighbors: Sequence[Tuple[str, float]], rng: random.Random) -> str:
     chars, weights = zip(*neighbors)
     return rng.choices(list(chars), weights=list(weights), k=1)[0]
@@ -30,8 +46,8 @@ def _pick_neighbor(neighbors: Sequence[Tuple[str, float]], rng: random.Random) -
 
 def _eligible_indices(chars: List[str], layout) -> List[int]:
     out = []
-    for i, ch in enumerate(chars):
-        key = ch.lower() if ch.isascii() and ch.isalpha() else ch
+    for i, cluster in enumerate(chars):
+        key = _layout_key(cluster)
         if key in layout and layout[key]:
             out.append(i)
     return out
@@ -67,7 +83,7 @@ def distort(
     layout = get_layout(layout_name, h_weight=h_weight, v_weight=v_weight)
     rng = random.Random(seed)
 
-    chars = list(text)
+    chars = _graphemes(text)
     # Cap edits so short strings still change under moderate strength.
     n_edits = max(1, int(round(len(chars) * min(strength, 1.0)))) if strength > 0 else 0
     # At very low strength, probabilistic single-pass CER is enough.
@@ -93,14 +109,15 @@ def distort(
         if not eligible:
             continue
         idx = rng.choice(eligible)
-        ch = chars[idx]
-        key = ch.lower() if ch.isascii() and ch.isalpha() else ch
+        cluster = chars[idx]
+        key = _layout_key(cluster)
         neighbors = layout.get(key) or []
         if not neighbors:
             continue
 
         replacement = _pick_neighbor(neighbors, rng)
-        if ch.isascii() and ch.isupper() and replacement.isalpha():
+        # Preserve case for Latin / Cyrillic (and any cased script).
+        if cluster[0].isupper() and replacement.isalpha():
             replacement = replacement.upper()
 
         if err == "insert":

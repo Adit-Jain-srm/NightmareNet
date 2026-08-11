@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import unicodedata
+
 import pytest
+import regex
 
 from nightmarenet.distortions.multilingual import (
     distort,
@@ -14,6 +17,7 @@ from nightmarenet.distortions.multilingual import (
 from nightmarenet.distortions.multilingual.keyboard_layouts import (
     LANGUAGE_LAYOUTS,
     default_layout_for_language,
+    resolve_layout_name,
 )
 from nightmarenet.distortions.registry import DistortionRegistry
 from nightmarenet.distortions.validators import (
@@ -38,7 +42,7 @@ def test_language_produces_output(language: str) -> None:
     out = keyboard_typo(text, strength=0.6, seed=7, language=language)
     assert isinstance(out, str)
     assert out != ""
-    # High strength should usually change something; if not, still a valid string.
+    assert out != text
     assert len(out) >= max(1, len(text) - 5)
 
 
@@ -68,6 +72,9 @@ def test_language_selects_default_layout() -> None:
     assert default_layout_for_language("german") == "qwertz"
     assert default_layout_for_language("french") == "azerty"
     assert default_layout_for_language("russian") == "cyrillic"
+    # null / omitted keyboard_layout follows language
+    assert resolve_layout_name("german", None) == "qwertz"
+    assert resolve_layout_name("english", None) == "qwerty"
 
 
 def test_validate_language_and_layout() -> None:
@@ -87,6 +94,29 @@ def test_custom_layout_registerable() -> None:
         assert isinstance(out, str)
     finally:
         unregister_layout(name)
+
+
+def test_cannot_overwrite_builtin_layout() -> None:
+    with pytest.raises(ValueError, match="cannot overwrite builtin"):
+        register_layout("qwerty", ("abc",), overwrite=True)
+
+
+def test_uppercase_cyrillic_is_eligible() -> None:
+    text = "ПРИВЕТ МИР"
+    out = keyboard_typo(text, strength=0.8, seed=3, language="russian")
+    assert out != text
+    # Distorted letters should stay uppercase when the source cluster was.
+    assert any(ch.isupper() for ch in out)
+
+
+def test_hindi_grapheme_clusters_stay_intact() -> None:
+    # Includes matras (vowel signs) and a virama conjunct in नमस्ते
+    text = "नमस्ते दुनिया परीक्षा"
+    out = keyboard_typo(text, strength=0.9, seed=5, language="hindi")
+    assert out != text
+    for cluster in regex.findall(r"\X", out):
+        if len(cluster) > 1:
+            assert unicodedata.combining(cluster[0]) == 0
 
 
 def test_contract_and_registry() -> None:

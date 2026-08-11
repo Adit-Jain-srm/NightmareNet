@@ -17,6 +17,7 @@ Usage:
 """
 
 import importlib.metadata
+import inspect
 import logging
 from typing import Any, Callable, Dict, List, Optional
 
@@ -145,9 +146,10 @@ class DistortionRegistry:
         fn = self._engines[name]
         if kwargs:
             try:
-                return fn(text, strength, seed, **kwargs)
+                inspect.signature(fn).bind(text, strength, seed, **kwargs)
             except TypeError:
                 return fn(text, strength, seed)
+            return fn(text, strength, seed, **kwargs)
         return fn(text, strength, seed)
 
     def list_engines(self) -> List[Dict[str, Any]]:
