@@ -15,6 +15,7 @@ def test_benchmark_command_runs_with_tiny_model(tmp_path, monkeypatch, capsys) -
 
     model = TinyModel()
 
+    
     class TinyTokenizer:
         def __call__(
             self,
