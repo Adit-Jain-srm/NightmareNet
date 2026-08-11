@@ -369,13 +369,15 @@ Mirror the package layout under `tests/`. At minimum:
   - Use `Union[X, Y]` and `Optional[X]` — **not** `X | Y` — in any code path that runs on Python 3.9.
   - Use `from __future__ import annotations` everywhere **except** modules under `nightmarenet/api/` that use FastAPI `Body(...)`. The future import breaks Pydantic v2 at runtime there. Prefer module-level singletons for `Body(...)` defaults to satisfy `B008`.
 - **Docstrings:** Google style on public APIs only. Internal helpers can be terse.
+- **Type checking:** `nightmarenet/` is checked with `mypy --strict`. Pre-existing errors are frozen in `mypy_baseline.txt` and don't block CI, but **new files and new lines must be clean** — see [`docs/development/code-style.md`](docs/development/code-style.md) for the full policy and how to update the baseline.
 - **Errors:** raise with context (`raise X("...") from e`); never bare `raise X`.
 - **No NaN/Inf in metrics:** wrap suspicious arithmetic with the helpers in `nightmarenet/evaluation/metrics.py`.
 - **Logging:** use module loggers (`logger = logging.getLogger(__name__)`); don't `print` in library code.
 
 ### Frontend
 
-- TypeScript only. No `any` in committed code.
+- TypeScript only. No `any` in committed code — `@typescript-eslint/no-explicit-any` is enforced as a warning (see [`docs/development/code-style.md`](docs/development/code-style.md)); new code should not introduce new `any` usages even though the rule doesn't yet fail CI.
+- `strict: true` in `tsconfig.json` is required; don't disable it, repo-wide or per-file.
 - Tailwind v4 — theme lives in the `@theme inline` block, not a `tailwind.config.js`.
 - Animations via Framer Motion; respect `prefers-reduced-motion`.
 - Keep client bundles lean; lazy-load heavy charts where possible.

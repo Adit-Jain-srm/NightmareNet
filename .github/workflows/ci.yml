@@ -35,14 +35,24 @@ jobs:
 
       # Ruff lint/format run in .github/workflows/pre-commit.yml (avoids duplicate checks)
 
-      - name: Type check with mypy
+      - name: Type check with mypy (strict, baseline-enforced)
+        # Strict mode is enforced repo-wide, but pre-existing violations in
+        # mypy_baseline.txt are frozen and don't fail CI. Only NEW errors -
+        # in new files, or new lines in changed files - fail the build.
+        # See docs/development/code-style.md for the full policy and how to
+        # update the baseline.
         if: matrix.python-version == '3.12'
-        run: >
-          mypy nightmarenet/
-          --ignore-missing-imports
-          --disable-error-code import-untyped
-          --disable-error-code operator
-          --python-version 3.12
+        run: |
+          set -o pipefail
+          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
+            echo "::error::These are NEW violations in changed/new files - see the 'new:' count above."
+            echo "::error::Pre-existing errors are frozen in mypy_baseline.txt and do not fail CI."
+            exit $status
+          fi
+          echo "No new type errors. All findings are pre-existing and tracked in mypy_baseline.txt."
 
       - name: Run tests with coverage
         env:
