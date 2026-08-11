@@ -26,7 +26,7 @@ def cmd_train(args: argparse.Namespace) -> int:
 
     config_path = Path(args.config)
     if not config_path.exists():
-        logger.error("Config file not found: %s", config_path)
+        print(f"Config file not found: {config_path}", file=sys.stderr)
         return 1
 
     import yaml
@@ -440,7 +440,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
                 no_cache=no_cache,
             )
         except (FileNotFoundError, OSError) as e:
-            logger.error("Could not load benchmark config: %s", e)
+            print(f"Could not load benchmark config: {e}", file=sys.stderr)
             return 1
 
         pareto_front = get_pareto_frontier(results["models_summary"])
