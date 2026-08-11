@@ -7,7 +7,7 @@ import re
 import time
 from pathlib import Path
 from statistics import mean
-from typing import Any, Optional
+from typing import Any, Optional, Union
 
 import torch
 
@@ -160,7 +160,7 @@ def run_benchmark(
 def save_results(
     results: dict[str, Any],
     model_name: str,
-    output_dir: str | Path = "results",
+    output_dir: Union[str, Path] = "results",
 ) -> Path:
     """Save benchmark results to a timestamped JSON file."""
     output_path = Path(output_dir)
