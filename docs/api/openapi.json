@@ -4,7 +4,7 @@
       "Body_upload_text_file_api_v1_upload_text_post": {
         "properties": {
           "file": {
-            "contentMediaType": "application/octet-stream",
+            "format": "binary",
             "title": "File",
             "type": "string"
           }
@@ -1485,13 +1485,6 @@
       },
       "ValidationError": {
         "properties": {
-          "ctx": {
-            "title": "Context",
-            "type": "object"
-          },
-          "input": {
-            "title": "Input"
-          },
           "loc": {
             "items": {
               "anyOf": [
@@ -1596,7 +1589,7 @@
   "info": {
     "description": "Autonomous AI Self-Improvement Platform \u2014 Dream & Nightmare Distortion Service",
     "title": "NightmareNet API",
-    "version": "0.3.1"
+    "version": "0.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
