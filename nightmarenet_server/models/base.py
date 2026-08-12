@@ -23,6 +23,7 @@ def get_engine(database_url: str = DEFAULT_DATABASE_URL):
     kwargs = {}
     if database_url.startswith("sqlite"):
         from sqlalchemy.pool import NullPool
+
         connect_args["check_same_thread"] = False
         kwargs["poolclass"] = NullPool
     else:
