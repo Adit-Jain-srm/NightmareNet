@@ -845,8 +845,9 @@ def cmd_compliance(args: argparse.Namespace) -> int:
         result = verify_signed_json(token, key)
         if result.is_valid:
             print("VALID")
-            print(f"Schema version: {result.payload.get('schema_version', 'unknown')}")
-            print(f"Timestamp: {result.payload.get('timestamp', 'unknown')}")
+            payload = result.payload or {}
+            print(f"Schema version: {payload.get('schema_version', 'unknown')}")
+            print(f"Timestamp: {payload.get('timestamp', 'unknown')}")
             # Python-jose does not automatically expose the signer identity
             # unless encoded in headers or payload
             print("Signer: Project Key")
