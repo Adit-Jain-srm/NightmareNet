@@ -13,9 +13,15 @@ class Base(DeclarativeBase):
 def get_engine(database_url: str = DEFAULT_DATABASE_URL):
     """Create a SQLAlchemy engine."""
     connect_args = {}
+    kwargs = {}
     if database_url.startswith("sqlite"):
+        from sqlalchemy.pool import QueuePool
+
         connect_args["check_same_thread"] = False
-    return create_engine(database_url, connect_args=connect_args)
+        kwargs["poolclass"] = QueuePool
+        kwargs["pool_size"] = 1
+        kwargs["max_overflow"] = 0
+    return create_engine(database_url, connect_args=connect_args, **kwargs)
 
 
 def get_session_factory(database_url: str = DEFAULT_DATABASE_URL):

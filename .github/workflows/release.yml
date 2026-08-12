@@ -88,7 +88,6 @@ jobs:
             exit 1
           fi
 
-infra/532-add-sbom-release
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
         with:
