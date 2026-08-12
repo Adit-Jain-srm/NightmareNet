@@ -45,15 +45,21 @@ jobs:
           --python-version 3.12
 
       - name: Run tests with coverage
+        working-directory: .
         env:
           HF_HUB_DOWNLOAD_TIMEOUT: 60
           HF_DATASETS_TIMEOUT: 60
-        run: >
-          PYTHONPATH=.
-          pytest -m "not slow"
-          --cov=nightmarenet
-          --cov-report=xml
-          --cov-report=term-missing
+        run: |
+          PYTHONPATH=. pytest -m "not slow" --cov=nightmarenet --cov-report=xml --cov-report=term-missing > pytest_output.txt 2>&1 || true
+          cat pytest_output.txt
+          if grep -q "failed" pytest_output.txt; then exit 1; fi
+
+      - name: Upload Pytest Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log-${{ matrix.python-version }}
+          path: pytest_output.txt
 
       - name: Upload coverage to Codecov
         if: matrix.python-version == '3.12'

@@ -82,10 +82,9 @@ def test_engine_sqlite_behavior():
     engine = get_engine("sqlite:///./test.db")
     assert isinstance(engine, Engine)
     assert engine.url.drivername == "sqlite"
-    # SQLite engines shouldn't have pool_size
-    # (they use NullPool or SingletonThreadPool depending on args)
-    # The important part is that we didn't pass pool_size to create_engine
-    assert getattr(engine.pool, "_pool_size", None) is None
+    # SQLite engines should use QueuePool with pool_size=1
+    assert getattr(engine.pool, "_pool_size", None) == 1
+    assert getattr(engine.pool, "_max_overflow", None) == 0
 
 
 @mock.patch("nightmarenet_server.models.base.create_engine")

@@ -22,10 +22,13 @@ def get_engine(database_url: str = DEFAULT_DATABASE_URL):
     connect_args = {}
     kwargs = {}
     if database_url.startswith("sqlite"):
-        from sqlalchemy.pool import NullPool
+        from sqlalchemy.pool import QueuePool
 
         connect_args["check_same_thread"] = False
-        kwargs["poolclass"] = NullPool
+        kwargs["poolclass"] = QueuePool
+        kwargs["pool_size"] = 1
+        kwargs["max_overflow"] = 0
+        kwargs["pool_timeout"] = 30
     else:
         kwargs.update(
             {
