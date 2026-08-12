@@ -83,8 +83,8 @@ def test_engine_sqlite_behavior():
     assert isinstance(engine, Engine)
     assert engine.url.drivername == "sqlite"
     # SQLite engines should use QueuePool with pool_size=1
-    assert getattr(engine.pool, "_pool_size", None) == 1
-    assert getattr(engine.pool, "_max_overflow", None) == 0
+    assert engine.pool.size() == 1
+    assert engine.pool._max_overflow == 0
 
 
 @mock.patch("nightmarenet_server.models.base.create_engine")
