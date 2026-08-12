@@ -12,6 +12,11 @@ except ImportError:
 from nightmarenet_server.auth import api_keys, jwt_helpers
 
 
+@pytest.fixture(autouse=True)
+def _set_jwt_secret(monkeypatch):
+    monkeypatch.setenv("NIGHTMARENET_JWT_SECRET", "test_secret_key_for_jwt")
+
+
 @pytest.mark.skipif(jwt is None, reason="PyJWT not installed")
 def test_jwt_encode_decode():
     token = jwt_helpers.create_access_token(subject="user_123", role="admin")
