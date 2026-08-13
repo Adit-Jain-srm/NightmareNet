@@ -745,6 +745,9 @@ nightmarenet benchmark \
   --model distilbert-base-uncased \
   --config configs/default.yaml \
   --batch-sizes 1,8,32
+```
+
+#### `nightmarenet distort`
 
 Apply a single distortion to an arbitrary string — useful for debugging distortion engines.
 

@@ -26,7 +26,7 @@ def cmd_train(args: argparse.Namespace) -> int:
 
     config_path = Path(args.config)
     if not config_path.exists():
-        print(f"Config file not found: {config_path}", file=sys.stderr)
+        logger.error("Config file not found: %s", config_path)
         return 1
 
     import yaml
@@ -317,9 +317,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
         try:
             batch_sizes = [
-                int(value.strip())
-                for value in args.batch_sizes.split(",")
-                if value.strip()
+                int(value.strip()) for value in args.batch_sizes.split(",") if value.strip()
             ]
         except ValueError:
             logger.error("Batch sizes must be comma-separated integers.")
@@ -393,9 +391,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
 
         for result in results["results"]:
             memory = (
-                f"{result['peak_memory_mb']:.2f}"
-                if result["peak_memory_mb"] is not None
-                else "N/A"
+                f"{result['peak_memory_mb']:.2f}" if result["peak_memory_mb"] is not None else "N/A"
             )
             print(
                 f"{result['batch_size']:>8} "
@@ -440,7 +436,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
                 no_cache=no_cache,
             )
         except (FileNotFoundError, OSError) as e:
-            print(f"Could not load benchmark config: {e}", file=sys.stderr)
+            logger.error("Could not load benchmark config: %s", e)
             return 1
 
         pareto_front = get_pareto_frontier(results["models_summary"])
@@ -538,9 +534,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     if robustness_delta >= 0.14:
         logger.info("[SUCCESS] Metrics match or exceed canonical paper specifications!")
     else:
-        logger.warning(
-            "Benchmark completed, but metrics diverged below the target paper standard."
-        )
+        logger.warning("Benchmark completed, but metrics diverged below the target paper standard.")
 
     return 0
 

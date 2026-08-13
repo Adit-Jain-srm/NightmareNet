@@ -35,6 +35,7 @@ def _move_inputs_to_device(inputs: Any, device: torch.device) -> Any:
         return type(inputs)(converted)
     return inputs
 
+
 def _get_cpu_memory_mb() -> Optional[float]:
     """Return peak process memory in MB when available."""
     try:
@@ -47,7 +48,8 @@ def _get_cpu_memory_mb() -> Optional[float]:
         return usage.ru_maxrss / (1024 * 1024)
     except (ImportError, AttributeError, OSError):
         return None
-        
+
+
 def _run_model(model: torch.nn.Module, inputs: Any) -> Any:
     """Run a model with either tensor or mapping inputs."""
     if isinstance(inputs, torch.Tensor):
@@ -117,9 +119,7 @@ def benchmark_batch(
     throughput = batch_size / mean(timings)
 
     if device.type == "cuda":
-        peak_memory_mb: Optional[float] = (
-            torch.cuda.max_memory_allocated(device) / (1024 * 1024)
-        )
+        peak_memory_mb: Optional[float] = torch.cuda.max_memory_allocated(device) / (1024 * 1024)
     else:
         peak_memory_mb = _get_cpu_memory_mb()
 

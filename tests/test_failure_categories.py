@@ -173,6 +173,7 @@ def test_markdown_rendering(tmp_path):
 def test_empty_failure_categories():
     """Test that an empty dict for failure categories is preserved."""
     from nightmarenet.evaluation.evaluator import Evaluator
+
     evaluator = Evaluator(model=None, tokenizer=None, config={})
     trained = {"failure_categories": {}}
     baseline = {"failure_categories": {"blur": {"count": 5}}}
@@ -183,6 +184,7 @@ def test_empty_failure_categories():
 def test_missing_key_failure():
     """Test that records without explicit failure flags default to False."""
     from nightmarenet.evaluation.metrics import categorize_failures_by_distortion
+
     sample = {"distortion_type": "blur", "confidence_delta": 0.1}
     res = categorize_failures_by_distortion([sample])
     # The count should be 0 because it's not a failure
@@ -197,30 +199,41 @@ def test_auto_wiring():
     from nightmarenet.evaluation.metrics import robustness_score
 
     class DummyDataset:
-        def map(self, *args, **kwargs): return self
-        def set_format(self, *args, **kwargs): return self
-        def __iter__(self): yield {"text": "test"}
-        def __len__(self): return 1
+        def map(self, *args, **kwargs):
+            return self
+
+        def set_format(self, *args, **kwargs):
+            return self
+
+        def __iter__(self):
+            yield {"text": "test"}
+
+        def __len__(self):
+            return 1
+
         column_names = ["text"]
 
     class MockTokenizer:
         def __call__(self, text, **kwargs):
             import torch
+
             return {"input_ids": torch.tensor([[1, 2, 3]])}
+
         pad_token_id = 0
 
     mock_model = MagicMock()
 
-    with patch("nightmarenet.evaluation.metrics.compute_perplexity") as mock_ppl, \
-         patch("nightmarenet.evaluation.metrics.classification_metrics") as mock_cls:
-
+    with (
+        patch("nightmarenet.evaluation.metrics.compute_perplexity") as mock_ppl,
+        patch("nightmarenet.evaluation.metrics.classification_metrics") as mock_cls,
+    ):
         # Mock responses to bypass actual inference
         mock_ppl.return_value = {"perplexity": 2.0, "per_sample_ppls": [2.0]}
         # We need a failure, so orig_preds != dist_preds. Since it is called
         # twice (clean, then distorted), we use side_effect to return different predictions.
         mock_cls.side_effect = [
             {"per_sample_preds": [0], "per_sample_confs": [0.9]},  # Clean dataset
-            {"per_sample_preds": [1], "per_sample_confs": [0.4]}   # Distorted dataset
+            {"per_sample_preds": [1], "per_sample_confs": [0.4]},  # Distorted dataset
         ]
 
         results = robustness_score(

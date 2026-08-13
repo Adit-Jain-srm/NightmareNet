@@ -12,10 +12,8 @@ def test_benchmark_command_runs_with_tiny_model(tmp_path, monkeypatch, capsys) -
         def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
             return self.linear(input_ids)
 
-
     model = TinyModel()
 
-    
     class TinyTokenizer:
         def __call__(
             self,
