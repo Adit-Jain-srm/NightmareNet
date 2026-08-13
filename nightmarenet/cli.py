@@ -22,15 +22,15 @@ logger = logging.getLogger(__name__)
 
 def cmd_train(args: argparse.Namespace) -> int:
     """Run the full 4-phase training pipeline."""
+    config_path = Path(args.config)
+    if not config_path.exists():
+        logger.error("Config file not found: %s", config_path)
+        return 1
+
     try:
         from nightmarenet.pipeline import Pipeline
     except Exception as e:
         logger.error("Failed to initialize training: %s", e)
-        return 1
-
-    config_path = Path(args.config)
-    if not config_path.exists():
-        logger.error("Config file not found: %s", config_path)
         return 1
 
     import yaml
