@@ -22,7 +22,11 @@ logger = logging.getLogger(__name__)
 
 def cmd_train(args: argparse.Namespace) -> int:
     """Run the full 4-phase training pipeline."""
-    from nightmarenet.pipeline import Pipeline
+    try:
+        from nightmarenet.pipeline import Pipeline
+    except Exception as e:
+        logger.error("Failed to initialize training: %s", e)
+        return 1
 
     config_path = Path(args.config)
     if not config_path.exists():
@@ -435,8 +439,8 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
                 output_dir=output_dir,
                 no_cache=no_cache,
             )
-        except (FileNotFoundError, OSError) as e:
-            logger.error("Could not load benchmark config: %s", e)
+        except Exception as e:
+            logger.error("Benchmark failed: %s", e)
             return 1
 
         pareto_front = get_pareto_frontier(results["models_summary"])
