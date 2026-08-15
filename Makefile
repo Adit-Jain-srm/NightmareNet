@@ -22,7 +22,7 @@ lint:
 
 # Mirrors: .github/workflows/ci.yml -> "Type check with mypy"
 typecheck:
-	@set -o pipefail; set +e; mypy nightmarenet/ --python-version 3.12 | mypy-baseline filter; statuses=("$${PIPESTATUS[@]}"); mypy_status="$${statuses[0]}"; baseline_status="$${statuses[1]}"; echo "mypy exit status: $${mypy_status}"; echo "mypy-baseline filter exit status: $${baseline_status}"; if [ "$${mypy_status}" -gt 1 ]; then echo "mypy failed to execute correctly (exit code $${mypy_status})."; exit "$${mypy_status}"; fi; if [ "$${baseline_status}" -ne 0 ]; then echo "New mypy errors were introduced."; exit "$${baseline_status}"; fi; echo "No new type errors. Existing baseline findings are allowed."
+	@set -o pipefail; set +e; mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter; statuses=("$${PIPESTATUS[@]}"); mypy_status="$${statuses[0]}"; baseline_status="$${statuses[2]}"; echo "mypy exit status: $${mypy_status}"; echo "mypy-baseline filter exit status: $${baseline_status}"; if [ "$${mypy_status}" -gt 1 ]; then echo "mypy failed to execute correctly (exit code $${mypy_status})."; exit "$${mypy_status}"; fi; if [ "$${baseline_status}" -ne 0 ]; then echo "New mypy errors were introduced."; exit "$${baseline_status}"; fi; echo "No new type errors. Existing baseline findings are allowed."
 
 format:
 	ruff format .
