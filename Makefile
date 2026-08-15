@@ -22,7 +22,7 @@ lint:
 
 # Mirrors: .github/workflows/ci.yml -> "Type check with mypy"
 typecheck:
-	mypy nightmarenet/ --ignore-missing-imports --disable-error-code import-untyped --disable-error-code operator --python-version 3.12
+	mypy nightmarenet/ --python-version 3.12 | mypy-baseline filter
 
 format:
 	ruff format .
