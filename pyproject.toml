@@ -169,14 +169,30 @@ strict = true
 warn_unused_configs = true
 ignore_missing_imports = true
 # import-untyped: redundant with ignore_missing_imports for our third-party
-#   surface (torch/transformers/etc. ship no stubs); operator: torch's
-#   dynamically-typed Tensor arithmetic makes this rule mostly noise here.
-disable_error_code = ["import-untyped", "operator"]
+#   surface (torch/transformers/etc. ship no stubs).
+disable_error_code = ["import-untyped"]
 
 [[tool.mypy.overrides]]
 module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]
 follow_imports = "skip"
 follow_imports_for_stubs = false
+
+# Torch-heavy NightmareNet modules use dynamically-typed Tensor arithmetic.
+# Keep the operator suppression scoped to these project modules instead of
+# disabling the diagnostic globally.
+[[tool.mypy.overrides]]
+module = [
+    "nightmarenet.data.*",
+    "nightmarenet.compression.*",
+    "nightmarenet.distortions.*",
+    "nightmarenet.distributed.*",
+    "nightmarenet.evaluation.*",
+    "nightmarenet.export.*",
+    "nightmarenet.training.*",
+    "nightmarenet.transfer.*",
+    "nightmarenet.utils.*",
+]
+disable_error_code = ["operator"]
 
 [[tool.mypy.overrides]]
 module = [
