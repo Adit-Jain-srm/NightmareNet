@@ -54,20 +54,23 @@ jobs:
           echo "mypy exit status: ${mypy_status}"
           echo "mypy-baseline filter exit status: ${baseline_status}"
 
-          if [ "${mypy_status}" -ne 0 ]; then
-            echo "::error::mypy failed or crashed (exit code ${mypy_status})."
-            echo "::error::This is different from a normal baseline-filtered type error."
+          # Mypy returns 1 when it reports type-checking diagnostics. Those
+          # diagnostics are expected in a baseline-managed codebase; the
+          # baseline filter determines whether any of them are NEW.
+          # Other non-zero statuses indicate an execution/usage failure.
+          if [ "${mypy_status}" -gt 1 ]; then
+            echo "::error::mypy failed to execute correctly (exit code ${mypy_status})."
             exit "${mypy_status}"
           fi
 
           if [ "${baseline_status}" -ne 0 ]; then
             echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
-            echo "::error::These are NEW violations in changed/new files - see the 'new:' count above."
-            echo "::error::Pre-existing errors are frozen in mypy_baseline.txt and do not fail CI."
+            echo "::error::See the 'new:' count above. Pre-existing errors remain tracked in mypy_baseline.txt."
             exit "${baseline_status}"
           fi
 
-          echo "No new type errors. All findings are pre-existing and tracked in mypy_baseline.txt."
+          echo "No new type errors. Existing baseline findings are allowed."
+          echo "Baseline reductions are informational and do not fail CI."
 
       - name: Run tests with coverage
         env:
