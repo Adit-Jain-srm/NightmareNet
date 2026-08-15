@@ -32,9 +32,21 @@ jobs:
         if: matrix.python-version == '3.12'
         run: |
           set +e
+          set -o pipefail
           mypy nightmarenet/ --python-version 3.12 | mypy-baseline sync --baseline-path /tmp/mypy_baseline_candidate.txt --sort-baseline
-          status=$?
-          echo "baseline sync status: ${status}"
+          statuses=("${PIPESTATUS[@]}")
+          mypy_status="${statuses[0]}"
+          baseline_status="${statuses[1]}"
+          echo "mypy exit status: ${mypy_status}"
+          echo "baseline sync exit status: ${baseline_status}"
+          if [ "${mypy_status}" -gt 1 ]; then
+            echo "::error::mypy failed to execute correctly (exit code ${mypy_status})."
+            exit "${mypy_status}"
+          fi
+          if [ "${baseline_status}" -ne 0 ]; then
+            echo "::error::mypy-baseline sync failed (exit code ${baseline_status})."
+            exit "${baseline_status}"
+          fi
           test -s /tmp/mypy_baseline_candidate.txt
       - name: Upload candidate mypy baseline
         if: matrix.python-version == '3.12'
