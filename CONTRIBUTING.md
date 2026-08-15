@@ -90,7 +90,7 @@ To request assignment on an issue, comment with:
 2. Which files you'll modify
 3. Estimated timeline (days, not weeks)
 
-**Bad:** "Please assign this to me."
+**Bad:** "Please assign me."
 **Good:** "I'd like to work on this. Plan: add a `healthcheck` directive to the `api` service in docker-compose.yml using curl against /api/v1/health. Will also add a `start_period` of 15s. Should take about 1 hour."
 
 ### Assignment Priority
@@ -350,11 +350,12 @@ Mirror the package layout under `tests/`. At minimum:
 - **Type hints & Mypy:**
   - NightmareNet uses a **gradual typing** approach.
   - **Strict Modules:** Specific core modules (including `nightmarenet/phases/`, `nightmarenet/compliance/`, `nightmarenet/hub/`, and `nightmarenet/evaluation/certification.py`) are strictly typed and must pass mypy without errors.
-  - **Legacy Modules:** Older components like `nightmarenet/cli.py` and `nightmarenet/api/app.py` remain in relaxed mode.
+  - **Legacy Modules:** Older components like `nightmarenet/cli.py` and `nightmarenet/api/app.py` remain covered by strict checking, with their pre-existing diagnostics captured in `mypy_baseline.txt`.
   - Use `Union[X, Y]` and `Optional[X]` — **not** `X | Y` — in any code path that runs on Python 3.9.
   - Use `from __future__ import annotations` everywhere **except** modules under `nightmarenet/api/` that use FastAPI `Body(...)`. The future import breaks Pydantic v2 at runtime there. Prefer module-level singletons for `Body(...)` defaults to satisfy `B008`.
 - **Docstrings:** Google style on public APIs only. Internal helpers can be terse.
 - **Type checking:** `nightmarenet/` is checked with `mypy --strict`. Pre-existing errors are frozen in `mypy_baseline.txt` and don't block CI, but **new files and new lines must be clean** — see [`docs/development/code-style.md`](docs/development/code-style.md) for the full policy and how to update the baseline.
+- **Local verification:** Run `mypy nightmarenet/ --python-version 3.12 | mypy-baseline filter` to mirror CI's baseline-aware type check. For frontend verification, run `npx tsc --noEmit` from the `frontend/` directory.
 - **Errors:** raise with context (`raise X("...") from e`); never bare `raise X`.
 - **No NaN/Inf in metrics:** wrap suspicious arithmetic with the helpers in `nightmarenet/evaluation/metrics.py`.
 - **Logging:** use module loggers (`logger = logging.getLogger(__name__)`); don't `print` in library code.
