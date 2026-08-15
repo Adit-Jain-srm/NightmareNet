@@ -43,15 +43,30 @@ jobs:
         # update the baseline.
         if: matrix.python-version == '3.12'
         run: |
+          set +e
           set -o pipefail
+
           mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter
-          status=$?
-          if [ $status -ne 0 ]; then
+          statuses=("${PIPESTATUS[@]}")
+          mypy_status="${statuses[0]}"
+          baseline_status="${statuses[2]}"
+
+          echo "mypy exit status: ${mypy_status}"
+          echo "mypy-baseline filter exit status: ${baseline_status}"
+
+          if [ "${mypy_status}" -ne 0 ]; then
+            echo "::error::mypy failed or crashed (exit code ${mypy_status})."
+            echo "::error::This is different from a normal baseline-filtered type error."
+            exit "${mypy_status}"
+          fi
+
+          if [ "${baseline_status}" -ne 0 ]; then
             echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
             echo "::error::These are NEW violations in changed/new files - see the 'new:' count above."
             echo "::error::Pre-existing errors are frozen in mypy_baseline.txt and do not fail CI."
-            exit $status
+            exit "${baseline_status}"
           fi
+
           echo "No new type errors. All findings are pre-existing and tracked in mypy_baseline.txt."
 
       - name: Run tests with coverage
