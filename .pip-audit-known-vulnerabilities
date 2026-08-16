@@ -1,0 +1,5 @@
+# Known and acknowledged Python dependency vulnerabilities / false positives.
+# Format: List one vulnerability ID per line (CVE-XXXX-YYYY or GHSA-XXXX-YYYY-ZZZZ).
+# Lines starting with '#' and blank lines are ignored.
+# Example:
+# CVE-2023-99999

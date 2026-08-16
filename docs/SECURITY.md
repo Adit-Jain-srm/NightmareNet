@@ -19,6 +19,12 @@
 - Audit log on every state mutation
 - Model artifacts signed with SHA-256 checksums
 
+## Dependency Vulnerability Scanning
+
+- **Automated PR Blocking:** Pull requests that modify dependency files (`pyproject.toml`, `requirements*.txt`, or `frontend/package*.json`) automatically trigger blocking vulnerability scans via `pip-audit` and `npm audit --audit-level=high`.
+- **Known Vulnerability Overrides:** Acknowledged false positives or unpatched CVEs with compensating controls can be listed in `.pip-audit-known-vulnerabilities` (one CVE or GHSA ID per line).
+- **Weekly Scans:** A scheduled GitHub Actions workflow (`.github/workflows/security-scan.yml`) runs weekly to identify newly disclosed vulnerabilities across Python and Node.js dependencies.
+
 ## Reporting
 
 Report vulnerabilities via GitHub Security Advisories on the repository.
