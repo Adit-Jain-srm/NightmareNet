@@ -28,52 +28,59 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev,api]"
-      - name: Generate candidate mypy baseline
-        if: matrix.python-version == '3.12'
-        run: |
-          set +e
-          set -o pipefail
-          mypy nightmarenet/ --python-version 3.12 | mypy-baseline sync --baseline-path /tmp/mypy_baseline_candidate.txt --sort-baseline
-          statuses=("${PIPESTATUS[@]}")
-          mypy_status="${statuses[0]}"
-          baseline_status="${statuses[1]}"
-          echo "mypy exit status: ${mypy_status}"
-          echo "baseline sync exit status: ${baseline_status}"
-          if [ "${mypy_status}" -gt 1 ]; then
-            echo "::error::mypy failed to execute correctly (exit code ${mypy_status})."
-            exit "${mypy_status}"
-          fi
-          if [ "${baseline_status}" -ne 0 ]; then
-            echo "::error::mypy-baseline sync failed (exit code ${baseline_status})."
-            exit "${baseline_status}"
-          fi
-          test -s /tmp/mypy_baseline_candidate.txt
-      - name: Upload candidate mypy baseline
-        if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: mypy-baseline-candidate
-          path: /tmp/mypy_baseline_candidate.txt
       - name: Type check with mypy (strict, baseline-enforced)
         if: matrix.python-version == '3.12'
         run: |
           set +e
           set -o pipefail
+
           mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter
           statuses=("${PIPESTATUS[@]}")
           mypy_status="${statuses[0]}"
           baseline_status="${statuses[2]}"
+
           echo "mypy exit status: ${mypy_status}"
           echo "mypy-baseline filter exit status: ${baseline_status}"
+
           if [ "${mypy_status}" -gt 1 ]; then
             echo "::error::mypy failed to execute correctly (exit code ${mypy_status})."
             exit "${mypy_status}"
           fi
+
           if [ "${baseline_status}" -ne 0 ]; then
             echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
             exit "${baseline_status}"
           fi
+
           echo "No new type errors. Existing baseline findings are allowed."
+
+          mypy nightmarenet/ --python-version 3.12 > /tmp/mypy-full.txt 2>&1
+          sync_status=$?
+          if [ "${sync_status}" -gt 1 ]; then
+            echo "::error::mypy failed during baseline comparison (exit code ${sync_status})."
+            exit "${sync_status}"
+          fi
+
+          mypy-baseline sync \
+            --baseline-path /tmp/mypy_baseline_candidate.txt \
+            --sort-baseline < /tmp/mypy-full.txt
+          sync_status=$?
+          if [ "${sync_status}" -ne 0 ]; then
+            echo "::error::mypy-baseline sync failed (exit code ${sync_status})."
+            exit "${sync_status}"
+          fi
+
+          current_count=$(grep -cve '^[[:space:]]*$' mypy_baseline.txt || true)
+          candidate_count=$(grep -cve '^[[:space:]]*$' /tmp/mypy_baseline_candidate.txt || true)
+
+          if [ "${candidate_count}" -lt "${current_count}" ]; then
+            fixed_count=$((current_count - candidate_count))
+            echo "::notice::Mypy baseline reduced: ${fixed_count} pre-existing diagnostic(s) were fixed."
+          elif [ "${candidate_count}" -eq "${current_count}" ]; then
+            echo "Mypy baseline unchanged: ${current_count} diagnostic(s) remain."
+          else
+            echo "::warning::Mypy baseline would increase from ${current_count} to ${candidate_count} diagnostics."
+          fi
       - name: Run tests with coverage
         env:
           HF_HUB_DOWNLOAD_TIMEOUT: 60
