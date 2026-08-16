@@ -54,16 +54,9 @@ jobs:
 
           echo "No new type errors. Existing baseline findings are allowed."
 
-          mypy nightmarenet/ --python-version 3.12 > /tmp/mypy-full.txt 2>&1
-          sync_status=$?
-          if [ "${sync_status}" -gt 1 ]; then
-            echo "::error::mypy failed during baseline comparison (exit code ${sync_status})."
-            exit "${sync_status}"
-          fi
-
           mypy-baseline sync \
             --baseline-path /tmp/mypy_baseline_candidate.txt \
-            --sort-baseline < /tmp/mypy-full.txt
+            --sort-baseline < mypy-output.txt
           sync_status=$?
           if [ "${sync_status}" -ne 0 ]; then
             echo "::error::mypy-baseline sync failed (exit code ${sync_status})."
