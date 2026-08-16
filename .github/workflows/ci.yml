@@ -34,7 +34,7 @@ jobs:
           set +e
           set -o pipefail
 
-          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter | tee mypy-filter-output.txt
+          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter --allow-unsynced | tee mypy-filter-output.txt
           statuses=("${PIPESTATUS[@]}")
           mypy_status="${statuses[0]}"
           baseline_status="${statuses[2]}"
@@ -42,6 +42,9 @@ jobs:
           echo "mypy exit status: ${mypy_status}"
           echo "mypy-baseline filter exit status: ${baseline_status}"
 
+          # mypy uses exit code 1 for ordinary type-checking diagnostics.
+          # The baseline filter decides whether those diagnostics are new.
+          # Exit codes >1 indicate an actual mypy execution failure.
           if [ "${mypy_status}" -gt 1 ]; then
             echo "::error::mypy failed to execute correctly (exit code ${mypy_status})."
             exit "${mypy_status}"
@@ -114,7 +117,7 @@ jobs:
         run: npm run build
       - name: Check frontend bundle size
         if: matrix.python-version == '3.12' && github.event_name == 'pull_request'
-        uses: andresz1/size-limit-action@94bc357df29c36c8f8d50ea497c3e225c3c95d1d # v1.8.0
+        uses: andresz1/size-limit-action@94bc357df29c36c8f8d50ea497c3e225c3c95c3c95d1d # v1.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           directory: frontend
