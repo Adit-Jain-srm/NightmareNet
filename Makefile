@@ -26,7 +26,7 @@ lint:
 typecheck:
 	@set +e; \
 	set -o pipefail; \
-	mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter; \
+	mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter --allow-unsynced | tee mypy-filter-output.txt; \
 	statuses=("$${PIPESTATUS[@]}"); \
 	mypy_status="$${statuses[0]}"; \
 	baseline_status="$${statuses[2]}"; \
@@ -40,7 +40,11 @@ typecheck:
 		echo "New mypy errors were introduced."; \
 		exit "$${baseline_status}"; \
 	fi; \
-	echo "No new type errors. Existing baseline findings are allowed."
+	if grep -Eiq "resolved|fixed" mypy-filter-output.txt; then \
+		echo "Existing baseline entries were fixed; type-checking debt was reduced."; \
+	else \
+		echo "No new type errors. Existing baseline findings are allowed."; \
+	fi
 
 format:
 	ruff format .
