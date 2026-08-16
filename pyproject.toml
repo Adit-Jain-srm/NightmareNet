@@ -130,7 +130,7 @@ nightmarenet-reindex-search = "nightmarenet_server.search.reindex:main"
 testpaths = ["tests"]
 addopts = "-v --tb=short -m 'not slow' --ignore=tests/test_distortion_vision.py"
 markers = [
-    "slow: marks tests as slow (deselect with '-m not slow')",
+    "slow: marks slow tests (deselect with '-m not slow')",
 ]
 
 [tool.ruff]
@@ -174,6 +174,10 @@ disable_error_code = ["import-untyped"]
 
 [tool.mypy-baseline]
 baseline_path = "mypy_baseline.txt"
+# A contributor may legitimately fix an existing baseline error without
+# synchronizing the entire baseline in the same change. Report the reduction
+# as progress, but do not make it fail CI or local type checking.
+allow_unsynced = true
 
 [[tool.mypy.overrides]]
 module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]
