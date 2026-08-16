@@ -34,7 +34,7 @@ jobs:
           set +e
           set -o pipefail
 
-          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter
+          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter | tee mypy-filter-output.txt
           statuses=("${PIPESTATUS[@]}")
           mypy_status="${statuses[0]}"
           baseline_status="${statuses[2]}"
@@ -52,27 +52,10 @@ jobs:
             exit "${baseline_status}"
           fi
 
-          echo "No new type errors. Existing baseline findings are allowed."
-
-          mypy-baseline sync \
-            --baseline-path /tmp/mypy_baseline_candidate.txt \
-            --sort-baseline < mypy-output.txt
-          sync_status=$?
-          if [ "${sync_status}" -ne 0 ]; then
-            echo "::error::mypy-baseline sync failed (exit code ${sync_status})."
-            exit "${sync_status}"
-          fi
-
-          current_count=$(grep -cve '^[[:space:]]*$' mypy_baseline.txt || true)
-          candidate_count=$(grep -cve '^[[:space:]]*$' /tmp/mypy_baseline_candidate.txt || true)
-
-          if [ "${candidate_count}" -lt "${current_count}" ]; then
-            fixed_count=$((current_count - candidate_count))
-            echo "::notice::Mypy baseline reduced: ${fixed_count} pre-existing diagnostic(s) were fixed."
-          elif [ "${candidate_count}" -eq "${current_count}" ]; then
-            echo "Mypy baseline unchanged: ${current_count} diagnostic(s) remain."
+          if grep -Eiq "resolved|fixed" mypy-filter-output.txt; then
+            echo "::notice::Existing mypy baseline entries were fixed; contributor reduced type-checking debt."
           else
-            echo "::warning::Mypy baseline would increase from ${current_count} to ${candidate_count} diagnostics."
+            echo "Mypy baseline unchanged: existing baseline findings are allowed."
           fi
       - name: Run tests with coverage
         env:
