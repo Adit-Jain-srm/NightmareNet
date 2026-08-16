@@ -172,6 +172,9 @@ ignore_missing_imports = true
 #   surface (torch/transformers/etc. ship no stubs).
 disable_error_code = ["import-untyped"]
 
+[tool.mypy-baseline]
+baseline_path = "mypy_baseline.txt"
+
 [[tool.mypy.overrides]]
 module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]
 follow_imports = "skip"
