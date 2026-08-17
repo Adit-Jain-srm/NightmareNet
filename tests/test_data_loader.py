@@ -47,10 +47,11 @@ class DummyStreamingHFDataset(IterableDataset):
     def __init__(self, items, text_column="text", features=None):
         self.items = list(items)
         self.text_column = text_column
-        if features is not None:
-            self.features = features
-        else:
-            self.features = {text_column: "string"}
+        self._features = features if features is not None else {text_column: "string"}
+
+    @property
+    def features(self):
+        return self._features
 
     def filter(self, fn):
         filtered = [item for item in self.items if fn(item)]
@@ -281,6 +282,48 @@ class TestDataLoaderUnit(unittest.TestCase):
         wrapper = DatasetWrapper(dataset_name="dummy", text_column="text").load()
         self.assertEqual(len(wrapper.train_data), 9)
         self.assertEqual(len(wrapper.test_data), 1)
+
+    @mock.patch("nightmarenet.data.loader.load_dataset")
+    def test_deterministic_shuffling_and_splitting(self, mock_load_dataset):
+        def make_raw():
+            return {
+                "train": DummyHFDataset([{"text": f"Sample {i}"} for i in range(10)]),
+            }
+
+        mock_load_dataset.side_effect = [make_raw(), make_raw()]
+        wrapper1 = DatasetWrapper(dataset_name="dummy", text_column="text", seed=123).load()
+        wrapper2 = DatasetWrapper(dataset_name="dummy", text_column="text", seed=123).load()
+
+        self.assertEqual(wrapper1.get_texts("train"), wrapper2.get_texts("train"))
+        self.assertEqual(wrapper1.get_texts("test"), wrapper2.get_texts("test"))
+
+    @mock.patch("nightmarenet.data.loader.load_dataset")
+    def test_empty_dataset_handling(self, mock_load_dataset):
+        raw_mock = {
+            "train": DummyHFDataset([{"text": ""}, {"text": "   "}]),
+            "test": DummyHFDataset([{"text": "  \n\t "}]),
+        }
+        mock_load_dataset.return_value = raw_mock
+
+        wrapper = DatasetWrapper(dataset_name="dummy", text_column="text").load()
+        self.assertEqual(len(wrapper.train_data), 0)
+        self.assertEqual(len(wrapper.test_data), 0)
+        self.assertEqual(wrapper.get_texts("train"), [])
+        self.assertEqual(wrapper.get_texts("test"), [])
+
+    @mock.patch("nightmarenet.data.loader.load_dataset")
+    def test_dataset_wrapper_iteration(self, mock_load_dataset):
+        samples = [{"text": f"Line {i}"} for i in range(5)]
+        raw_mock = {
+            "train": DummyHFDataset(samples[:4]),
+            "test": DummyHFDataset(samples[4:]),
+        }
+        mock_load_dataset.return_value = raw_mock
+
+        wrapper = DatasetWrapper(dataset_name="dummy", text_column="text").load()
+        iterated = [item["text"] for item in wrapper.train_data]
+        self.assertEqual(iterated, ["Line 0", "Line 1", "Line 2", "Line 3"])
+        self.assertEqual(wrapper.train_data[0]["text"], "Line 0")
 
 
 if __name__ == "__main__":
