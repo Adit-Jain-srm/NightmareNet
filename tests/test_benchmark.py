@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 
 import nightmarenet.cli as cli
@@ -9,12 +11,15 @@ def test_benchmark_command_runs_with_tiny_model(tmp_path, monkeypatch, capsys) -
             super().__init__()
             self.linear = torch.nn.Linear(10, 4)
 
-        def forward(self, input_ids: torch.Tensor) -> torch.Tensor:
-            return self.linear(input_ids)
+        def forward(self, input_ids: torch.Tensor, **kwargs: object) -> torch.Tensor:
+            return self.linear(input_ids.float())
 
     model = TinyModel()
 
     class TinyTokenizer:
+        pad_token: Optional[str] = "<pad>"
+        eos_token: Optional[str] = "</s>"
+
         def __call__(
             self,
             texts,
@@ -23,7 +28,9 @@ def test_benchmark_command_runs_with_tiny_model(tmp_path, monkeypatch, capsys) -
             max_length=None,
             return_tensors=None,
         ):
-            return torch.randn(len(texts), 10)
+            batch_size = len(texts) if isinstance(texts, list) else 1
+            seq_len = max_length or 10
+            return {"input_ids": torch.randint(0, 100, (batch_size, seq_len))}
 
     monkeypatch.setattr(
         "transformers.AutoModelForCausalLM.from_pretrained",
