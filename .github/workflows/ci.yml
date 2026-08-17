@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: Tests & Lint (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
