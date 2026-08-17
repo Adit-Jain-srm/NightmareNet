@@ -22,11 +22,22 @@ def run_cli(args):
     This guarantees accurate coverage and super-fast in-process execution.
     """
     import io
+    import logging as _logging
     from contextlib import redirect_stderr, redirect_stdout
 
     f_out = io.StringIO()
     f_err = io.StringIO()
     exit_code = 0
+
+    # Remove all handlers from root and nightmarenet loggers to prevent
+    # "I/O operation on closed file" errors when redirect_stderr closes the
+    # StringIO while a handler still references a previous test's stream.
+    root = _logging.getLogger()
+    nn_logger = _logging.getLogger("nightmarenet")
+    saved_root_handlers = root.handlers[:]
+    saved_nn_handlers = nn_logger.handlers[:]
+    root.handlers = []
+    nn_logger.handlers = []
 
     try:
         with redirect_stdout(f_out), redirect_stderr(f_err):
@@ -42,6 +53,11 @@ def run_cli(args):
 
         exit_code = 1
         f_err.write(traceback.format_exc())
+
+    finally:
+        # Restore handlers and remove any added during the test.
+        root.handlers = saved_root_handlers
+        nn_logger.handlers = saved_nn_handlers
 
     return CLIResult(exit_code, f_out.getvalue(), f_err.getvalue())
 

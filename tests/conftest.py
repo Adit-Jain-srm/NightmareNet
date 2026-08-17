@@ -29,3 +29,4 @@ def pytest_configure(config):
 def _disable_api_auth(monkeypatch):
     """Remove API key from env so auth middleware is disabled during tests."""
     monkeypatch.delenv("NIGHTMARENET_API_KEY", raising=False)
+    monkeypatch.setenv("RATELIMIT_ENABLED", "false")
