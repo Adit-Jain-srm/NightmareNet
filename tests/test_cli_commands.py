@@ -29,12 +29,15 @@ def run_cli(args):
     f_err = io.StringIO()
     exit_code = 0
 
-    # Remove all handlers from root logger to prevent "I/O operation on closed
-    # file" errors when redirect_stderr closes the StringIO while a handler
-    # still references a previous test's stream.
+    # Remove all handlers from root and nightmarenet loggers to prevent
+    # "I/O operation on closed file" errors when redirect_stderr closes the
+    # StringIO while a handler still references a previous test's stream.
     root = _logging.getLogger()
-    saved_handlers = root.handlers[:]
+    nn_logger = _logging.getLogger("nightmarenet")
+    saved_root_handlers = root.handlers[:]
+    saved_nn_handlers = nn_logger.handlers[:]
     root.handlers = []
+    nn_logger.handlers = []
 
     try:
         with redirect_stdout(f_out), redirect_stderr(f_err):
@@ -53,7 +56,8 @@ def run_cli(args):
 
     finally:
         # Restore handlers and remove any added during the test.
-        root.handlers = saved_handlers
+        root.handlers = saved_root_handlers
+        nn_logger.handlers = saved_nn_handlers
 
     return CLIResult(exit_code, f_out.getvalue(), f_err.getvalue())
 
