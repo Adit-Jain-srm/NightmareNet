@@ -111,9 +111,7 @@ def query_audit_events(
     if actor is not None:
         query = query.filter(AuditLog.user_id == actor)
     if entity is not None:
-        query = query.filter(
-            (AuditLog.resource_type == entity) | (AuditLog.resource_id == entity)
-        )
+        query = query.filter((AuditLog.resource_type == entity) | (AuditLog.resource_id == entity))
     if after is not None:
         query = query.filter(AuditLog.timestamp >= after)
     if action is not None:
@@ -125,7 +123,7 @@ def query_audit_events(
 
     total = query.count()
     rows = (
-        query.order_by(AuditLog.timestamp.desc())
+        query.order_by(AuditLog.timestamp.desc(), AuditLog.id.desc())
         .offset(max(0, offset))
         .limit(max(1, min(limit, 200)))
         .all()

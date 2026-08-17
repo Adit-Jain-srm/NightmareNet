@@ -38,7 +38,9 @@ class RequestIdMiddleware(BaseHTTPMiddleware):  # type: ignore[misc]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         incoming = request.headers.get("x-request-id") or request.headers.get("X-Request-ID")
-        request_id = incoming.strip() if incoming else str(uuid.uuid4())
+        request_id = incoming.strip() if incoming else ""
+        if not request_id:
+            request_id = str(uuid.uuid4())
         request.state.request_id = request_id
         response = await call_next(request)
         response.headers["X-Request-ID"] = request_id
