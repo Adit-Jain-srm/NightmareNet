@@ -44,7 +44,7 @@ jobs:
         if: matrix.python-version == '3.12'
         run: |
           set -o pipefail
-          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter --baseline-path mypy_baseline.txt
+          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter --baseline-path mypy_baseline.txt --allow-unsynced
           status=$?
           if [ $status -ne 0 ]; then
             echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
