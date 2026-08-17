@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from nightmarenet.pipeline import Pipeline
 
 try:
-    from opentelemetry import context as otel_context # type: ignore
+    from opentelemetry import context as otel_context  # type: ignore
 except ImportError:
     otel_context = None  # type: ignore[assignment]
 
