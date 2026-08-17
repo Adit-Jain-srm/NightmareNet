@@ -69,7 +69,8 @@ def _build_inputs(
         if tokenizer.pad_token is None:
             if tokenizer.eos_token is None:
                 raise ValueError(
-                    "Tokenizer has no pad_token or eos_token; cannot create padded benchmark inputs."
+                    "Tokenizer has no pad_token or eos_token; "
+                    "cannot create padded benchmark inputs."
                 )
             tokenizer.pad_token = tokenizer.eos_token
         return tokenizer(
