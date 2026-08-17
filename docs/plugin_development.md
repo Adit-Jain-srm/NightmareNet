@@ -107,6 +107,7 @@ def homoglyph(text: str, strength: float, seed: int = None) -> str:
         random.seed(seed)
 
     mapping = {"a": "а", "e": "е", "o": "о", "p": "р"}
+
     result = []
     for char in text:
         if random.random() < strength and char.lower() in mapping:

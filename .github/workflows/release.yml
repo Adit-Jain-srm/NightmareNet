@@ -89,15 +89,11 @@ jobs:
           fi
 
       - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+        uses: anchore/sbom-action@e22c389ac75c535bfa31db8ebf5e8b3979814fbb # v0.24.0
         with:
           path: .
           format: cyclonedx-json
           file: dist/sbom.cdx.json
-
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
 
       - name: Smoke-test built wheel
         shell: bash
