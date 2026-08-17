@@ -13,8 +13,14 @@ from nightmarenet_server.auth import api_keys, jwt_helpers
 
 
 @pytest.fixture(autouse=True)
+ feat/design-system-tokens
 def _set_jwt_secret(monkeypatch):
     monkeypatch.setenv("NIGHTMARENET_JWT_SECRET", "test_secret_key_for_jwt")
+
+def mock_env():
+    with mock.patch.dict("os.environ", {"NIGHTMARENET_JWT_SECRET": "testsecret"}):
+        yield
+ main
 
 
 @pytest.mark.skipif(jwt is None, reason="PyJWT not installed")

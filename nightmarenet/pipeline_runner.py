@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from nightmarenet.pipeline import Pipeline
 
 try:
-    from opentelemetry import context as otel_context
+    from opentelemetry import context as otel_context  # type: ignore
 except ImportError:
     otel_context = None  # type: ignore[assignment]
 
@@ -195,6 +195,7 @@ class PipelineRunner:
 # ------------------------------------------------------------------
 
 _runners: dict[str, PipelineRunner] = {}
+_runners_lock = threading.Lock()
 _MAX_RUNNERS = int(os.environ.get("NIGHTMARENET_MAX_PIPELINE_RUNNERS", "64"))
 
 
@@ -208,30 +209,33 @@ def register_runner(runner: PipelineRunner) -> str:
     """
     # Periodically evict old runs from disk
     evict_old_runs()
-    while len(_runners) >= _MAX_RUNNERS:
-        for rid, r in list(_runners.items()):
-            if not r.is_running:
-                del _runners[rid]
-                logger.info("Evicted completed pipeline runner %s (registry cap).", rid)
-                break
-        else:
-            msg = (
-                f"Pipeline runner registry at capacity ({_MAX_RUNNERS}) and all "
-                "registered runs are still active"
-            )
-            raise RuntimeError(msg) from None
-    _runners[runner.id] = runner
+    with _runners_lock:
+        while len(_runners) >= _MAX_RUNNERS:
+            for rid, r in list(_runners.items()):
+                if not r.is_running:
+                    del _runners[rid]
+                    logger.info("Evicted completed pipeline runner %s (registry cap).", rid)
+                    break
+            else:
+                msg = (
+                    f"Pipeline runner registry at capacity ({_MAX_RUNNERS}) and all "
+                    "registered runs are still active"
+                )
+                raise RuntimeError(msg) from None
+        _runners[runner.id] = runner
     return runner.id
 
 
 def get_runner(run_id: str) -> Optional[PipelineRunner]:
     """Retrieve a runner by ID."""
-    return _runners.get(run_id)
+    with _runners_lock:
+        return _runners.get(run_id)
 
 
 def list_runners() -> list[dict]:
     """Return status of all registered runners."""
-    return [r.status() for r in _runners.values()]
+    with _runners_lock:
+        return [r.status() for r in list(_runners.values())]
 
 
 def list_all_runs(include_historical: bool = True) -> list[dict]:
@@ -243,7 +247,11 @@ def list_all_runs(include_historical: bool = True) -> list[dict]:
     Returns:
         List of run status dicts.
     """
-    runs = [r.status() for r in _runners.values()]
+    with _runners_lock:
+        runners_snapshot = list(_runners.values())
+        active_ids = set(_runners.keys())
+
+    runs = [r.status() for r in runners_snapshot]
 
     if include_historical:
         runs_dir = _get_runs_dir()
@@ -251,7 +259,7 @@ def list_all_runs(include_historical: bool = True) -> list[dict]:
             for run_file in runs_dir.glob("*.json"):
                 run_id = run_file.stem
                 # Skip if already in active registry
-                if run_id in _runners:
+                if run_id in active_ids:
                     continue
                 try:
                     with open(run_file, encoding="utf-8") as f:
@@ -359,46 +367,44 @@ def load_persisted_runs() -> None:
     Evicts runs older than 30 days.
     """
     runs_dir = _get_runs_dir()
-    if not runs_dir.exists():
-        return
+    if runs_dir.exists():
+        now = time.time()
+        stale_threshold = 300  # 5 minutes in seconds
+        age_threshold = 30 * 24 * 3600  # 30 days in seconds
 
-    now = time.time()
-    stale_threshold = 300  # 5 minutes in seconds
-    age_threshold = 30 * 24 * 3600  # 30 days in seconds
+        for run_file in runs_dir.glob("*.json"):
+            try:
+                with open(run_file, encoding="utf-8") as f:
+                    state = json.load(f)
 
-    for run_file in runs_dir.glob("*.json"):
-        try:
-            with open(run_file, encoding="utf-8") as f:
-                state = json.load(f)
+                run_id = state.get("run_id")
+                status = state.get("status")
+                start_time = state.get("start_time", 0)
+                last_heartbeat = state.get("last_heartbeat", 0)
 
-            run_id = state.get("run_id")
-            status = state.get("status")
-            start_time = state.get("start_time", 0)
-            last_heartbeat = state.get("last_heartbeat", 0)
+                # Evict old runs
+                if now - start_time > age_threshold:
+                    run_file.unlink()
+                    logger.info("Evicted old run %s (age > 30 days)", run_id)
+                    continue
 
-            # Evict old runs
-            if now - start_time > age_threshold:
-                run_file.unlink()
-                logger.info("Evicted old run %s (age > 30 days)", run_id)
-                continue
+                # Detect stale running runs
+                active_statuses = {
+                    "running",
+                    "ingesting",
+                    "preparing",
+                    "training",
+                    "evaluating",
+                }
+                if status in active_statuses and (now - last_heartbeat > stale_threshold):
+                    state["status"] = "interrupted"
+                    _atomic_write_json(run_file, state)
+                    logger.info("Marked stale run %s as interrupted", run_id)
 
-            # Detect stale running runs
-            active_statuses = {
-                "running",
-                "ingesting",
-                "preparing",
-                "training",
-                "evaluating",
-            }
-            if status in active_statuses and (now - last_heartbeat > stale_threshold):
-                state["status"] = "interrupted"
-                _atomic_write_json(run_file, state)
-                logger.info("Marked stale run %s as interrupted", run_id)
+            except Exception:
+                logger.debug("Failed to load run state from %s", run_file)
 
-        except Exception:
-            logger.debug("Failed to load run state from %s", run_file)
-
-    logger.info("Loaded persisted runs from %s", runs_dir)
+        logger.info("Loaded persisted runs from %s", runs_dir)
 
 
 def evict_old_runs() -> None:
