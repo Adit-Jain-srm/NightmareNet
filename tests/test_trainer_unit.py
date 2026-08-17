@@ -1,13 +1,21 @@
+"""Unit tests for nightmarenet.training.trainer."""
+
 import os
 import tempfile
 import unittest
 from unittest import mock
+
 import torch
 import torch.nn as nn
 from torch.utils.data import TensorDataset
 
-from nightmarenet.training.trainer import Trainer, _get_device, _create_amp_scaler, VisionModelWrapper
 from nightmarenet.training.callbacks import CallbackManager, EventType, TrainingEvent
+from nightmarenet.training.trainer import (
+    Trainer,
+    VisionModelWrapper,
+    _create_amp_scaler,
+    _get_device,
+)
 
 
 class DummyModel(nn.Module):
@@ -24,9 +32,10 @@ class DummyModel(nn.Module):
         loss = None
         if labels is not None:
             loss = nn.functional.cross_entropy(logits, labels)
-        
+
         class Output:
             pass
+
         out = Output()
         out.loss = loss
         out.logits = logits
@@ -37,20 +46,20 @@ def make_dummy_dataloader(batch_size=2, num_samples=6):
     x = torch.randn(num_samples, 10)
     y = torch.randint(0, 2, (num_samples,))
     dataset = TensorDataset(x, y)
-    
+
     class SimpleLoader:
         def __init__(self, ds, batch_size):
             self.ds = ds
             self.batch_size = batch_size
-        
+
         def __len__(self):
             return len(self.ds) // self.batch_size
-        
+
         def __iter__(self):
             for i in range(0, len(self.ds), self.batch_size):
-                batch_x, batch_y = self.ds[i:i+self.batch_size]
+                batch_x, batch_y = self.ds[i : i + self.batch_size]
                 yield {"input_ids": batch_x, "labels": batch_y}
-                
+
     return SimpleLoader(dataset, batch_size)
 
 
@@ -58,7 +67,7 @@ class TestTrainerUnit(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.config = {
-            "model": {"type": "causal_lm", "name": "dummy"},
+            "model": {"type": "causal_lm", "name": "dummy", "device": "cpu"},
             "training": {
                 "checkpoint_dir": os.path.join(self.temp_dir.name, "checkpoints"),
                 "log_dir": os.path.join(self.temp_dir.name, "logs"),
@@ -161,9 +170,13 @@ class TestTrainerUnit(unittest.TestCase):
         )
         trainer.history = [{"cycle": 0, "phase": "wake", "loss": 0.4}]
 
-        with mock.patch.object(trainer.checkpointer, "save", return_value=self.temp_dir.name) as mock_save, \
-             mock.patch("nightmarenet.distributed.checkpoint.compute_dir_hashes", return_value={}), \
-             mock.patch("nightmarenet.distributed.checkpoint.validate_checkpoint_integrity"):
+        with (
+            mock.patch.object(
+                trainer.checkpointer, "save", return_value=self.temp_dir.name
+            ) as mock_save,
+            mock.patch("nightmarenet.distributed.checkpoint.compute_dir_hashes", return_value={}),
+            mock.patch("nightmarenet.distributed.checkpoint.validate_checkpoint_integrity"),
+        ):
             trainer._save_checkpoint(cycle=0, phase="wake")
             mock_save.assert_called_once()
 
@@ -181,7 +194,9 @@ class TestTrainerUnit(unittest.TestCase):
         mock_resume_mgr = mock.Mock()
         mock_resume_mgr.verify_and_load.return_value = {"cycle": 1, "phase": "dream"}
 
-        with mock.patch("nightmarenet.training.trainer.ResumeManager", return_value=mock_resume_mgr):
+        with mock.patch(
+            "nightmarenet.training.trainer.ResumeManager", return_value=mock_resume_mgr
+        ):
             trainer = Trainer(
                 config=self.config,
                 model=self.dummy_model,
@@ -201,6 +216,10 @@ class TestTrainerUnit(unittest.TestCase):
         trainer._handle_interrupt(None, None)
         self.assertTrue(trainer._interrupted)
 
+    @unittest.skipUnless(
+        torch.cuda.is_available() and torch.cuda.device_count() >= 2,
+        "needs 2+ GPUs",
+    )
     def test_distributed_sync_hooks(self):
         trainer = Trainer(
             config=self.config,
