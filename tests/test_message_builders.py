@@ -1,7 +1,8 @@
 import unittest
+
 from nightmarenet.utils.message_builders import (
-    SlackMessageBuilder,
     DiscordMessageBuilder,
+    SlackMessageBuilder,
     build_webhook_payload,
 )
 
@@ -45,15 +46,21 @@ class TestMessageBuildersUnit(unittest.TestCase):
         self.assertIn("blocks", slack_p)
 
         # Discord
-        discord_p = build_webhook_payload("https://discord.com/api/webhooks/test", "deploy", "Deployed v1")
+        discord_p = build_webhook_payload(
+            "https://discord.com/api/webhooks/test", "deploy", "Deployed v1"
+        )
         self.assertIn("embeds", discord_p)
 
         # Teams
-        teams_p = build_webhook_payload("https://outlook.office.com/webhook/test", "deploy", "Deployed v1")
+        teams_p = build_webhook_payload(
+            "https://outlook.office.com/webhook/test", "deploy", "Deployed v1"
+        )
         self.assertEqual(teams_p.get("@type"), "MessageCard")
 
         # Generic
-        generic_p = build_webhook_payload("https://custom.webhook.org/endpoint", "deploy", "Deployed v1")
+        generic_p = build_webhook_payload(
+            "https://custom.webhook.org/endpoint", "deploy", "Deployed v1"
+        )
         self.assertEqual(generic_p.get("event"), "deploy")
 
 

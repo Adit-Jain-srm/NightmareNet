@@ -1,5 +1,6 @@
 import unittest
 from unittest import mock
+
 from nightmarenet.utils.tracking import ExperimentTracker, create_tracker_from_config
 
 
