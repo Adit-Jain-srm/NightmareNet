@@ -1,4 +1,5 @@
 import unittest
+
 from nightmarenet.evaluation.pareto_analysis import get_pareto_frontier
 
 

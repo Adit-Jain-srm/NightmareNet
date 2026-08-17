@@ -1,5 +1,6 @@
-import unittest
 import math
+import unittest
+
 from nightmarenet.evaluation.degradation_curves import calculate_degradation_curves
 
 
