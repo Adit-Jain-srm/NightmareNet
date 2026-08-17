@@ -31,7 +31,7 @@ class DummyModel(nn.Module):
         logits = self.linear(input_ids)
         loss = None
         if labels is not None:
-            loss = nn.functional.cross_entropy(logits, labels)
+            loss = nn.functional.cross_entropy(logits, labels.long().view(-1))
 
         class Output:
             pass
@@ -114,10 +114,13 @@ class TestTrainerUnit(unittest.TestCase):
         self.assertIsNotNone(out.loss)
         self.assertEqual(out.logits.shape, (3, 2))
 
+    @mock.patch("nightmarenet.training.trainer.CompressionPhase")
     @mock.patch("nightmarenet.training.trainer.WakePhase")
     @mock.patch("nightmarenet.training.trainer.DreamPhase")
     @mock.patch("nightmarenet.training.trainer.NightmarePhase")
-    def test_training_loop_execution_single_epoch(self, mock_nightmare, mock_dream, mock_wake):
+    def test_training_loop_execution_single_epoch(
+        self, mock_nightmare, mock_dream, mock_wake, mock_compress
+    ):
         mock_result = {
             "success": True,
             "metrics": {"loss": 0.5, "accuracy": 0.9},
@@ -125,9 +128,10 @@ class TestTrainerUnit(unittest.TestCase):
             "avg_loss": 0.5,
         }
 
-        mock_wake.return_value.execute.return_value = mock_result
-        mock_dream.return_value.execute.return_value = mock_result
-        mock_nightmare.return_value.execute.return_value = mock_result
+        mock_wake.return_value.run.return_value = mock_result
+        mock_dream.return_value.run.return_value = mock_result
+        mock_nightmare.return_value.run.return_value = mock_result
+        mock_compress.return_value.run.return_value = mock_result
 
         trainer = Trainer(
             config=self.config,
