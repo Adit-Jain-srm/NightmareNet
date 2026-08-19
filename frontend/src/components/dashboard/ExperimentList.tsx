@@ -16,12 +16,8 @@ import { Button } from "@/components/ui/Button";
 import { DataTable, type DataTableColumn } from "@/components/ui/DataTable";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Input } from "@/components/ui/Input";
- feat/524-experiment-status-filter
-
-
 import { Modal } from "@/components/ui/Modal";
 import { Select } from "@/components/ui/Select";
-> main
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -31,6 +27,7 @@ import { searchExperiments, deleteExperiment, updateExperiment, exportExperiment
 import {
   IconBeaker,
   IconDownload,
+  IconFilter,
   IconKebab,
   IconPlus,
   IconSearch,
@@ -504,6 +501,7 @@ export function ExperimentList({
     running: source.filter((e) => e.status === "running").length,
     complete: source.filter((e) => e.status === "complete").length,
     failed: source.filter((e) => e.status === "failed").length,
+    queued: source.filter((e) => e.status === "queued").length,
   }), [source]);
 
   const sourceEmpty = source.length === 0;
@@ -782,13 +780,13 @@ export function ExperimentList({
             className="!py-1.5 !text-xs"
             aria-label="Search experiments"
           />
- feat/524-experiment-status-filter
           <div className="flex items-center gap-1.5 ml-2 mr-auto" role="group" aria-label="Filter by status">
             {[
               { id: "all", label: "All", count: counts.all },
               { id: "running", label: "Running", count: counts.running },
               { id: "complete", label: "Complete", count: counts.complete },
               { id: "failed", label: "Failed", count: counts.failed },
+              { id: "queued", label: "Queued", count: counts.queued },
             ].map((f) => (
               <button
                 key={f.id}
@@ -845,7 +843,6 @@ export function ExperimentList({
           <Button variant="ghost" size="sm" aria-label="Filter" onClick={() => setFilter(filter === "all" ? "running" : "all")} title="Toggle running filter">
             <IconFilter size={12} />
           </Button>
- main
           <Button variant="ghost" size="sm" aria-label="Export" onClick={() => {
             const csv = ["id,name,model,status,cycles,robustness,duration,created"]
               .concat(rows.map(r => `${r.id},${r.name},${r.model},${r.status},${r.cycles},${r.robustness},${r.duration},${r.createdAt}`))
