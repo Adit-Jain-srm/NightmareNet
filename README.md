@@ -735,7 +735,19 @@ Run a standard benchmark suite (SST-2, AG News, IMDB) with reproducible seeds.
 nightmarenet benchmark --suite standard --model distilbert-base-uncased
 ```
 
-### `nightmarenet distort`
+
+#### Inference Performance Benchmark
+
+Benchmark model inference performance across configurable batch sizes. The command reports average latency, throughput, and peak GPU memory when CUDA is available. At least five warmup iterations are excluded from timing.
+
+```bash
+nightmarenet benchmark \
+  --model distilbert-base-uncased \
+  --config configs/default.yaml \
+  --batch-sizes 1,8,32
+```
+
+#### `nightmarenet distort`
 
 Apply a single distortion to an arbitrary string — useful for debugging distortion engines.
 

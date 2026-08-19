@@ -22,11 +22,15 @@ logger = logging.getLogger(__name__)
 
 def cmd_train(args: argparse.Namespace) -> int:
     """Run the full 4-phase training pipeline."""
-    from nightmarenet.pipeline import Pipeline
-
     config_path = Path(args.config)
     if not config_path.exists():
         logger.error("Config file not found: %s", config_path)
+        return 1
+
+    try:
+        from nightmarenet.pipeline import Pipeline
+    except Exception as e:
+        logger.error("Failed to initialize training: %s", e)
         return 1
 
     import yaml
@@ -299,7 +303,121 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
 
 
 def cmd_benchmark(args: argparse.Namespace) -> int:
-    """Run standard or ensemble robustness benchmarks and print reproducibility logs."""
+    """Run inference-performance or robustness benchmarks."""
+    if getattr(args, "batch_sizes", None) is not None:
+        import torch
+        import yaml
+        from transformers import (
+            AutoModelForCausalLM,
+            AutoModelForMaskedLM,
+            AutoModelForSequenceClassification,
+            AutoTokenizer,
+        )
+
+        from nightmarenet.evaluation.inference_benchmark import (
+            run_benchmark,
+            save_results,
+        )
+
+        try:
+            batch_sizes = [
+                int(value.strip()) for value in args.batch_sizes.split(",") if value.strip()
+            ]
+        except ValueError:
+            logger.error("Batch sizes must be comma-separated integers.")
+            return 1
+
+        if not batch_sizes or any(size <= 0 for size in batch_sizes):
+            logger.error("Batch sizes must be positive integers.")
+            return 1
+
+        config_path = args.config or "configs/default.yaml"
+
+        try:
+            with open(config_path, encoding="utf-8") as handle:
+                config = yaml.safe_load(handle) or {}
+        except (OSError, yaml.YAMLError) as exc:
+            logger.error("Could not load benchmark config: %s", exc)
+            return 1
+
+        model_config = config.get("model", {})
+        model_name = args.model or model_config.get("name", "gpt2")
+        model_type = model_config.get("type", "causal_lm")
+        max_length = int(model_config.get("max_length", 128))
+
+        if model_type == "causal_lm":
+            model_cls = AutoModelForCausalLM
+        elif model_type == "masked_lm":
+            model_cls = AutoModelForMaskedLM
+        elif model_type == "seq_classification":
+            model_cls = AutoModelForSequenceClassification
+        else:
+            logger.error("Unsupported benchmark model type: %s", model_type)
+            return 1
+
+        device_name = model_config.get("device", "auto")
+        if device_name == "auto":
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        else:
+            device = torch.device(device_name)
+
+        logger.info("Loading model '%s' on %s", model_name, device)
+
+        try:
+            model = model_cls.from_pretrained(model_name)
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+            model.to(device)
+            model.eval()
+        except Exception as exc:
+            logger.error("Failed to load model '%s': %s", model_name, exc)
+            return 1
+
+        try:
+            results = run_benchmark(
+                model=model,
+                tokenizer=tokenizer,
+                device=device,
+                batch_sizes=batch_sizes,
+                model_name=model_name,
+                max_length=max_length,
+            )
+        except Exception as exc:
+            logger.error("Inference benchmark failed: %s", exc)
+            return 1
+
+        print("\nInference Benchmark Results")
+        print("=" * 80)
+        print(
+            f"{'Batch':>8} {'Latency (ms)':>16} "
+            f"{'Throughput (samples/s)':>25} {'Peak Memory (MB)':>20}"
+        )
+        print("-" * 80)
+
+        for result in results["results"]:
+            memory = (
+                f"{result['peak_memory_mb']:.2f}" if result["peak_memory_mb"] is not None else "N/A"
+            )
+            print(
+                f"{result['batch_size']:>8} "
+                f"{result['average_latency_ms']:>16.3f} "
+                f"{result['throughput_samples_per_sec']:>25.3f} "
+                f"{memory:>20}"
+            )
+
+        try:
+            output_path = save_results(
+                results,
+                model_name=model_name,
+                output_dir=args.output or "results",
+            )
+        except (OSError, ValueError, TypeError) as exc:
+            logger.error("Failed to save benchmark results: %s", exc)
+            return 1
+
+        logger.info("Results saved to %s", output_path)
+        return 0
+
+    # Existing robustness/ensemble benchmark behavior.
     if getattr(args, "config", None):
         from nightmarenet.evaluation.degradation_curves import calculate_degradation_curves
         from nightmarenet.evaluation.ensemble_benchmark import EnsembleOrchestrator
@@ -317,25 +435,25 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         try:
             orchestrator = EnsembleOrchestrator(args.config)
             results = orchestrator.run(
-                timeout_seconds=300, output_dir=output_dir, no_cache=no_cache
+                timeout_seconds=300,
+                output_dir=output_dir,
+                no_cache=no_cache,
             )
-        except (FileNotFoundError, OSError) as e:
-            logger.error("Could not load benchmark config: %s", e)
+        except Exception as e:
+            logger.error("Benchmark failed: %s", e)
             return 1
 
-        # Analyze pareto frontier
         pareto_front = get_pareto_frontier(results["models_summary"])
         results["pareto_front"] = pareto_front
 
-        # Calculate degradation curves
         curves = calculate_degradation_curves(results["raw_results"])
         results["degradation_curves"] = curves
 
-        # We want json, csv, latex
         format_all(results, formats=["json", "csv", "latex"], output_dir=output_dir)
         logger.info("Results saved to %s", output_dir)
 
         return 0
+
     import yaml
 
     from nightmarenet.evaluation.evaluator import Evaluator
@@ -406,14 +524,16 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
         evaluator.print_results_table(results)
     else:
         logger.info(
-            "Model: %s | Suite Profile: %s | Status: Evaluation Complete", model_name, suite
+            "Model: %s | Suite Profile: %s | Status: Evaluation Complete",
+            model_name,
+            suite,
         )
     logger.info("-----------------------------------")
 
     robustness_delta = float(results.get("robustness_delta", 0.0))
     logger.info("Verification Summary:")
     logger.info("  Achieved Robustness Delta: +%.2f%%", robustness_delta * 100)
-    logger.info("  Target Paper Specification: +14.00%")
+    logger.info("  Target Paper Specification: +14.00%%")
 
     if robustness_delta >= 0.14:
         logger.info("[SUCCESS] Metrics match or exceed canonical paper specifications!")
@@ -984,15 +1104,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # benchmark
-    bench_parser = subparsers.add_parser("benchmark", help="Run robustness benchmarks")
+    bench_parser = subparsers.add_parser("benchmark", help="Run inference or robustness benchmarks")
     bench_parser.add_argument(
         "--suite", default="standard", choices=["standard", "adversarial", "full"]
     )
     bench_parser.add_argument("--model", default="distilbert-base-uncased")
-    bench_parser.add_argument("--config", help="YAML config path for ensemble benchmarking")
-    bench_parser.add_argument("--output", help="Output directory for ensemble benchmark results")
+    bench_parser.add_argument("--config", help="YAML config path")
+    bench_parser.add_argument("--output", help="Output directory for benchmark results")
     bench_parser.add_argument(
         "--no-cache", action="store_true", help="Force re-evaluation without using cache"
+    )
+    bench_parser.add_argument(
+        "--batch-sizes",
+        help="Comma-separated batch sizes for inference benchmarking (e.g. 1,8,32)",
     )
 
     # distort
