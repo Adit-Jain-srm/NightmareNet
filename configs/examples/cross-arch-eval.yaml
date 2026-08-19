@@ -4,6 +4,7 @@ model:
   max_length: 128
   type: seq_classification
   num_labels: 2
+  # Phases load one model at a time so the default run fits ~4GB VRAM.
 
 dataset:
   name: imdb

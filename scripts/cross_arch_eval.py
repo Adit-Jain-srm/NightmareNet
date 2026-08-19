@@ -21,11 +21,48 @@ from nightmarenet.data.generator import create_generators_from_config
 from nightmarenet.data.loader import load_from_config
 from nightmarenet.distortions.text import apply_text_distortions
 from nightmarenet.evaluation.evaluator import Evaluator
+from nightmarenet.evaluation.metrics import classification_metrics
 from nightmarenet.training.trainer import Trainer, _tokenize_dataset
 from nightmarenet.utils.config import load_config
 from nightmarenet.utils.logging_config import setup_logging
 
 logger = logging.getLogger(__name__)
+
+
+def _release_gpu(*objects) -> None:
+    """Drop references and return cached CUDA memory between model phases."""
+    for obj in objects:
+        del obj
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+
+
+def _time_clean_inference(model, dataloader, device, sample_count: int) -> float:
+    """Seconds per sample for a single clean forward pass (no distortion sweep)."""
+    model.eval()
+    start = time.time()
+    classification_metrics(model, dataloader, device)
+    return (time.time() - start) / max(sample_count, 1)
+
+
+def _evaluate_with_sweep_timing(
+    evaluator,
+    clean_dataloader,
+    base_dataset,
+    distortion_fn,
+    label: str,
+    sample_count: int,
+):
+    """Run the full evaluator sweep and return (results, eval_sweep_time)."""
+    start = time.time()
+    results = evaluator.evaluate(
+        clean_dataloader=clean_dataloader,
+        base_dataset=base_dataset,
+        distortion_fn=distortion_fn,
+        label=label,
+    )
+    eval_sweep_time = (time.time() - start) / max(sample_count, 1)
+    return results, eval_sweep_time
 
 
 def main():
@@ -170,14 +207,21 @@ def main():
         )
         logger.info("Evaluating %s...", train_model_name)
 
-        start_time = time.time()
-        results_small = evaluator_small.evaluate(
-            clean_dataloader=clean_dataloader_small,
-            base_dataset=dataset_wrapper.test_data,
-            distortion_fn=apply_text_distortions,
-            label="small_robust",
+        n_test = len(dataset_wrapper.test_data)
+        inference_time_small = _time_clean_inference(
+            trainer_small.model, clean_dataloader_small, device, n_test
         )
-        inference_time_small = (time.time() - start_time) / len(dataset_wrapper.test_data)
+        results_small, eval_sweep_time_small = _evaluate_with_sweep_timing(
+            evaluator_small,
+            clean_dataloader_small,
+            dataset_wrapper.test_data,
+            apply_text_distortions,
+            "small_robust",
+            n_test,
+        )
+
+        # Free DistilBERT before loading BERT-large (4GB GPU target).
+        _release_gpu(trainer_small.model, trainer_small, evaluator_small)
 
         # 3. Load BERT-large
         eval_model_name_to_load = (
@@ -236,20 +280,26 @@ def main():
         )
         logger.info("Evaluating %s (Zero-Shot)...", eval_model_name)
 
-        start_time = time.time()
-        results_large_zeroshot = evaluator_large.evaluate(
-            clean_dataloader=clean_dataloader_large,
-            base_dataset=dataset_wrapper.test_data,
-            distortion_fn=apply_text_distortions,
-            label="large_zeroshot",
+        inference_time_large_zeroshot = _time_clean_inference(
+            model_large, clean_dataloader_large, device, n_test
         )
-        inference_time_large_zeroshot = (time.time() - start_time) / len(dataset_wrapper.test_data)
+        results_large_zeroshot, eval_sweep_time_large_zeroshot = _evaluate_with_sweep_timing(
+            evaluator_large,
+            clean_dataloader_large,
+            dataset_wrapper.test_data,
+            apply_text_distortions,
+            "large_zeroshot",
+            n_test,
+        )
 
         # (Optional) Fine-tune BERT-large
         results_large_finetuned = None
         inference_time_large_finetuned = None
+        eval_sweep_time_large_finetuned = None
 
         if args.finetune_large:
+            _release_gpu(model_large, evaluator_large)
+
             logger.info("=== Phase 3: Fine-Tune %s with NightmareNet ===", eval_model_name)
             dream_gen_large, nightmare_gen_large = create_generators_from_config(large_config)
             dream_data_large = dream_gen_large.generate(dataset_wrapper.train_data)
@@ -299,21 +349,22 @@ def main():
                 device=device,
             )
 
-            start_time = time.time()
-            results_large_finetuned = evaluator_large_ft.evaluate(
-                clean_dataloader=clean_dataloader_large,
-                base_dataset=dataset_wrapper.test_data,
-                distortion_fn=apply_text_distortions,
-                label="large_finetuned",
+            inference_time_large_finetuned = _time_clean_inference(
+                trainer_large.model, clean_dataloader_large, device, n_test
             )
-            inference_time_large_finetuned = (time.time() - start_time) / len(
-                dataset_wrapper.test_data
+            results_large_finetuned, eval_sweep_time_large_finetuned = _evaluate_with_sweep_timing(
+                evaluator_large_ft,
+                clean_dataloader_large,
+                dataset_wrapper.test_data,
+                apply_text_distortions,
+                "large_finetuned",
+                n_test,
             )
 
         # 4. Generate Comparison and Save
         logger.info("=== Aggregating Results ===")
 
-        def extract_metrics(res, inf_time):
+        def extract_metrics(res, inference_time_per_sample, eval_sweep_time):
             # Based on standard NightmareNet evaluator outputs
             clean_perf = res.get("clean_performance", {})
             clean_acc = clean_perf.get("accuracy", clean_perf.get("score", 0.0))
@@ -330,19 +381,26 @@ def main():
             return {
                 "robustness_score": avg_robustness,
                 "clean_accuracy": clean_acc,
-                "inference_time": inf_time,
+                "inference_time_per_sample": inference_time_per_sample,
+                "eval_sweep_time": eval_sweep_time,
             }
 
         summary = {
-            "DistilBERT + NightmareNet": extract_metrics(results_small, inference_time_small),
+            "DistilBERT + NightmareNet": extract_metrics(
+                results_small, inference_time_small, eval_sweep_time_small
+            ),
             "BERT-large (zero-shot)": extract_metrics(
-                results_large_zeroshot, inference_time_large_zeroshot
+                results_large_zeroshot,
+                inference_time_large_zeroshot,
+                eval_sweep_time_large_zeroshot,
             ),
         }
 
         if results_large_finetuned:
             summary["BERT-large + NightmareNet"] = extract_metrics(
-                results_large_finetuned, inference_time_large_finetuned
+                results_large_finetuned,
+                inference_time_large_finetuned,
+                eval_sweep_time_large_finetuned,
             )
 
         with open(args.output, "w") as f:
@@ -350,7 +408,7 @@ def main():
 
         logger.info("Results saved to %s", args.output)
         for model_name, metrics in summary.items():
-            logger.info(f"{model_name}: {metrics}")
+            logger.info("%s: %s", model_name, metrics)
 
     except Exception as exc:
         logger.exception("Unexpected error: %s", exc)
