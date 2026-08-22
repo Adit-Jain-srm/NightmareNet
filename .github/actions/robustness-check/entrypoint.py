@@ -15,7 +15,6 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-
 MARKER = "<!-- nightmarenet-robustness-check -->"
 
 
@@ -204,7 +203,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     temp_root = Path(os.environ.get("RUNNER_TEMP") or os.environ.get("TMPDIR") or "/tmp")
     report_path = temp_root / "nightmarenet-robustness-report.json"
-    comment_path = Path(os.environ.get("INPUT_COMMENT_PATH") or (temp_root / "robustness-comment.md"))
+    comment_path = Path(
+        os.environ.get("INPUT_COMMENT_PATH") or (temp_root / "robustness-comment.md")
+    )
 
     cmd = build_evaluate_cmd(
         model_path=model_path,
