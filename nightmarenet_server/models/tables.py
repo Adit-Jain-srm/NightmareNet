@@ -131,15 +131,26 @@ class RunEvent(Base):
 
 
 class AuditLog(Base):
+    """Append-only audit trail (SOC 2 CC7.2).
+
+    Field mapping for the compliance API:
+    actor_id → user_id, entity_type → resource_type, entity_id → resource_id.
+    """
+
     __tablename__ = "audit_logs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    org_id: Mapped[str] = mapped_column(ForeignKey("orgs.id"), index=True)
+    org_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("orgs.id"), index=True, nullable=True
+    )
     user_id: Mapped[Optional[str]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    actor_role: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     action: Mapped[str] = mapped_column(String(128))
     resource_type: Mapped[str] = mapped_column(String(64))
-    resource_id: Mapped[str] = mapped_column(String(36))
+    resource_id: Mapped[str] = mapped_column(String(128))
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    request_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
