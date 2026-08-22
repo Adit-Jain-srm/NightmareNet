@@ -62,6 +62,19 @@ def _attach_oauth(app: Any) -> None:
     app.include_router(router)
 
 
+def _attach_sso(app: Any) -> None:
+    try:
+        from nightmarenet_server.auth.oidc import build_sso_routers
+    except ImportError:
+        logger.info("SSO router unavailable — skipping.")
+        return
+    sso_router, admin_router = build_sso_routers()
+    if sso_router is not None:
+        app.include_router(sso_router)
+    if admin_router is not None:
+        app.include_router(admin_router)
+
+
 def _attach_realtime(app: Any) -> None:
     try:
         from nightmarenet_server.realtime.websocket import build_realtime_router
@@ -250,6 +263,7 @@ def create_app() -> Optional[Any]:
 
     _attach_audit_middleware(app)
     _attach_oauth(app)
+    _attach_sso(app)
     _attach_realtime(app)
     _attach_api_key_routes(app)
     _attach_search(app)
@@ -271,6 +285,10 @@ def create_app() -> Optional[Any]:
             "oauth_enabled": bool(
                 os.environ.get("NIGHTMARENET_GITHUB_CLIENT_ID")
                 or os.environ.get("NIGHTMARENET_GOOGLE_CLIENT_ID")
+            ),
+            "sso_enabled": bool(
+                os.environ.get("NIGHTMARENET_OIDC_CLIENT_ID")
+                and os.environ.get("NIGHTMARENET_OIDC_DEFAULT_METADATA_URL")
             ),
         }
 
