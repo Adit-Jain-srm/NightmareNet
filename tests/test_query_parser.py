@@ -1,7 +1,8 @@
 """Unit tests for natural-language search query parsing."""
 
+from __future__ import annotations
+
 from datetime import datetime, timezone, tzinfo
-from typing import Self
 
 import pytest
 
@@ -20,9 +21,7 @@ from nightmarenet_server.search.query_parser import ParsedQuery, parse_query
         ("pending jobs", "pending"),
     ],
 )
-def test_parse_query_extracts_and_normalizes_status(
-    query: str, expected_status: str
-) -> None:
+def test_parse_query_extracts_and_normalizes_status(query: str, expected_status: str) -> None:
     parsed = parse_query(query)
 
     assert parsed.filters["status"] == expected_status
@@ -36,9 +35,7 @@ def test_parse_query_extracts_and_normalizes_status(
         ("used org/model.v2", "org/model.v2"),
     ],
 )
-def test_parse_query_extracts_model_case_insensitively(
-    query: str, expected_model: str
-) -> None:
+def test_parse_query_extracts_model_case_insensitively(query: str, expected_model: str) -> None:
     parsed = parse_query(query)
 
     assert parsed.filters["model"] == expected_model
@@ -108,7 +105,7 @@ def test_parse_query_extracts_excluded_terms_case_insensitively() -> None:
 def test_parse_query_adds_created_after_for_last_week(monkeypatch: pytest.MonkeyPatch) -> None:
     class FixedDateTime(datetime):
         @classmethod
-        def now(cls, tz: tzinfo | None = None) -> Self:
+        def now(cls, tz: tzinfo | None = None) -> FixedDateTime:
             assert tz == timezone.utc
             return cls(2026, 8, 8, 12, 0, tzinfo=timezone.utc)
 
@@ -124,7 +121,7 @@ def test_parse_query_last_week_matching_is_case_insensitive(
 ) -> None:
     class FixedDateTime(datetime):
         @classmethod
-        def now(cls, tz: tzinfo | None = None) -> Self:
+        def now(cls, tz: tzinfo | None = None) -> FixedDateTime:
             return cls(2026, 8, 8, 12, 0, tzinfo=timezone.utc)
 
     monkeypatch.setattr(query_parser, "datetime", FixedDateTime)
@@ -159,10 +156,7 @@ def test_parse_query_empty_input_returns_empty_result() -> None:
 
 
 def test_parse_query_combines_supported_filters() -> None:
-    parsed = parse_query(
-        "completed runs using DistilBERT where robustness > 0.7 "
-        "and not char_swap"
-    )
+    parsed = parse_query("completed runs using DistilBERT where robustness > 0.7 and not char_swap")
 
     assert parsed.filters == {
         "status": "completed",
