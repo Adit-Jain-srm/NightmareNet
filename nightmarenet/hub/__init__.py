@@ -21,10 +21,9 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
-import yaml
 
 try:
     from huggingface_hub import PyTorchModelHubMixin
@@ -37,6 +36,10 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 _CONFIG_FILENAME = "nightmarenet_config.json"
+_WEIGHTS_FILENAME = "pytorch_model.bin"
+_SAFETENSORS_FILENAME = "model.safetensors"
+# All files that ``_from_pretrained`` needs from the Hub.
+_HUB_FILES: List[str] = [_CONFIG_FILENAME, _WEIGHTS_FILENAME, _SAFETENSORS_FILENAME]
 
 
 def _require_hf_hub() -> None:
@@ -89,7 +92,7 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
         save_directory.mkdir(parents=True, exist_ok=True)
 
         # 1. Save PyTorch weights
-        weights_path = save_directory / "pytorch_model.bin"
+        weights_path = save_directory / _WEIGHTS_FILENAME
         torch.save(self.state_dict(), weights_path)
         logger.info("Saved model weights to %s", weights_path)
 
@@ -129,17 +132,31 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
         if os.path.isdir(model_id):
             model_dir = Path(model_id)
         else:
-            model_dir = Path(
-                hf_hub_download(
-                    repo_id=model_id,
-                    filename=_CONFIG_FILENAME,
-                    revision=revision,
-                    cache_dir=str(cache_dir) if cache_dir else None,
-                    force_download=force_download,
-                    local_files_only=local_files_only,
-                    token=token,
+            # Download ALL required files from the Hub so weights are
+            # available locally (not just the config).
+            first_path: Optional[Path] = None
+            for filename in _HUB_FILES:
+                try:
+                    path = hf_hub_download(
+                        repo_id=model_id,
+                        filename=filename,
+                        revision=revision,
+                        cache_dir=str(cache_dir) if cache_dir else None,
+                        force_download=force_download,
+                        local_files_only=local_files_only,
+                        token=token,
+                    )
+                    if first_path is None:
+                        first_path = Path(path)
+                except Exception:
+                    # Some files (e.g. safetensors) may not exist — that's OK.
+                    logger.debug("Could not download %s, skipping", filename)
+            if first_path is None:
+                raise FileNotFoundError(
+                    f"No files found in Hub repo {model_id!r}. "
+                    f"Expected at least {_CONFIG_FILENAME}."
                 )
-            ).parent
+            model_dir = first_path.parent
 
         # Load config
         config: Dict[str, Any] = {}
@@ -155,21 +172,23 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
         instance = cls(**merged)  # type: ignore[call-arg]
 
         # Load weights
-        weights_path = model_dir / "pytorch_model.bin"
-        if not weights_path.exists():
+        weights_path = model_dir / _WEIGHTS_FILENAME
+        if weights_path.exists():
+            state = torch.load(
+                weights_path, map_location=map_location, weights_only=True
+            )
+        else:
             # Fallback: try HuggingFace's safetensors convention
-            weights_path = model_dir / "model.safetensors"
-            if weights_path.exists():
+            safetensors_path = model_dir / _SAFETENSORS_FILENAME
+            if safetensors_path.exists():
                 from safetensors.torch import load_file
 
-                state = load_file(str(weights_path))
+                state = load_file(str(safetensors_path))
             else:
                 raise FileNotFoundError(
                     f"No model weights found in {model_dir}. "
-                    f"Expected pytorch_model.bin or model.safetensors."
+                    f"Expected {_WEIGHTS_FILENAME} or {_SAFETENSORS_FILENAME}."
                 )
-        else:
-            state = torch.load(weights_path, map_location=map_location)
 
         instance.load_state_dict(state, strict=strict)
         logger.info("Loaded NightmareNet model from %s", model_dir)

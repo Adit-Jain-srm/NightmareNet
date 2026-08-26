@@ -27,7 +27,9 @@ class _DummyModel(NightmareNetHubMixin, torch.nn.Module):
     def __init__(self, input_dim: int = 8, output_dim: int = 4, **kwargs: Any):
         super().__init__()
         self.linear = torch.nn.Linear(input_dim, output_dim)
-        self._extra_config = {k: v for k, v in kwargs.items() if k not in ("input_dim", "output_dim")}
+        self._extra_config = {
+            k: v for k, v in kwargs.items() if k not in ("input_dim", "output_dim")
+        }
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.linear(x)
@@ -58,20 +60,28 @@ def tmp_hub_dir(tmp_path: Path) -> Path:
 
 
 class TestSavePretrained:
-    def test_creates_weights_and_config(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
+    def test_creates_weights_and_config(
+        self, dummy_model: _DummyModel, tmp_hub_dir: Path
+    ) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         assert (tmp_hub_dir / "pytorch_model.bin").exists()
         assert (tmp_hub_dir / "nightmarenet_config.json").exists()
 
-    def test_weights_are_loadable(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
+    def test_weights_are_loadable(
+        self, dummy_model: _DummyModel, tmp_hub_dir: Path
+    ) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
-        state = torch.load(tmp_hub_dir / "pytorch_model.bin", map_location="cpu")
+        state = torch.load(
+            tmp_hub_dir / "pytorch_model.bin", map_location="cpu", weights_only=True
+        )
         assert "linear.weight" in state
         assert "linear.bias" in state
 
-    def test_config_contents(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
+    def test_config_contents(
+        self, dummy_model: _DummyModel, tmp_hub_dir: Path
+    ) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         with open(tmp_hub_dir / "nightmarenet_config.json") as f:
@@ -82,7 +92,9 @@ class TestSavePretrained:
         assert config["robustness_score"] == 0.95
         assert "gaussian_noise" in config["distortion_families"]
 
-    def test_creates_parent_dirs(self, dummy_model: _DummyModel, tmp_path: Path) -> None:
+    def test_creates_parent_dirs(
+        self, dummy_model: _DummyModel, tmp_path: Path
+    ) -> None:
         deep_dir = tmp_path / "a" / "b" / "c" / "model"
         dummy_model._save_pretrained(deep_dir)
         assert deep_dir.exists()
@@ -94,7 +106,9 @@ class TestSavePretrained:
 
 
 class TestFromPretrained:
-    def test_roundtrip_local(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
+    def test_roundtrip_local(
+        self, dummy_model: _DummyModel, tmp_hub_dir: Path
+    ) -> None:
         """Save → load → compare weights."""
         dummy_model._save_pretrained(tmp_hub_dir)
 
@@ -103,14 +117,15 @@ class TestFromPretrained:
             map_location="cpu",
         )
 
-        # Weights must match
         for key in dummy_model.state_dict():
             assert torch.equal(
                 dummy_model.state_dict()[key],
                 loaded.state_dict()[key],
             ), f"Mismatch in {key}"
 
-    def test_config_restored(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
+    def test_config_restored(
+        self, dummy_model: _DummyModel, tmp_hub_dir: Path
+    ) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         loaded = _DummyModel._from_pretrained(
@@ -122,7 +137,9 @@ class TestFromPretrained:
         assert cfg["robustness_score"] == 0.95
         assert cfg["distortion_families"] == ["gaussian_noise", "adversarial"]
 
-    def test_model_is_callable(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
+    def test_model_is_callable(
+        self, dummy_model: _DummyModel, tmp_hub_dir: Path
+    ) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         loaded = _DummyModel._from_pretrained(
@@ -134,27 +151,36 @@ class TestFromPretrained:
         out = loaded(x)
         assert out.shape == (2, 4)
 
-    @patch("nightmarenet.hub.os.path.isdir", return_value=False)
-    @patch("nightmarenet.hub.hf_hub_download")
+    @patch("huggingface_hub.hf_hub_download")
     def test_hub_download_path(
         self,
         mock_download: MagicMock,
-        mock_isdir: MagicMock,
         dummy_model: _DummyModel,
         tmp_hub_dir: Path,
     ) -> None:
-        """When model_id is not a local dir, hf_hub_download is called."""
+        """When model_id is not a local dir, hf_hub_download is called for
+        each file (config + weights)."""
         dummy_model._save_pretrained(tmp_hub_dir)
 
-        # Make hf_hub_download return the config file path
         config_file = tmp_hub_dir / "nightmarenet_config.json"
-        mock_download.return_value = str(config_file)
+        weights_file = tmp_hub_dir / "pytorch_model.bin"
+
+        # hf_hub_download is called for each file; map by filename arg
+        def _side_effect(filename, **kwargs):
+            if filename == "nightmarenet_config.json":
+                return str(config_file)
+            if filename == "pytorch_model.bin":
+                return str(weights_file)
+            raise FileNotFoundError(filename)
+
+        mock_download.side_effect = _side_effect
 
         loaded = _DummyModel._from_pretrained(
             model_id="user/repo",
             map_location="cpu",
         )
-        mock_download.assert_called_once()
+        # At least config + weights
+        assert mock_download.call_count >= 2
         assert torch.equal(
             dummy_model.state_dict()["linear.weight"],
             loaded.state_dict()["linear.weight"],
