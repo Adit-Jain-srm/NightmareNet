@@ -246,4 +246,3 @@ def test_auto_wiring():
             assert "failure_categories" in results
             # By default, metrics.py export logic uses "text_distortion" as distortion_type
             assert results["failure_categories"]["text_distortion"]["count"] == 1
-            

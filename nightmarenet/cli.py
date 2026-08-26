@@ -294,7 +294,6 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
         "avg_dream_similarity": round(avg_dream, 4),
         "avg_nightmare_similarity": round(avg_nightmare, 4),
         "strengths": per_strength,
-        "strengths": per_strength,
     }
 
     if json_only:
@@ -1187,4 +1186,3 @@ def main(argv: Optional[list] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-    
