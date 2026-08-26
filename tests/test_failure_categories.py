@@ -223,28 +223,26 @@ def test_auto_wiring():
 
     mock_model = MagicMock()
 
-    with (
-        patch("nightmarenet.evaluation.metrics.compute_perplexity") as mock_ppl,
-        patch("nightmarenet.evaluation.metrics.classification_metrics") as mock_cls,
-    ):
-        # Mock responses to bypass actual inference
-        mock_ppl.return_value = {"perplexity": 2.0, "per_sample_ppls": [2.0]}
-        # We need a failure, so orig_preds != dist_preds. Since it is called
-        # twice (clean, then distorted), we use side_effect to return different predictions.
-        mock_cls.side_effect = [
-            {"per_sample_preds": [0], "per_sample_confs": [0.9]},  # Clean dataset
-            {"per_sample_preds": [1], "per_sample_confs": [0.4]},  # Distorted dataset
-        ]
+    with patch("nightmarenet.evaluation.metrics.compute_perplexity") as mock_ppl:
+        with patch("nightmarenet.evaluation.metrics.classification_metrics") as mock_cls:
+            # Mock responses to bypass actual inference
+            mock_ppl.return_value = {"perplexity": 2.0, "per_sample_ppls": [2.0]}
+            # We need a failure, so orig_preds != dist_preds. Since it is called
+            # twice (clean, then distorted), we use side_effect to return different predictions.
+            mock_cls.side_effect = [
+                {"per_sample_preds": [0], "per_sample_confs": [0.9]},  # Clean dataset
+                {"per_sample_preds": [1], "per_sample_confs": [0.4]},  # Distorted dataset
+            ]
 
-        results = robustness_score(
-            model=mock_model,
-            base_dataset=DummyDataset(),
-            tokenizer=MockTokenizer(),
-            distortion_fn=lambda x, **kwargs: x,
-            strengths=[0.1],
-            export_failures=True,
-            failure_records=None,
-        )
-        assert "failure_categories" in results
-        # By default, metrics.py export logic uses "text_distortion" as distortion_type
-        assert results["failure_categories"]["text_distortion"]["count"] == 1
+            results = robustness_score(
+                model=mock_model,
+                base_dataset=DummyDataset(),
+                tokenizer=MockTokenizer(),
+                distortion_fn=lambda x, **kwargs: x,
+                strengths=[0.1],
+                export_failures=True,
+                failure_records=None,
+            )
+            assert "failure_categories" in results
+            # By default, metrics.py export logic uses "text_distortion" as distortion_type
+            assert results["failure_categories"]["text_distortion"]["count"] == 1

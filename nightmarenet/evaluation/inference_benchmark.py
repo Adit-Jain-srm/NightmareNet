@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import re
 import time
+import platform
 from pathlib import Path
 from statistics import mean
 from typing import Any, Optional, Union
@@ -43,9 +44,10 @@ def _get_cpu_memory_mb() -> Optional[float]:
 
         usage = resource.getrusage(resource.RUSAGE_SELF)
         # Linux reports KB; macOS reports bytes.
-        if usage.ru_maxrss < 1024 * 1024:
+        if platform.system() == "Darwin":
+            return usage.ru_maxrss / (1024 * 1024)
+        else:
             return usage.ru_maxrss / 1024.0
-        return usage.ru_maxrss / (1024 * 1024)
     except (ImportError, AttributeError, OSError):
         return None
 
@@ -95,6 +97,9 @@ def benchmark_batch(
     max_length: int = 128,
 ) -> dict[str, Any]:
     """Measure latency, throughput, and peak memory for one batch size."""
+    if measurement_iterations <= 0:
+        raise ValueError("measurement_iterations must be greater than 0")
+
     model.eval()
 
     inputs = _build_inputs(model, tokenizer, batch_size, max_length)

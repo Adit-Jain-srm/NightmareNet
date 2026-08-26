@@ -535,7 +535,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     robustness_delta = float(results.get("robustness_delta", 0.0))
     logger.info("Verification Summary:")
     logger.info("  Achieved Robustness Delta: +%.2f%%", robustness_delta * 100)
-    logger.info("  Target Paper Specification: +14.00%%")
+    logger.info("  Target Paper Specification: +%.2f%%", 14.0)
 
     if robustness_delta >= 0.14:
         logger.info("[SUCCESS] Metrics match or exceed canonical paper specifications!")
