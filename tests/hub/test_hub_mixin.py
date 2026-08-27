@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from nightmarenet.hub import _HF_AVAILABLE, NightmareNetHubMixin
+from nightmarenet.hub import NightmareNetHubMixin
 
 # ---------------------------------------------------------------------------
 # Fixtures — minimal model that uses the mixin
@@ -176,13 +176,15 @@ class TestFromPretrained:
 
 
 class TestImportGuard:
-    def test_hf_available_flag(self) -> None:
-        """_HF_AVAILABLE should reflect whether huggingface_hub is installed."""
-        assert isinstance(_HF_AVAILABLE, bool)
+    def test_hub_base_is_real(self) -> None:
+        """_HubMixinBase should be the real mixin when huggingface_hub is present."""
+        from nightmarenet.hub import _HubMixinBase
+
+        assert _HubMixinBase is not object
 
     def test_push_to_hub_requires_hf(self, dummy_model: _DummyModel) -> None:
         """push_to_hub should raise ImportError if huggingface_hub missing."""
-        with patch("nightmarenet.hub._HF_AVAILABLE", False):
+        with patch("nightmarenet.hub._HubMixinBase", object):
             with pytest.raises(ImportError, match="huggingface-hub"):
                 dummy_model.push_to_hub("user/repo")
 
