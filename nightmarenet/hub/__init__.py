@@ -2,17 +2,6 @@
 
 Provides ``NightmareNetHubMixin`` — a drop-in mixin that adds
 ``push_to_hub`` / ``from_pretrained`` to any ``torch.nn.Module``.
-
-Usage::
-
-    from nightmarenet.hub import NightmareNetHubMixin
-
-    class MyModel(NightmareNetHubMixin, torch.nn.Module):
-        ...
-
-    model = MyModel(...)
-    model.push_to_hub("user/my-model")
-    loaded = MyModel.from_pretrained("user/my-model")
 """
 
 from __future__ import annotations
@@ -21,82 +10,54 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import torch
 
-try:
-    from huggingface_hub import PyTorchModelHubMixin
-
-    _HF_AVAILABLE = True
-except ImportError:
-    PyTorchModelHubMixin = object  # type: ignore[assignment,misc]
-    _HF_AVAILABLE = False
+if TYPE_CHECKING:
+    from huggingface_hub import PyTorchModelHubMixin as _HubMixinBase
+else:
+    try:
+        from huggingface_hub import PyTorchModelHubMixin as _HubMixinBase
+    except ImportError:  # pragma: no cover
+        _HubMixinBase = object
 
 logger = logging.getLogger(__name__)
 
 _CONFIG_FILENAME = "nightmarenet_config.json"
 _WEIGHTS_FILENAME = "pytorch_model.bin"
 _SAFETENSORS_FILENAME = "model.safetensors"
-# All files that ``_from_pretrained`` needs from the Hub.
 _HUB_FILES: List[str] = [_CONFIG_FILENAME, _WEIGHTS_FILENAME, _SAFETENSORS_FILENAME]
 
 
 def _require_hf_hub() -> None:
-    """Raise a clear error when *huggingface_hub* is not installed."""
-    if not _HF_AVAILABLE:
+    """Raise a clear error when huggingface_hub is not installed."""
+    if _HubMixinBase is object:
         raise ImportError(
             "The 'huggingface-hub' package is required for Hub integration. "
             "Install it with:  pip install nightmarenet[hub]"
         )
 
 
-class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
+class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
     """Mixin that adds Hub push/pull with NightmareNet metadata.
 
-    Subclasses **must** be ``torch.nn.Module`` subclasses.  The mixin
-    delegates weight serialisation to ``state_dict()`` / ``load_state_dict()``
-    and stores NightmareNet-specific config (training params, robustness
-    scores, distortion families) alongside the weights.
-
-    Override ``get_nightmarenet_config()`` to attach custom metadata.
+    Subclasses **must** be ``torch.nn.Module`` subclasses.
     """
 
-    # ------------------------------------------------------------------
-    # Serialisation helpers
-    # ------------------------------------------------------------------
-
     def get_nightmarenet_config(self) -> Dict[str, Any]:
-        """Return NightmareNet-specific metadata to persist.
-
-        Override in subclasses to include training history, robustness
-        scores, distortion families, etc.  The base implementation
-        returns an empty dict.
-        """
+        """Return NightmareNet-specific metadata to persist."""
         return {}
 
-    # ------------------------------------------------------------------
-    # PyTorchModelHubMixin interface
-    # ------------------------------------------------------------------
-
-    def _save_pretrained(self, save_directory: Union[str, Path]) -> None:  # type: ignore[override]
-        """Save model weights **and** NightmareNet config to *save_directory*.
-
-        This is called by ``PyTorchModelHubMixin.push_to_hub`` and by
-        ``save_pretrained``.  We intentionally do **not** call
-        ``super()._save_pretrained`` because the base implementation
-        expects a very specific file layout that conflicts with our
-        config serialisation.
-        """
+    def _save_pretrained(self, save_directory: Union[str, Path]) -> None:
+        """Save weights + NightmareNet config to *save_directory*."""
         save_directory = Path(save_directory)
         save_directory.mkdir(parents=True, exist_ok=True)
 
-        # 1. Save PyTorch weights
         weights_path = save_directory / _WEIGHTS_FILENAME
         torch.save(self.state_dict(), weights_path)
         logger.info("Saved model weights to %s", weights_path)
 
-        # 2. Save NightmareNet config as JSON (Hub-compatible)
         config = self.get_nightmarenet_config()
         config_path = save_directory / _CONFIG_FILENAME
         with open(config_path, "w", encoding="utf-8") as fh:
@@ -104,7 +65,7 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
         logger.info("Saved NightmareNet config to %s", config_path)
 
     @classmethod
-    def _from_pretrained(  # type: ignore[override]
+    def _from_pretrained(
         cls,
         *,
         model_id: str,
@@ -117,23 +78,13 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
         strict: bool = True,
         **model_kwargs: Any,
     ) -> "NightmareNetHubMixin":
-        """Load a NightmareNet model from the Hub or a local directory.
-
-        Steps:
-        1. Resolve the model directory (Hub download or local path).
-        2. Load ``nightmarenet_config.json`` if present.
-        3. Instantiate the class with ``**model_kwargs`` + config values.
-        4. Load ``pytorch_model.bin`` into the instance.
-        """
+        """Load a NightmareNet model from the Hub or a local directory."""
         _require_hf_hub()
         from huggingface_hub import hf_hub_download
 
-        # Resolve local vs Hub
         if os.path.isdir(model_id):
             model_dir = Path(model_id)
         else:
-            # Download ALL required files from the Hub so weights are
-            # available locally (not just the config).
             first_path: Optional[Path] = None
             for filename in _HUB_FILES:
                 try:
@@ -149,7 +100,6 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
                     if first_path is None:
                         first_path = Path(path)
                 except Exception:
-                    # Some files (e.g. safetensors) may not exist — that's OK.
                     logger.debug("Could not download %s, skipping", filename)
             if first_path is None:
                 raise FileNotFoundError(
@@ -158,27 +108,21 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
                 )
             model_dir = first_path.parent
 
-        # Load config
         config: Dict[str, Any] = {}
         config_path = model_dir / _CONFIG_FILENAME
         if config_path.exists():
             with open(config_path, encoding="utf-8") as fh:
                 config = json.load(fh)
 
-        # Merge config into model_kwargs (explicit kwargs take precedence)
         merged = {**config, **model_kwargs}
+        instance = cls(**merged)
 
-        # Instantiate
-        instance = cls(**merged)  # type: ignore[call-arg]
-
-        # Load weights
         weights_path = model_dir / _WEIGHTS_FILENAME
         if weights_path.exists():
             state = torch.load(
                 weights_path, map_location=map_location, weights_only=True
             )
         else:
-            # Fallback: try HuggingFace's safetensors convention
             safetensors_path = model_dir / _SAFETENSORS_FILENAME
             if safetensors_path.exists():
                 from safetensors.torch import load_file
@@ -194,18 +138,10 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
         logger.info("Loaded NightmareNet model from %s", model_dir)
         return instance
 
-    # ------------------------------------------------------------------
-    # Convenience wrappers (kept for backward compatibility)
-    # ------------------------------------------------------------------
-
     def push_to_hub(self, repo_id: str, **kwargs: Any) -> Any:
-        """Push model to HuggingFace Hub.
-
-        Delegates to ``PyTorchModelHubMixin.push_to_hub`` after ensuring
-        ``_save_pretrained`` serialises NightmareNet metadata.
-        """
+        """Push model to HuggingFace Hub."""
         _require_hf_hub()
-        return super().push_to_hub(repo_id, **kwargs)  # type: ignore[misc]
+        return super().push_to_hub(repo_id, **kwargs)
 
     @classmethod
     def from_pretrained(
@@ -215,9 +151,9 @@ class NightmareNetHubMixin(PyTorchModelHubMixin):  # type: ignore[misc]
     ) -> "NightmareNetHubMixin":
         """Load a pretrained model from the Hub or local path."""
         _require_hf_hub()
-        return super().from_pretrained(  # type: ignore[misc]
+        return super().from_pretrained(  # type: ignore[no-any-return]
             pretrained_model_name_or_path, **kwargs
         )
 
 
-__all__ = ["NightmareNetHubMixin", "_HF_AVAILABLE"]
+__all__ = ["NightmareNetHubMixin"]
