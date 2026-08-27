@@ -149,9 +149,7 @@ class NightmareNetHubMixin(_HubMixinBase):
     ) -> NightmareNetHubMixin:
         """Load a pretrained model from the Hub or local path."""
         _require_hf_hub()
-        return super().from_pretrained(
-            pretrained_model_name_or_path, **kwargs
-        )
+        return super().from_pretrained(pretrained_model_name_or_path, **kwargs)
 
 
 __all__ = ["NightmareNetHubMixin"]
