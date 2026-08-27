@@ -39,7 +39,7 @@ def _require_hf_hub() -> None:
         )
 
 
-class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
+class NightmareNetHubMixin(_HubMixinBase):
     """Mixin that adds Hub push/pull with NightmareNet metadata.
 
     Subclasses **must** be ``torch.nn.Module`` subclasses.
@@ -55,7 +55,7 @@ class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
         save_directory.mkdir(parents=True, exist_ok=True)
 
         weights_path = save_directory / _WEIGHTS_FILENAME
-        torch.save(self.state_dict(), weights_path)
+        torch.save(self.state_dict(), weights_path)  # type: ignore[attr-defined]
         logger.info("Saved model weights to %s", weights_path)
 
         config = self.get_nightmarenet_config()
@@ -132,7 +132,7 @@ class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
                     f"Expected {_WEIGHTS_FILENAME} or {_SAFETENSORS_FILENAME}."
                 )
 
-        instance.load_state_dict(state, strict=strict)
+        instance.load_state_dict(state, strict=strict)  # type: ignore[attr-defined]
         logger.info("Loaded NightmareNet model from %s", model_dir)
         return instance
 
@@ -142,14 +142,14 @@ class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
         return super().push_to_hub(repo_id, **kwargs)
 
     @classmethod
-    def from_pretrained(
+    def from_pretrained(  # type: ignore[override]
         cls,
         pretrained_model_name_or_path: str,
         **kwargs: Any,
     ) -> NightmareNetHubMixin:
         """Load a pretrained model from the Hub or local path."""
         _require_hf_hub()
-        return super().from_pretrained(  # type: ignore[no-any-return]
+        return super().from_pretrained(
             pretrained_model_name_or_path, **kwargs
         )
 
