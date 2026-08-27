@@ -77,7 +77,7 @@ class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
         map_location: str = "cpu",
         strict: bool = True,
         **model_kwargs: Any,
-    ) -> "NightmareNetHubMixin":
+    ) -> NightmareNetHubMixin:
         """Load a NightmareNet model from the Hub or a local directory."""
         _require_hf_hub()
         from huggingface_hub import hf_hub_download
@@ -119,9 +119,7 @@ class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
 
         weights_path = model_dir / _WEIGHTS_FILENAME
         if weights_path.exists():
-            state = torch.load(
-                weights_path, map_location=map_location, weights_only=True
-            )
+            state = torch.load(weights_path, map_location=map_location, weights_only=True)
         else:
             safetensors_path = model_dir / _SAFETENSORS_FILENAME
             if safetensors_path.exists():
@@ -148,7 +146,7 @@ class NightmareNetHubMixin(_HubMixinBase):  # type: ignore[misc]
         cls,
         pretrained_model_name_or_path: str,
         **kwargs: Any,
-    ) -> "NightmareNetHubMixin":
+    ) -> NightmareNetHubMixin:
         """Load a pretrained model from the Hub or local path."""
         _require_hf_hub()
         return super().from_pretrained(  # type: ignore[no-any-return]

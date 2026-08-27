@@ -13,8 +13,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 import torch
 
-from nightmarenet.hub import NightmareNetHubMixin, _HF_AVAILABLE
-
+from nightmarenet.hub import _HF_AVAILABLE, NightmareNetHubMixin
 
 # ---------------------------------------------------------------------------
 # Fixtures — minimal model that uses the mixin
@@ -60,28 +59,20 @@ def tmp_hub_dir(tmp_path: Path) -> Path:
 
 
 class TestSavePretrained:
-    def test_creates_weights_and_config(
-        self, dummy_model: _DummyModel, tmp_hub_dir: Path
-    ) -> None:
+    def test_creates_weights_and_config(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         assert (tmp_hub_dir / "pytorch_model.bin").exists()
         assert (tmp_hub_dir / "nightmarenet_config.json").exists()
 
-    def test_weights_are_loadable(
-        self, dummy_model: _DummyModel, tmp_hub_dir: Path
-    ) -> None:
+    def test_weights_are_loadable(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
-        state = torch.load(
-            tmp_hub_dir / "pytorch_model.bin", map_location="cpu", weights_only=True
-        )
+        state = torch.load(tmp_hub_dir / "pytorch_model.bin", map_location="cpu", weights_only=True)
         assert "linear.weight" in state
         assert "linear.bias" in state
 
-    def test_config_contents(
-        self, dummy_model: _DummyModel, tmp_hub_dir: Path
-    ) -> None:
+    def test_config_contents(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         with open(tmp_hub_dir / "nightmarenet_config.json") as f:
@@ -92,9 +83,7 @@ class TestSavePretrained:
         assert config["robustness_score"] == 0.95
         assert "gaussian_noise" in config["distortion_families"]
 
-    def test_creates_parent_dirs(
-        self, dummy_model: _DummyModel, tmp_path: Path
-    ) -> None:
+    def test_creates_parent_dirs(self, dummy_model: _DummyModel, tmp_path: Path) -> None:
         deep_dir = tmp_path / "a" / "b" / "c" / "model"
         dummy_model._save_pretrained(deep_dir)
         assert deep_dir.exists()
@@ -106,9 +95,7 @@ class TestSavePretrained:
 
 
 class TestFromPretrained:
-    def test_roundtrip_local(
-        self, dummy_model: _DummyModel, tmp_hub_dir: Path
-    ) -> None:
+    def test_roundtrip_local(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
         """Save → load → compare weights."""
         dummy_model._save_pretrained(tmp_hub_dir)
 
@@ -123,9 +110,7 @@ class TestFromPretrained:
                 loaded.state_dict()[key],
             ), f"Mismatch in {key}"
 
-    def test_config_restored(
-        self, dummy_model: _DummyModel, tmp_hub_dir: Path
-    ) -> None:
+    def test_config_restored(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         loaded = _DummyModel._from_pretrained(
@@ -137,9 +122,7 @@ class TestFromPretrained:
         assert cfg["robustness_score"] == 0.95
         assert cfg["distortion_families"] == ["gaussian_noise", "adversarial"]
 
-    def test_model_is_callable(
-        self, dummy_model: _DummyModel, tmp_hub_dir: Path
-    ) -> None:
+    def test_model_is_callable(self, dummy_model: _DummyModel, tmp_hub_dir: Path) -> None:
         dummy_model._save_pretrained(tmp_hub_dir)
 
         loaded = _DummyModel._from_pretrained(
