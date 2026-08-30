@@ -218,12 +218,24 @@ EOF
 pre-commit install
 ```
 
-Or simply run `make lint` before committing.
+Or simply run `nightmarenet dev lint` (or `make lint`) before committing.
+
 
 ### Verify the environment
 
-The Makefile mirrors exactly what CI runs — use it instead of memorizing
-individual commands:
+Prefer the unified developer CLI (cross-platform; mirrors CI):
+
+```bash
+nightmarenet dev --help
+nightmarenet dev check          # python lint + pytest — like make check
+nightmarenet dev lint           # ruff + mypy + frontend ESLint
+nightmarenet dev test           # pytest -m "not slow" with coverage
+nightmarenet dev test --frontend
+nightmarenet dev format
+nightmarenet dev serve          # API + Next.js
+```
+
+Makefile targets remain supported and still mirror CI:
 
 ```bash
 make check          # lint + typecheck + test (what CI runs on every PR)
@@ -238,6 +250,7 @@ If you also touched the dashboard:
 ```bash
 make frontend-build  # production build (cd frontend && npm ci && npm run build)
 make frontend-test   # frontend test suite
+# or: nightmarenet dev test --frontend
 ```
 
 Or run everything, Python + frontend:
@@ -249,6 +262,8 @@ make all
 ### Start the API for ad-hoc testing
 
 ```bash
+nightmarenet dev serve --api-only
+# or:
 uvicorn nightmarenet.api.app:app --reload --port 8000 --env-file .env
 ```
 
@@ -485,13 +500,14 @@ Initial release.
 
 > **Assignment is mandatory.** Do NOT open a PR for an issue you are not assigned to. Request assignment first (see [Issue Assignment Rules](#issue-assignment-rules)). Unassigned PRs will be closed without review.
 
-> **CI runs `make check` on every PR and will block merge if it fails.** Run it locally before pushing to avoid failed checks.
+> **CI mirrors `nightmarenet dev check` / `make check` on every PR and will block merge if it fails.** Run it locally before pushing to avoid failed checks.
 
 Before requesting review, confirm every box.
 
 - [ ] I am **assigned** to the linked issue.
 - [ ] I have **starred the repo** and **followed [@Adit-Jain-srm](https://github.com/Adit-Jain-srm)**.
-
+- [ ] `nightmarenet dev check` or `make check` — green locally (lint + typecheck + test).
+- [ ] If frontend changed: `make frontend-build` succeeds.
 - [ ] No `from __future__ import annotations` added under `nightmarenet/api/`.
 - [ ] No new `nightmarenet/` import of a hosted-only library (`sqlalchemy`, `redis`, `celery`, `psycopg2`, `stripe`).
 - [ ] New code is type-annotated; new public APIs have Google-style docstrings.
@@ -576,7 +592,8 @@ These are applied by maintainers at merge time based on quality. **Do not reques
 
 6. **One PR per issue.** Don't bundle unrelated fixes. If you find something else while working, open a separate issue for it.
 
-7. **Run CI locally before pushing.** `make check` (lint + typecheck + test). PRs that fail CI on first push suggest you didn't test locally.
+7. **Run CI locally before pushing.** `nightmarenet dev check` (or `make check`). PRs that fail CI on first push suggest you didn't test locally.
+
 
 8. **Disclose AI usage.** If you used AI tools (Copilot, ChatGPT, Claude, Cursor), state it in the PR description. We welcome AI-assisted contributions. We reject blindly pasted output.
 
@@ -610,11 +627,13 @@ These are applied by maintainers at merge time based on quality. **Do not reques
 ## Where to ask for help
 
 - **GitHub Discussions** — `https://github.com/Adit-Jain-srm/NightmareNet/discussions`
-  - `q-and-a` for "how do I..." questions
+  - `q-a` for "how do I..." questions
   - `ideas` for feature proposals (RFC threads welcome)
-  - `research` for paper-related discussion, benchmark proposals, citation requests
+  - `show-and-tell` to share what you've built
+  - `general` for community chat and paper/benchmark discussion
 - **GitHub Issues** — bug reports and concrete tasks
 - **Direct contact** — for security disclosures, email the maintainers per [`SECURITY.md`](SECURITY.md). Do **not** open public issues for vulnerabilities.
+
 
 We respond fastest to issues that include a minimal reproducible example, the relevant config snippet, and the output of `pip list | findstr nightmarenet` (or `pip freeze | grep nightmarenet` on Unix).
 

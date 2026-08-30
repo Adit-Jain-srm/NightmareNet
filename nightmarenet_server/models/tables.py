@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from nightmarenet_server.models.base import Base
@@ -21,6 +21,8 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     name: Mapped[str] = mapped_column(String(255), default="")
     avatar_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    sso_provider: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    external_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     memberships: Mapped[list["OrgMember"]] = relationship(back_populates="user")
@@ -36,6 +38,27 @@ class Org(Base):
 
     members: Mapped[list["OrgMember"]] = relationship(back_populates="org")
     projects: Mapped[list["Project"]] = relationship(back_populates="org")
+    sso_providers: Mapped[list["SsoProvider"]] = relationship(back_populates="org")
+
+
+class SsoProvider(Base):
+    """Per-organization OpenID Connect identity provider configuration."""
+
+    __tablename__ = "sso_providers"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    org_id: Mapped[str] = mapped_column(ForeignKey("orgs.id"), index=True)
+    name: Mapped[str] = mapped_column(String(128), default="default")
+    issuer: Mapped[str] = mapped_column(String(512))
+    metadata_url: Mapped[Optional[str]] = mapped_column(String(512), nullable=True)
+    client_id: Mapped[str] = mapped_column(String(255))
+    client_secret: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    role_claim: Mapped[str] = mapped_column(String(64), default="groups")
+    role_mapping_json: Mapped[str] = mapped_column(Text, default="{}")
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    org: Mapped["Org"] = relationship(back_populates="sso_providers")
 
 
 class OrgMember(Base):
@@ -108,15 +131,26 @@ class RunEvent(Base):
 
 
 class AuditLog(Base):
+    """Append-only audit trail (SOC 2 CC7.2).
+
+    Field mapping for the compliance API:
+    actor_id → user_id, entity_type → resource_type, entity_id → resource_id.
+    """
+
     __tablename__ = "audit_logs"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
-    org_id: Mapped[str] = mapped_column(ForeignKey("orgs.id"), index=True)
+    org_id: Mapped[Optional[str]] = mapped_column(
+        String(36), ForeignKey("orgs.id"), index=True, nullable=True
+    )
     user_id: Mapped[Optional[str]] = mapped_column(ForeignKey("users.id"), nullable=True)
+    actor_role: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     action: Mapped[str] = mapped_column(String(128))
     resource_type: Mapped[str] = mapped_column(String(64))
-    resource_id: Mapped[str] = mapped_column(String(36))
+    resource_id: Mapped[str] = mapped_column(String(128))
     metadata_json: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ip_address: Mapped[Optional[str]] = mapped_column(String(64), nullable=True)
+    request_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
     timestamp: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )

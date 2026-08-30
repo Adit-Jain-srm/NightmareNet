@@ -2,8 +2,13 @@ SHELL := /bin/bash
 
 .PHONY: help test lint typecheck format check frontend-build frontend-test openapi all clean
 
+# Prefer the cross-platform CLI: `nightmarenet dev <command>`
+# Makefile targets below remain supported for backward compatibility.
+
 help:
-	@echo "Available targets:"
+	@echo "Preferred: nightmarenet dev --help"
+	@echo ""
+	@echo "Available Makefile targets (still supported):"
 	@echo "  make check          - lint + typecheck + test (mirrors CI)"
 	@echo "  make test           - run pytest with coverage"
 	@echo "  make lint           - run ruff check"
@@ -13,6 +18,7 @@ help:
 	@echo "  make frontend-build - build the Next.js frontend"
 	@echo "  make frontend-test  - run frontend tests"
 	@echo "  make all            - check + frontend-build (full CI equivalent)"
+	@echo "  make dev            - start API + frontend (or: nightmarenet dev serve)"
 
 # Mirrors: .github/workflows/ci.yml -> "Run tests with coverage"
 test:
