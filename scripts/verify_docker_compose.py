@@ -152,8 +152,7 @@ def run_check(
         return CheckResult(name, "SKIP", message, elapsed)
     if ok:
         return CheckResult(name, "PASS", message, elapsed)
-    status = "FAIL" if not optional else "SKIP"
-    return CheckResult(name, status, message, elapsed)
+    return CheckResult(name, "FAIL", message, elapsed)
 
 
 def check_api_health(host: str, port: int, timeout: float, retries: int) -> CheckOutcome:

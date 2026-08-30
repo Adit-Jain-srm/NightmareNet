@@ -19,8 +19,17 @@ from nightmarenet.pipeline_runner import (
 
 
 class _FakePipeline:
+    def __init__(self) -> None:
+        from nightmarenet.pipeline import PipelineMetrics
+
+        self.metrics = PipelineMetrics()
+        self.config: dict = {}
+
     def cancel(self) -> None:
         pass
+
+    def evaluate(self) -> dict:
+        return {}
 
     class _FakeMetrics:
         def to_dict(self) -> dict:

@@ -77,6 +77,9 @@ To output results in a structured format suitable for CI/CD gates:
 nightmarenet evaluate --text "Robustness check." --strengths "0.1,0.5,0.9" --json
 ```
 
+To wire the same gate into GitHub Actions (PR comment + threshold fail), use the
+composite Action — see [Tutorial 6: CI Robustness Check](ci-robustness-check.md).
+
 #### Expected CLI Output:
 ```json
 {
