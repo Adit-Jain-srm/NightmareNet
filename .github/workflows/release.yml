@@ -88,6 +88,38 @@ jobs:
             exit 1
           fi
 
+      - name: Generate SBOM
+        uses: anchore/sbom-action@e22c389ac75c535bfa31db8ebf5e8b3979814fbb # v0.24.0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: dist/sbom.cdx.json
+
+      - name: Validate SBOM contains Python and npm components
+        shell: bash
+        run: |
+          if [ ! -f dist/sbom.cdx.json ]; then
+            echo "::error::SBOM file not generated at dist/sbom.cdx.json"
+            exit 1
+          fi
+          python - <<'PY'
+          import json, sys
+          with open("dist/sbom.cdx.json") as f:
+              sbom = json.load(f)
+          components = sbom.get("components", [])
+          types = {c.get("purl", "").split(":")[0].replace("pkg", "") for c in components if c.get("purl")}
+          purls = [c.get("purl", "") for c in components]
+          has_pypi = any("pkg:pypi/" in p for p in purls)
+          has_npm = any("pkg:npm/" in p for p in purls)
+          print(f"Total components: {len(components)}")
+          print(f"Python (pypi): {has_pypi}, npm: {has_npm}")
+          if not has_pypi:
+              sys.exit("SBOM missing Python (pypi) components")
+          if not has_npm:
+              sys.exit("SBOM missing npm components")
+          print("SBOM validation passed")
+          PY
+
       - name: Smoke-test built wheel
         shell: bash
         run: |
