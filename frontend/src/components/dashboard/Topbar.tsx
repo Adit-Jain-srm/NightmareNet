@@ -96,7 +96,7 @@ export function Topbar({
           aria-label="Notifications"
         >
           <IconBell size={14} />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-nightmare shadow-[0_0_6px_var(--color-nightmare)]" />
+          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-nightmare shadow-glow-sm-nightmare" />
         </button>
 
         <div className="flex h-8 w-8 items-center justify-center rounded-full border border-white/[0.08] bg-gradient-to-br from-dream/30 to-neural/30 font-mono text-[11px] text-slate-100">
