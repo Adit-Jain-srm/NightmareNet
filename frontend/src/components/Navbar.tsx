@@ -296,10 +296,19 @@ export default function Navbar() {
               {/* Dashboard Link - Mobile */}
               <a
                 href="/dashboard"
-                className="flex items-center gap-3 px-4 py-3 mb-4 rounded-xl text-sm font-medium text-neural bg-neural/10 border border-neural/20 hover:bg-neural/15 transition-all cursor-pointer"
+                className="flex items-center gap-3 px-4 py-3 mb-2 rounded-xl text-sm font-medium text-neural bg-neural/10 border border-neural/20 hover:bg-neural/15 transition-all cursor-pointer"
               >
                 <LayoutDashboard aria-hidden="true" className="w-4 h-4" />
                 Open Dashboard
+              </a>
+
+              {/* Contributors Link - Mobile */}
+              <a
+                href="/contributors"
+                className="flex items-center gap-3 px-4 py-3 mb-4 rounded-xl text-sm font-medium text-text-dim hover:text-text hover:bg-white/[0.03] border border-transparent transition-all cursor-pointer"
+              >
+                <Users aria-hidden="true" className="w-4 h-4" />
+                Contributors
               </a>
 
               <div className="space-y-1">

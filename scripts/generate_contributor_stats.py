@@ -2,13 +2,16 @@
 """Generate contributors JSON for frontend/public/contributors.json
 
 Usage: set GITHUB_TOKEN env var (optional but recommended)
-       python scripts/generate_contributor_stats.py --owner OWNER --repo REPO --out frontend/public/contributors.json
+       python scripts/generate_contributor_stats.py \
+           --owner OWNER --repo REPO \
+           --out frontend/public/contributors.json
 """
+
+import argparse
+import json
 import os
 import sys
 import time
-import json
-import argparse
 from typing import List
 
 try:
@@ -69,14 +72,16 @@ def build_stats(owner: str, repo: str, token: str | None) -> List[dict]:
                 prs = None
                 issues = None
 
-        output.append({
-            "login": login or "",
-            "avatar_url": avatar,
-            "html_url": html,
-            "contributions": contributions,
-            "prs": prs,
-            "issues": issues,
-        })
+        output.append(
+            {
+                "login": login or "",
+                "avatar_url": avatar,
+                "html_url": html,
+                "contributions": contributions,
+                "prs": prs,
+                "issues": issues,
+            }
+        )
     # sort by contributions desc
     output.sort(key=lambda x: x.get("contributions", 0), reverse=True)
     return output
@@ -94,7 +99,9 @@ def main():
     except Exception as e:
         print("Error fetching contributors:", e)
         sys.exit(2)
-    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    dirname = os.path.dirname(args.out)
+    if dirname:
+        os.makedirs(dirname, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(stats, fh, indent=2)
     print(f"Wrote {len(stats)} contributors to {args.out}")
