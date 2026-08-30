@@ -14,7 +14,13 @@ def get_schema() -> Dict[str, Any]:
         return cast(Dict[str, Any], json.load(f))
 
 
-def export_signed_json(report: Dict[str, Any], signing_key: str, *, version: str = "1.0") -> str:
+def export_signed_json(
+    report: Dict[str, Any],
+    signing_key: str,
+    *,
+    version: str = "1.0",
+    risk_level: str = "high",
+) -> str:
     """Validate, add hash/timestamp, and sign the compliance report as JWS."""
 
     # Create a copy so we don't mutate the original
@@ -29,7 +35,7 @@ def export_signed_json(report: Dict[str, Any], signing_key: str, *, version: str
     if "model_id" not in payload:
         payload["model_id"] = payload.get("model", {}).get("name", "unknown")
     if "risk_level" not in payload:
-        payload["risk_level"] = "high"
+        payload["risk_level"] = risk_level
     if "training_data_summary" not in payload:
         payload["training_data_summary"] = payload.get("dataset", {})
     if "robustness_metrics" not in payload:
@@ -81,7 +87,13 @@ class VerificationResult:
 
 
 def verify_signed_json(token: str, verification_key: str) -> VerificationResult:
-    """Verify the JWS token and its schema."""
+    """Verify the JWS token and its schema.
+
+    Args:
+        token: The JWS compact serialization string.
+        verification_key: The RS256 **public** key (PEM) corresponding to the
+            private key used for signing. Do not pass the private signing key.
+    """
     try:
         # Decode and verify signature
         payload = jwt.decode(token, verification_key, algorithms=["RS256"])

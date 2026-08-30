@@ -1265,11 +1265,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="Model task architecture",
     )
 
- feat/signed-json-compliance-export
     # compliance command
     compliance_parser = subparsers.add_parser("compliance", help="Manage compliance reports")
     compliance_subparsers = compliance_parser.add_subparsers(
-        dest="action", help="Compliance actions"
+        dest="action", help="Compliance actions", required=True
     )
 
     comp_export = compliance_subparsers.add_parser("export", help="Export compliance report")
@@ -1286,7 +1285,6 @@ def build_parser() -> argparse.ArgumentParser:
     from nightmarenet.dev_cli import register_dev_parser
 
     register_dev_parser(subparsers)
- main
 
     return parser
 
