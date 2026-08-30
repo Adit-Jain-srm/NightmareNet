@@ -39,6 +39,8 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "requests>=2.31.0",
     "pydantic>=2.0",
+    "python-jose[cryptography]>=3.3.0",
+    "jsonschema>=4.0.0",
     "regex>=2023.0.0",
 ]
 
@@ -224,5 +226,6 @@ strict_concatenate = true
 
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "nightmarenet_server*", "scripts"]
+
 [tool.setuptools.package-data]
-nightmarenet = ["py.typed"]
+nightmarenet = ["py.typed", "compliance/*.json"]

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NightmareNet Compliance Report",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "model_id",
+    "risk_level",
+    "training_data_summary",
+    "robustness_metrics",
+    "bias_evaluation",
+    "intended_use",
+    "limitations",
+    "timestamp",
+    "version_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "risk_level": {
+      "type": "string"
+    },
+    "training_data_summary": {
+      "type": "object"
+    },
+    "robustness_metrics": {
+      "type": "object"
+    },
+    "bias_evaluation": {
+      "type": "object"
+    },
+    "intended_use": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "version_hash": {
+      "type": "string"
+    }
+  }
+}

@@ -127,6 +127,10 @@ evaluation:
                              # proportionally (with a warning) if this would be exceeded
     label_column: "label"   # Column name containing ground-truth labels (for seq_classification datasets)
 
+# Compliance configuration
+compliance:
+  signing_key_path: ""
+
 # Experiment tracking
 tracking:
   backend: none        # none|wandb|tensorboard
