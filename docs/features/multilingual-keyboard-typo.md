@@ -33,3 +33,7 @@ print(distort("hello", strength=0.5, seed=1, keyboard_layout="dvorak"))
 
 Error types: replace (nearby key), insert (double press), delete, transpose.
 `strength` maps to character error rate in `[0, 1]`.
+
+### Known Limitations
+
+- **Complex grapheme clusters:** Hindi/Arabic combining characters (vowel signs, virama) are split using Unicode `\X` grapheme segmentation, which handles most cases correctly. However, some edge cases with deeply nested combining sequences may produce unexpected results. Grapheme cluster preservation improvements are planned for v2.

@@ -145,11 +145,10 @@ class DistortionRegistry:
             raise KeyError(f"Unknown distortion '{name}'. Available: {available}")
         fn = self._engines[name]
         if kwargs:
-            try:
-                inspect.signature(fn).bind(text, strength, seed, **kwargs)
-            except TypeError:
-                return fn(text, strength, seed)
-            return fn(text, strength, seed, **kwargs)
+            sig = inspect.signature(fn)
+            supported = set(sig.parameters.keys())
+            filtered = {k: v for k, v in kwargs.items() if k in supported}
+            return fn(text, strength, seed, **filtered)
         return fn(text, strength, seed)
 
     def list_engines(self) -> List[Dict[str, Any]]:
