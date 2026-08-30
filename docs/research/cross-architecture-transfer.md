@@ -25,19 +25,36 @@ The following distortions were evaluated across varying strengths (0.1, 0.3, 0.5
 The experiment was executed using the configuration defined in `configs/examples/cross-arch-eval.yaml`.
 
 ## Results
-*Note: The following table contains placeholder results pending the final execution of the pipeline.*
 
-| Model | Robustness Score | Clean Accuracy | Inference Time (s/sample) |
-|-------|------------------|----------------|---------------------------|
-| DistilBERT + NightmareNet | TBD | TBD | TBD |
-| BERT-large (zero-shot) | TBD | TBD | TBD |
-| BERT-large + NightmareNet | TBD | TBD | TBD |
+Populate the table by running the cross-arch script (GPU recommended; peak memory stays under 4GB when models run sequentially):
+
+```bash
+python scripts/cross_arch_eval.py --config configs/examples/cross-arch-eval.yaml
+```
+
+Optional third phase (fine-tune BERT-large with NightmareNet):
+
+```bash
+python scripts/cross_arch_eval.py --config configs/examples/cross-arch-eval.yaml --finetune-large
+```
+
+Output is written to `cross_arch_eval_results.json`. Timing fields:
+- **Inference Time (s/sample)** — single clean forward pass (`inference_time_per_sample`)
+- **Eval Sweep (s/sample)** — full robustness sweep (`eval_sweep_time`)
+
+| Model | Robustness Score | Clean Accuracy | Inference Time (s/sample) | Eval Sweep (s/sample) |
+|-------|------------------|----------------|---------------------------|----------------------|
+| DistilBERT + NightmareNet | run script | run script | run script | run script |
+| BERT-large (zero-shot) | run script | run script | run script | run script |
+| BERT-large + NightmareNet | run script | run script | run script | run script |
 
 ## Discussion
-(To be updated after running the benchmark)
+After running the script, compare `robustness_score` and `clean_accuracy` across rows in the JSON output. A smaller gap between DistilBERT and BERT-large suggests transferable robustness gains.
 
 ## Limitations
-(To be updated after running the benchmark)
+- Default config caps IMDB at 1000 samples for runtime; full-dataset numbers may differ.
+- BERT-large zero-shot uses a randomly initialized classification head unless `--large-checkpoint` is supplied.
+- Requires a CUDA GPU for practical runtimes; CPU-only runs are supported but slow.
 
 ## Conclusions
-(To be updated after running the benchmark)
+Run `python scripts/cross_arch_eval.py --config configs/examples/cross-arch-eval.yaml` and paste the JSON metrics into the table above once numbers are available on your hardware.

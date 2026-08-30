@@ -56,3 +56,25 @@ docker compose --profile hosted up
 # equivalent:
 nightmarenet dev docker --profile hosted
 ```
+
+## Verifying the Stack
+
+Once the stack is up, confirm everything is actually healthy instead of guessing from log output:
+
+```bash
+make verify-stack
+```
+
+This runs `scripts/verify_docker_compose.py`, which sequentially checks the API's
+`/api/v1/health` endpoint and prints a PASS/FAIL/SKIP summary with per-check timing.
+It exits non-zero if any required check fails, so it's safe to use in CI.
+
+If you started the stack with the `hosted` profile, also verify Redis, Postgres, the
+worker, and API-to-service network reachability by passing `--profile hosted`:
+
+```bash
+make verify-stack VERIFY_STACK_ARGS="--profile hosted"
+```
+
+Under the default profile, a down `redis`/`db`/`worker` is reported as `SKIP` (not a
+failure) since those services aren't part of the default stack — see the note above.

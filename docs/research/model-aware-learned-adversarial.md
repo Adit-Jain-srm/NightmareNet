@@ -107,3 +107,25 @@ one-cycle experiments with `learned: 0.3`, changing only `learned_strategy` betw
 
 Do not report projected values as measured results. Attach the generated config
 files and raw metric artifacts so the experiment is reproducible.
+
+## Microbenchmark Results (CPU — Preliminary)
+
+> **Note:** These results were collected on CPU only. GPU benchmarks are pending
+> and may show different relative performance between strategies.
+
+**Setup:** `distilbert-base-uncased`, strength 0.7, seed 42, 3 repeats, 24 samples.
+
+| Metric | Attention | Gradient |
+|--------|-----------|----------|
+| Mean latency (s/sample) | 0.179 | 0.127 |
+| Median latency (s/sample) | 0.173 | 0.126 |
+| Mean loss before | 2.762 | 2.762 |
+| Mean loss after | 3.081 | 3.749 |
+| **Mean loss increase** | **0.319** | **0.987** |
+| Changed outputs | 24/24 | 24/24 |
+
+**Gradient-to-attention slowdown ratio:** 0.71x (gradient is *faster* on CPU).
+Within the requested 3x budget: **yes**.
+
+The gradient strategy produces ~3x larger loss increases than attention while
+running ~30% faster on CPU. Raw data: `artifacts/learned-adversarial-benchmark.json`.
