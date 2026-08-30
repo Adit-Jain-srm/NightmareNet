@@ -5,6 +5,8 @@ Usage:
     nightmarenet evaluate --checkpoint ./output/model --config configs/default.yaml
     nightmarenet benchmark --suite standard --model distilbert-base-uncased
     nightmarenet distort --type dream --strength 0.3 --text "Hello world"
+    nightmarenet dev --help
+    nightmarenet dev check
 """
 
 import argparse
@@ -100,7 +102,7 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
     instead of the standard distortion-based evaluation.
 
     When ``--json`` is supplied, emits a single JSON object on stdout suitable
-    for CI consumption (e.g. the ``nightmarenet-robustness-check`` composite
+    for CI consumption (e.g. the ``.github/actions/robustness-check`` composite
     GitHub Action) containing per-strength similarity scores plus an aggregate
     ``robustness_score`` in ``[0, 1]``.
     """
@@ -533,7 +535,7 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     robustness_delta = float(results.get("robustness_delta", 0.0))
     logger.info("Verification Summary:")
     logger.info("  Achieved Robustness Delta: +%.2f%%", robustness_delta * 100)
-    logger.info("  Target Paper Specification: +14.00%%")
+    logger.info("  Target Paper Specification: +%.2f%%", 14.0)
 
     if robustness_delta >= 0.14:
         logger.info("[SUCCESS] Metrics match or exceed canonical paper specifications!")
@@ -1232,6 +1234,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Model task architecture",
     )
 
+ feat/signed-json-compliance-export
     # compliance command
     compliance_parser = subparsers.add_parser("compliance", help="Manage compliance reports")
     compliance_subparsers = compliance_parser.add_subparsers(
@@ -1248,6 +1251,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     comp_verify = compliance_subparsers.add_parser("verify", help="Verify signed compliance report")
     comp_verify.add_argument("file", help="Path to .jws file")
+
+    from nightmarenet.dev_cli import register_dev_parser
+
+    register_dev_parser(subparsers)
+ main
 
     return parser
 
@@ -1272,6 +1280,11 @@ def main(argv: Optional[list] = None) -> int:
     from nightmarenet.utils.logging_config import setup_logging
 
     setup_logging(log_level=log_level, console=not json_mode, file_logging=False)
+
+    if args.command == "dev":
+        from nightmarenet.dev_cli import run_dev
+
+        return run_dev(args)
 
     commands = {
         "train": cmd_train,

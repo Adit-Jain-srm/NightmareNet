@@ -108,8 +108,20 @@ Learn how to use, extend, and deploy NightmareNet through our step-by-step tutor
 *   [Tutorial 3: Interpreting Results & Compliance](docs/tutorials/interpreting-results.md) — Understand robustness curves (AUC), generalization metrics, and generate signed EU AI Act compliance reports.
 *   [Tutorial 4: Vision Pipeline](docs/tutorials/vision-pipeline.md) — Load images, apply vision distortions (color jitter, noise, FGSM/PGD attacks), and evaluate vision models.
 *   [Tutorial 5: Deployment](docs/tutorials/deployment.md) — Configure, run, and scale production-grade docker containers, configure keys, and integrate alerts.
+*   [Tutorial 6: CI Robustness Check](docs/tutorials/ci-robustness-check.md) — Gate PRs with the `robustness-check` GitHub Action (threshold, score table, Marketplace branding).
 
 Client developers can also use the committed OpenAPI spec at [`docs/api/openapi.json`](docs/api/openapi.json) (regenerate with `make openapi`).
+
+### GitHub Action (robustness gate)
+
+```yaml
+- uses: Adit-Jain-srm/NightmareNet/.github/actions/robustness-check@v1
+  with:
+    model_path: distilbert-base-uncased
+    threshold: "0.7"
+```
+
+See [`examples/ci-robustness-check.yml`](examples/ci-robustness-check.yml) and [Tutorial 6](docs/tutorials/ci-robustness-check.md).
 
 ---
 
