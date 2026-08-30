@@ -654,7 +654,15 @@ def cmd_distort(args: argparse.Namespace) -> int:
             logger.error("Available: %s", ", ".join(registry.engine_names))
             return 1
 
-        result = registry.apply(args.engine, text, strength=strength, seed=args.seed)
+        apply_kwargs = {}
+        if getattr(args, "language", None):
+            apply_kwargs["language"] = args.language
+        if getattr(args, "keyboard_layout", None):
+            apply_kwargs["keyboard_layout"] = args.keyboard_layout
+
+        result = registry.apply(
+            args.engine, text, strength=strength, seed=args.seed, **apply_kwargs
+        )
         engine_meta = registry.get_engine_metadata(args.engine)
         print(f"Original:  {text}")
         print(f"Distorted: {result}")
@@ -665,18 +673,30 @@ def cmd_distort(args: argparse.Namespace) -> int:
     else:
         # Legacy behavior for backward compatibility
         from nightmarenet.distortions import dream, nightmare
+        from nightmarenet.distortions.multilingual.typo_engine import keyboard_typo
 
         if args.type == "dream":
             result = dream.distort(text, strength=strength, seed=args.seed)
         elif args.type == "nightmare":
             result = nightmare.distort(text, strength=strength, seed=args.seed)
+        elif args.type == "keyboard_typo":
+            result = keyboard_typo(
+                text,
+                strength=strength,
+                seed=args.seed,
+                language=getattr(args, "language", None),
+                keyboard_layout=getattr(args, "keyboard_layout", None),
+            )
         else:
             logger.error("Unknown distortion type: %s", args.type)
             return 1
 
         print(f"Original:  {text}")
         print(f"Distorted: {result}")
-        print(f"  Type: {args.type}, Strength: {strength}")
+        extra = ""
+        if args.type == "keyboard_typo" and getattr(args, "language", None):
+            extra = f", Language: {args.language}"
+        print(f"  Type: {args.type}, Strength: {strength}{extra}")
 
     return 0
 
@@ -1026,7 +1046,7 @@ def build_parser() -> argparse.ArgumentParser:
     distort_parser = subparsers.add_parser("distort", help="Apply distortion to text")
     distort_parser.add_argument(
         "--type",
-        choices=["dream", "nightmare"],
+        choices=["dream", "nightmare", "keyboard_typo"],
         help="Single engine type (mutually exclusive with --preset)",
     )
     distort_parser.add_argument(
@@ -1035,6 +1055,17 @@ def build_parser() -> argparse.ArgumentParser:
     distort_parser.add_argument("--text", required=True, help="Input text to distort")
     distort_parser.add_argument(
         "--seed", type=int, default=None, help="Random seed for reproducibility"
+    )
+    distort_parser.add_argument(
+        "--language",
+        default=None,
+        help="Language for keyboard_typo (english, german, french, russian, hindi, arabic)",
+    )
+    distort_parser.add_argument(
+        "--keyboard-layout",
+        dest="keyboard_layout",
+        default=None,
+        help="Override keyboard layout (qwerty, qwertz, azerty, cyrillic, arabic, devanagari)",
     )
     distort_parser.add_argument("--preset", help="Name of preset chain to apply")
     distort_parser.add_argument(
