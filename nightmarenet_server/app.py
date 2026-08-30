@@ -62,6 +62,19 @@ def _attach_oauth(app: Any) -> None:
     app.include_router(router)
 
 
+def _attach_sso(app: Any) -> None:
+    try:
+        from nightmarenet_server.auth.oidc import build_sso_routers
+    except ImportError:
+        logger.info("SSO router unavailable — skipping.")
+        return
+    sso_router, admin_router = build_sso_routers()
+    if sso_router is not None:
+        app.include_router(sso_router)
+    if admin_router is not None:
+        app.include_router(admin_router)
+
+
 def _attach_realtime(app: Any) -> None:
     try:
         from nightmarenet_server.realtime.websocket import build_realtime_router
@@ -160,6 +173,35 @@ def _attach_search(app: Any) -> None:
     app.include_router(router)
 
 
+def _attach_audit(app: Any) -> None:
+    try:
+        from nightmarenet_server.audit.endpoints import build_audit_router
+        from nightmarenet_server.audit.logger import register_immutability_guards
+    except ImportError:
+        logger.info("Audit router unavailable; skipping.")
+        return
+    try:
+        register_immutability_guards()
+    except Exception:
+        logger.exception("Failed to register audit immutability guards")
+    router = build_audit_router()
+    if router is None:
+        logger.info("Audit router not constructed (missing optional deps).")
+        return
+    app.include_router(router)
+
+
+def _attach_audit_middleware(app: Any) -> None:
+    """Correlation id + mutation audit (Starlette: last added runs first)."""
+    try:
+        from nightmarenet_server.middleware import AuditMiddleware, RequestIdMiddleware
+    except ImportError:
+        logger.info("Audit middleware unavailable; skipping.")
+        return
+    app.add_middleware(AuditMiddleware)
+    app.add_middleware(RequestIdMiddleware)
+
+
 def _init_db_safe() -> None:
     """Best-effort init_db; never crash app startup."""
     try:
@@ -188,10 +230,13 @@ def create_app() -> Optional[Any]:
         logger.warning("FastAPI not installed; hosted server is disabled.")
         return None
 
+    core_app: Optional[Any] = None
     try:
-        from nightmarenet.api.app import app as core_app
+        from nightmarenet.api.app import app as _core_app
+
+        core_app = _core_app
     except ImportError:
-        core_app = None
+        pass
 
     app = FastAPI(
         title="NightmareNet Hosted Platform",
@@ -219,10 +264,13 @@ def create_app() -> Optional[Any]:
         )
         app.add_middleware(SessionMiddleware, secret_key=session_secret)
 
+    _attach_audit_middleware(app)
     _attach_oauth(app)
+    _attach_sso(app)
     _attach_realtime(app)
     _attach_api_key_routes(app)
     _attach_search(app)
+    _attach_audit(app)
 
     if core_app is not None:
         app.mount("/", core_app)
@@ -240,6 +288,10 @@ def create_app() -> Optional[Any]:
             "oauth_enabled": bool(
                 os.environ.get("NIGHTMARENET_GITHUB_CLIENT_ID")
                 or os.environ.get("NIGHTMARENET_GOOGLE_CLIENT_ID")
+            ),
+            "sso_enabled": bool(
+                os.environ.get("NIGHTMARENET_OIDC_CLIENT_ID")
+                and os.environ.get("NIGHTMARENET_OIDC_DEFAULT_METADATA_URL")
             ),
         }
 

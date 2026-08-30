@@ -21,6 +21,7 @@ from nightmarenet.pipeline_runner import (
 class _FakePipeline:
     def __init__(self) -> None:
         from nightmarenet.pipeline import PipelineMetrics
+
         self.metrics = PipelineMetrics()
         self.config: dict = {}
 
@@ -29,6 +30,12 @@ class _FakePipeline:
 
     def evaluate(self) -> dict:
         return {}
+
+    class _FakeMetrics:
+        def to_dict(self) -> dict:
+            return {}
+
+    metrics = _FakeMetrics()
 
 
 def test_register_evicts_completed_runners_first(monkeypatch) -> None:
@@ -170,4 +177,3 @@ def test_concurrent_runner_access(monkeypatch, tmp_path) -> None:
         t.join()
 
     assert not errors, f"Concurrent runner access raised errors: {errors}"
-    
