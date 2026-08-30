@@ -226,6 +226,18 @@ This starts:
 
 > **Note:** The `db`, `redis`, and `worker` services are intended for the future hosted platform and are not required by the current open-source API. Running `docker compose up` without a profile starts only the functional services.
 
+### Verifying the stack
+
+After `docker compose up`, confirm the services actually came up healthy:
+
+```bash
+make verify-stack
+```
+
+Add `VERIFY_STACK_ARGS="--profile hosted"` if you started the `hosted` profile, to also
+check Redis, Postgres, and the worker. See [`docs/development/local-stack.md`](docs/development/local-stack.md#verifying-the-stack)
+for details.
+
 > **Tool version files**
 >
 > This repository includes:
