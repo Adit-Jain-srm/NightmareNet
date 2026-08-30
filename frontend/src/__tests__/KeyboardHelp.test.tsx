@@ -24,10 +24,10 @@ describe("KeyboardHelp", () => {
     render(<KeyboardHelp open={true} onClose={onClose} />);
 
     fireEvent.click(
-    screen.getAllByRole("button", {
-    name: /close keyboard shortcuts/i,
-    })[0],
-   );
+      screen.getAllByRole("button", {
+        name: /close keyboard shortcuts/i,
+      })[0],
+    );
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
