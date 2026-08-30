@@ -43,16 +43,35 @@ jobs:
         # update the baseline.
         if: matrix.python-version == '3.12'
         run: |
-          mypy nightmarenet/ --python-version 3.12 > mypy-output.txt 2>&1 || true
-          cat mypy-output.txt | mypy-baseline filter --baseline-path mypy_baseline.txt --allow-unsynced
-          status=$?
-          if [ $status -ne 0 ]; then
-            echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
-            echo "::error::These are NEW violations in changed/new files - see the 'new:' count above."
-            echo "::error::Pre-existing errors are frozen in mypy_baseline.txt and do not fail CI."
-            exit $status
+          set +e
+          set -o pipefail
+
+          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter --baseline-path mypy_baseline.txt --allow-unsynced | tee mypy-filter-output.txt
+          statuses=("${PIPESTATUS[@]}")
+          mypy_status="${statuses[0]}"
+          baseline_status="${statuses[2]}"
+
+          echo "mypy exit status: ${mypy_status}"
+          echo "mypy-baseline filter exit status: ${baseline_status}"
+
+          # mypy uses exit code 1 for ordinary type-checking diagnostics.
+          # The baseline filter decides whether those diagnostics are new.
+          # Exit codes >1 indicate an actual mypy execution failure.
+          if [ "${mypy_status}" -gt 1 ]; then
+            echo "::error::mypy failed to execute correctly (exit code ${mypy_status})."
+            exit "${mypy_status}"
           fi
-          echo "No new type errors. All findings are pre-existing and tracked in mypy_baseline.txt."
+
+          if [ "${baseline_status}" -ne 0 ]; then
+            echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
+            exit "${baseline_status}"
+          fi
+
+          if grep -Eiq "resolved|fixed" mypy-filter-output.txt; then
+            echo "::notice::Existing mypy baseline entries were fixed; contributor reduced type-checking debt."
+          else
+            echo "Mypy baseline unchanged: existing baseline findings are allowed."
+          fi
 
       - name: Run tests with coverage
         working-directory: .

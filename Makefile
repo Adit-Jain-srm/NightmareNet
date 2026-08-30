@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: help test lint typecheck format check frontend-build frontend-test openapi all clean
 
 # Prefer the cross-platform CLI: `nightmarenet dev <command>`
@@ -28,7 +30,27 @@ lint:
 
 # Mirrors: .github/workflows/ci.yml -> "Type check with mypy"
 typecheck:
-	mypy nightmarenet/ --ignore-missing-imports --disable-error-code import-untyped --disable-error-code operator --python-version 3.12
+	@set +e; \
+	set -o pipefail; \
+	mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter --allow-unsynced | tee mypy-filter-output.txt; \
+	statuses=("$${PIPESTATUS[@]}"); \
+	mypy_status="$${statuses[0]}"; \
+	baseline_status="$${statuses[2]}"; \
+	echo "mypy exit status: $${mypy_status}"; \
+	echo "mypy-baseline filter exit status: $${baseline_status}"; \
+	if [ "$${mypy_status}" -gt 1 ]; then \
+		echo "mypy failed to execute correctly (exit code $${mypy_status})."; \
+		exit "$${mypy_status}"; \
+	fi; \
+	if [ "$${baseline_status}" -ne 0 ]; then \
+		echo "New mypy errors were introduced."; \
+		exit "$${baseline_status}"; \
+	fi; \
+	if grep -Eiq "resolved|fixed" mypy-filter-output.txt; then \
+		echo "Existing baseline entries were fixed; type-checking debt was reduced."; \
+	else \
+		echo "No new type errors. Existing baseline findings are allowed."; \
+	fi
 
 format:
 	ruff format .

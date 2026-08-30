@@ -1,7 +1,7 @@
 # Code Style & Type Checking Policy
 
 This document covers NightmareNet's type-checking policy for Python and
-TypeScript. See [`CONTRIBUTING.md`](../../CONTRIBUTING.md#4-coding-standards)
+TypeScript. See [`CONTRIBUTING.md`](../../CONTRIBUTING.md#coding-standards)
 for the broader coding standards (line length, import order, docstrings,
 etc.).
 
