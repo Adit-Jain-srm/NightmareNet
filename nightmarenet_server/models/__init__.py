@@ -10,6 +10,7 @@ from nightmarenet_server.models.tables import (
     Project,
     Run,
     RunEvent,
+    SsoProvider,
     User,
 )
 
@@ -23,6 +24,7 @@ __all__ = [
     "Project",
     "Run",
     "RunEvent",
+    "SsoProvider",
     "User",
     "get_engine",
     "get_session_factory",
