@@ -42,6 +42,10 @@ macOS, and Linux. Makefile targets (`make check`, `make test`, …) still work.
 Copy `.env.example` to `.env` at the repo root. Frontend rewrites in
 `frontend/next.config.ts` proxy `/api/v1/*` to the backend.
 
+Optional production error reporting: set `NEXT_PUBLIC_SENTRY_DSN` to a
+Sentry-compatible DSN (see `.env.example`). When unset, the frontend skips
+remote reporting and logs errors locally during development.
+
 ## Docker Compose
 
 ```bash
