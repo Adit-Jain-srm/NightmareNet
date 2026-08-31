@@ -15,6 +15,7 @@ import torch
 from datasets import Dataset, IterableDataset
 
 from nightmarenet.distortions.adversarial import apply_adversarial_distortions
+from nightmarenet.distortions.dream import PrivacyAccountant, apply_dp_gaussian_noise
 from nightmarenet.distortions.loader import load_custom_engine
 from nightmarenet.distortions.registry import get_registry
 from nightmarenet.distortions.semantic import apply_semantic_distortions
@@ -52,6 +53,12 @@ class DreamDatasetGenerator:
         self.text_column = text_column
         self.config = config or {}
         self.seed = seed
+        self.privacy_accountant: Optional[PrivacyAccountant] = None
+        if self.config.get("dream_dp_epsilon") is not None:
+            budget = self.config.get("dream_dp_budget")
+            self.privacy_accountant = PrivacyAccountant(
+                budget=float(budget) if budget is not None else None
+            )
 
     def _distort(self, example: dict[str, Any]) -> dict[str, Any]:
         """Apply dream-level distortions to a single example."""
@@ -89,6 +96,16 @@ class DreamDatasetGenerator:
         result = apply_semantic_distortions(
             result, strength=self.strength * 0.5, config=semantic_config
         )
+
+        epsilon = self.config.get("dream_dp_epsilon")
+        if epsilon is not None:
+            result = apply_dp_gaussian_noise(
+                result,
+                float(epsilon),
+                delta=float(self.config.get("dream_dp_delta", 1e-5)),
+                sensitivity=float(self.config.get("dream_dp_sensitivity", 1.0)),
+                seed=self.seed,
+            )
 
         return {**example, self.text_column: result}
 

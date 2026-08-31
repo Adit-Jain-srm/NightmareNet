@@ -12,9 +12,9 @@ interface CardProps {
 }
 
 const glowMap = {
-  dream: "shadow-[0_0_30px_rgba(129,140,248,0.15)] border-dream/20",
-  nightmare: "shadow-[0_0_30px_rgba(239,68,68,0.12)] border-nightmare/20",
-  neural: "shadow-[0_0_30px_rgba(6,182,212,0.15)] border-neural/20",
+  dream: "shadow-glow-dream border-dream/20",
+  nightmare: "shadow-glow-nightmare border-nightmare/20",
+  neural: "shadow-glow-neural border-neural/20",
   none: "border-white/10",
 };
 

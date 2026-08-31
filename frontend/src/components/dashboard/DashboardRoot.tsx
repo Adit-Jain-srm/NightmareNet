@@ -1,6 +1,6 @@
 "use client";
 
-import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
+import { Suspense, useCallback, useMemo, useState, type ReactNode } from "react";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { AnimatePresence, motion } from "framer-motion";
 import { AppShell } from "./AppShell";
@@ -18,63 +18,64 @@ import { AskNightmareDock } from "./AskNightmareDock";
 import { ToastProvider, useToast } from "../ui/Toast";
 import { useGlobalShortcuts } from "./useGlobalShortcuts";
 import { useSounds } from "@/lib/sounds";
+import { retryLazy } from "@/lib/retryLazy";
 
 
-const CommandCenter = lazy(() =>
+const CommandCenter = retryLazy(() =>
   import("./CommandCenter").then((module) => ({
     default: module.CommandCenter,
   })),
 );
-const ExperimentList = lazy(() =>
+const ExperimentList = retryLazy(() =>
   import("./ExperimentList").then((module) => ({
     default: module.ExperimentList,
   })),
 );
-const RunDetail = lazy(() =>
+const RunDetail = retryLazy(() =>
   import("./RunDetail").then((module) => ({ default: module.RunDetail })),
 );
-const PhaseVisualizer = lazy(() =>
+const PhaseVisualizer = retryLazy(() =>
   import("./PhaseVisualizer").then((module) => ({
     default: module.PhaseVisualizer,
   })),
 );
-const LiveMetrics = lazy(() =>
+const LiveMetrics = retryLazy(() =>
   import("./LiveMetrics").then((module) => ({ default: module.LiveMetrics })),
 );
-const RobustnessRadar = lazy(() =>
+const RobustnessRadar = retryLazy(() =>
   import("./RobustnessRadar").then((module) => ({
     default: module.RobustnessRadar,
   })),
 );
-const ModelComparison = lazy(() =>
+const ModelComparison = retryLazy(() =>
   import("./ModelComparison").then((module) => ({
     default: module.ModelComparison,
   })),
 );
-const DistortionPreview = lazy(() =>
+const DistortionPreview = retryLazy(() =>
   import("./DistortionPreview").then((module) => ({
     default: module.DistortionPreview,
   })),
 );
-const AuditTrail = lazy(() =>
+const AuditTrail = retryLazy(() =>
   import("./AuditTrail").then((module) => ({ default: module.AuditTrail })),
 );
-const BenchmarkSuite = lazy(() =>
+const BenchmarkSuite = retryLazy(() =>
   import("./BenchmarkSuite").then((module) => ({
     default: module.BenchmarkSuite,
   })),
 );
-const CIIntegration = lazy(() =>
+const CIIntegration = retryLazy(() =>
   import("./CIIntegration").then((module) => ({
     default: module.CIIntegration,
   })),
 );
-const SettingsPanel = lazy(() =>
+const SettingsPanel = retryLazy(() =>
   import("./SettingsPanel").then((module) => ({
     default: module.SettingsPanel,
   })),
 );
-const DataQuality = lazy(() =>
+const DataQuality = retryLazy(() =>
   import("./DataQuality").then((module) => ({ default: module.DataQuality })),
 );
 

@@ -1,5 +1,11 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: Discussion
-    url: https://github.com/Adit-Jain-srm/NightmareNet/discussions
-    about: Ask questions or share ideas in Discussions
+  - name: "💬 Ask a Question"
+    url: https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/q-a
+    about: "Is this a question, not a bug or feature request? Please use Discussions instead."
+  - name: "💡 Suggest an Idea"
+    url: https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/ideas
+    about: "Have a feature idea that's not fully formed yet? Post it in Discussions Ideas first."
+  - name: "🎨 Show and Tell"
+    url: https://github.com/Adit-Jain-srm/NightmareNet/discussions/categories/show-and-tell
+    about: "Built something with NightmareNet? Share it with the community here."

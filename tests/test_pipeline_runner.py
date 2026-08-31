@@ -1,6 +1,7 @@
 """Tests for pipeline runner registry behavior."""
 
 import json
+import threading
 import time
 from unittest.mock import MagicMock
 
@@ -11,14 +12,30 @@ from nightmarenet.pipeline_runner import (
     _get_runs_dir,
     _persist_run_state,
     _update_run_state,
+    list_all_runs,
     load_persisted_runs,
     register_runner,
 )
 
 
 class _FakePipeline:
+    def __init__(self) -> None:
+        from nightmarenet.pipeline import PipelineMetrics
+
+        self.metrics = PipelineMetrics()
+        self.config: dict = {}
+
     def cancel(self) -> None:
         pass
+
+    def evaluate(self) -> dict:
+        return {}
+
+    class _FakeMetrics:
+        def to_dict(self) -> dict:
+            return {}
+
+    metrics = _FakeMetrics()
 
 
 def test_register_evicts_completed_runners_first(monkeypatch) -> None:
@@ -133,3 +150,30 @@ def test_atomic_write_prevents_corruption(monkeypatch, tmp_path) -> None:
 
     assert data["run_id"] == run_id
     assert data["status"] == "running"
+
+
+def test_concurrent_runner_access(monkeypatch, tmp_path) -> None:
+    """Test that concurrent access to runner registry does not raise RuntimeError."""
+    import nightmarenet.pipeline_runner as pr
+
+    monkeypatch.setenv("NIGHTMARENET_RUNS_DIR", str(tmp_path))
+    pr._runners.clear()
+
+    errors = []
+
+    def worker(worker_id: int) -> None:
+        try:
+            for i in range(50):
+                r = PipelineRunner(_FakePipeline())
+                register_runner(r)
+                list_all_runs()
+        except Exception as e:
+            errors.append(e)
+
+    threads = [threading.Thread(target=worker, args=(i,)) for i in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+
+    assert not errors, f"Concurrent runner access raised errors: {errors}"

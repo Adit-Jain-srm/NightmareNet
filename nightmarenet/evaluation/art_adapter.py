@@ -154,8 +154,7 @@ def _build_attack(classifier: Any, attack_name: str, **kwargs: Any) -> Any:
     name = attack_name.lower()
     if name not in SUPPORTED_ATTACKS:
         raise ValueError(
-            f"Unsupported attack: {attack_name!r}. "
-            f"Supported: {list(SUPPORTED_ATTACKS.keys())}"
+            f"Unsupported attack: {attack_name!r}. Supported: {list(SUPPORTED_ATTACKS.keys())}"
         )
 
     _check_art_available()

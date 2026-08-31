@@ -15,8 +15,10 @@ import logging
 import os
 import sys
 from datetime import datetime
+from typing import Optional
 
 _INITIALIZED = False
+_ACTIVE_LOG_FILE: Optional[str] = None
 
 #: Fields always included in every JSON log record.
 _JSON_LOG_FIELDS = ["asctime", "levelname", "name", "message"]
@@ -96,10 +98,12 @@ def setup_logging(
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
 
+    global _ACTIVE_LOG_FILE
     if file_logging:
         os.makedirs(log_dir, exist_ok=True)
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         log_file = os.path.join(log_dir, f"nightmarenet_{timestamp}.log")
+        _ACTIVE_LOG_FILE = log_file
         file_handler = logging.FileHandler(log_file)
         file_handler.setLevel(logging.DEBUG)  # Always log everything to file
         file_handler.setFormatter(formatter)
@@ -109,6 +113,11 @@ def setup_logging(
         "Logging initialized",
         extra={"log_level": log_level, "log_dir": log_dir, "json_logs": json_logs},
     )
+
+
+def get_active_log_file() -> Optional[str]:
+    """Return the active log file path if file logging is configured."""
+    return _ACTIVE_LOG_FILE
 
 
 def setup_logging_from_config(config: dict) -> None:
@@ -130,10 +139,11 @@ def setup_logging_from_config(config: dict) -> None:
 
 def reset_logging() -> None:
     """Reset logging configuration (primarily for testing)."""
-    global _INITIALIZED
+    global _INITIALIZED, _ACTIVE_LOG_FILE
     root_logger = logging.getLogger("nightmarenet")
     for handler in list(root_logger.handlers):
         handler.close()
         root_logger.removeHandler(handler)
     root_logger.propagate = True
     _INITIALIZED = False
+    _ACTIVE_LOG_FILE = None

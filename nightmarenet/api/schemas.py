@@ -77,6 +77,13 @@ class AuthErrorResponse(BaseModel):
     detail: str = "Invalid or missing API key."
 
 
+class RateLimitError(BaseModel):
+    """Rate limit exceeded error response."""
+
+    error: str = "Rate limit exceeded"
+    detail: str = "Too many requests. Please try again later."
+
+
 # --- Training Config Schemas ---
 
 
@@ -372,34 +379,6 @@ class TestWebhookRequest(BaseModel):
         default="run_complete",
         description="Event type to test: run_complete, regression_detected, alert, deploy",
     )
-
-
-class PipelineTrainRequest(BaseModel):
-    """Request body for training a pipeline."""
-
-    config: dict[str, Any] = Field(..., description="Training config")
-    model_name: str = Field(default="gpt2", description="Model to train")
-    cycles: int = Field(default=1, ge=1, le=100)
-
-
-class PipelineEvaluateRequest(BaseModel):
-    """Request body for evaluating a pipeline."""
-
-    config: dict[str, Any] = Field(..., description="Evaluation config")
-    model_name: str = Field(default="gpt2", description="Model to evaluate")
-
-
-class PipelineCancelRequest(BaseModel):
-    """Request body for cancelling a pipeline run."""
-
-    pipeline_id: str = Field(..., description="ID of the pipeline to cancel")
-    force: bool = Field(default=False, description="Force cancellation")
-
-
-class SettingsWebhooksRequest(BaseModel):
-    """Request body for updating webhook settings."""
-
-    webhooks: list[WebhookConfigSchema] = Field(..., description="List of webhook configurations")
 
 
 class WebhookTestResponse(BaseModel):

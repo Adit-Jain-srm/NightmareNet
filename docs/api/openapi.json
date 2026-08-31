@@ -763,27 +763,6 @@
         "title": "OptimizationStatusResponse",
         "type": "object"
       },
-      "PipelineCancelRequest": {
-        "description": "Request body for cancelling a pipeline run.",
-        "properties": {
-          "force": {
-            "default": false,
-            "description": "Force cancellation",
-            "title": "Force",
-            "type": "boolean"
-          },
-          "pipeline_id": {
-            "description": "ID of the pipeline to cancel",
-            "title": "Pipeline Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "pipeline_id"
-        ],
-        "title": "PipelineCancelRequest",
-        "type": "object"
-      },
       "PipelineCreateRequest": {
         "description": "Request body for creating a new end-to-end pipeline run.",
         "properties": {
@@ -950,28 +929,6 @@
         "title": "PipelineCreateRequest",
         "type": "object"
       },
-      "PipelineEvaluateRequest": {
-        "description": "Request body for evaluating a pipeline.",
-        "properties": {
-          "config": {
-            "additionalProperties": true,
-            "description": "Evaluation config",
-            "title": "Config",
-            "type": "object"
-          },
-          "model_name": {
-            "default": "gpt2",
-            "description": "Model to evaluate",
-            "title": "Model Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "config"
-        ],
-        "title": "PipelineEvaluateRequest",
-        "type": "object"
-      },
       "PipelineReportResponse": {
         "description": "Full evaluation report for a completed pipeline.",
         "properties": {
@@ -1113,33 +1070,21 @@
         "title": "PipelineStatusResponse",
         "type": "object"
       },
-      "PipelineTrainRequest": {
-        "description": "Request body for training a pipeline.",
+      "RateLimitError": {
+        "description": "Rate limit exceeded error response.",
         "properties": {
-          "config": {
-            "additionalProperties": true,
-            "description": "Training config",
-            "title": "Config",
-            "type": "object"
+          "detail": {
+            "default": "Too many requests. Please try again later.",
+            "title": "Detail",
+            "type": "string"
           },
-          "cycles": {
-            "default": 1,
-            "maximum": 100.0,
-            "minimum": 1.0,
-            "title": "Cycles",
-            "type": "integer"
-          },
-          "model_name": {
-            "default": "gpt2",
-            "description": "Model to train",
-            "title": "Model Name",
+          "error": {
+            "default": "Rate limit exceeded",
+            "title": "Error",
             "type": "string"
           }
         },
-        "required": [
-          "config"
-        ],
-        "title": "PipelineTrainRequest",
+        "title": "RateLimitError",
         "type": "object"
       },
       "RobustnessRequest": {
@@ -1200,24 +1145,6 @@
           "summary"
         ],
         "title": "RobustnessResponse",
-        "type": "object"
-      },
-      "SettingsWebhooksRequest": {
-        "description": "Request body for updating webhook settings.",
-        "properties": {
-          "webhooks": {
-            "description": "List of webhook configurations",
-            "items": {
-              "$ref": "#/components/schemas/WebhookConfigSchema"
-            },
-            "title": "Webhooks",
-            "type": "array"
-          }
-        },
-        "required": [
-          "webhooks"
-        ],
-        "title": "SettingsWebhooksRequest",
         "type": "object"
       },
       "SuggestConfigRequest": {
@@ -1686,7 +1613,7 @@
   "info": {
     "description": "Autonomous AI Self-Improvement Platform \u2014 Dream & Nightmare Distortion Service",
     "title": "NightmareNet API",
-    "version": "0.3.1"
+    "version": "0.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -1849,11 +1776,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/RateLimitError"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2385,11 +2338,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/RateLimitError"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2457,11 +2436,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/RateLimitError"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2529,11 +2534,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/RateLimitError"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2601,11 +2632,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/RateLimitError"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -2708,50 +2765,6 @@
         ]
       }
     },
-    "/api/v1/pipeline/cancel": {
-      "post": {
-        "description": "Cancel pipeline run via POST body (Legacy/Alternative).",
-        "operationId": "cancel_pipeline_post_endpoint_api_v1_pipeline_cancel_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PipelineCancelRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Cancel Pipeline Post Endpoint Api V1 Pipeline Cancel Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Cancel Pipeline Post Endpoint",
-        "tags": [
-          "pipeline"
-        ]
-      }
-    },
     "/api/v1/pipeline/create": {
       "post": {
         "description": "Create a new pipeline, ingest data, and start training.",
@@ -2777,6 +2790,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2786,53 +2809,55 @@
               }
             },
             "description": "Validation Error"
-          }
-        },
-        "summary": "Create and start an E2E pipeline run",
-        "tags": [
-          "pipeline"
-        ]
-      }
-    },
-    "/api/v1/pipeline/evaluate": {
-      "post": {
-        "description": "Evaluate pipeline robustness.",
-        "operationId": "evaluate_pipeline_endpoint_api_v1_pipeline_evaluate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PipelineEvaluateRequest"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            },
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
               }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
+          "500": {
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Evaluate Pipeline Endpoint Api V1 Pipeline Evaluate Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "description": "Internal Server Error"
           }
         },
-        "summary": "Evaluate Pipeline Endpoint",
+        "summary": "Create and start an E2E pipeline run",
         "tags": [
           "pipeline"
         ]
@@ -2882,6 +2907,16 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2891,53 +2926,55 @@
               }
             },
             "description": "Validation Error"
-          }
-        },
-        "summary": "List all pipeline runs with pagination",
-        "tags": [
-          "pipeline"
-        ]
-      }
-    },
-    "/api/v1/pipeline/train": {
-      "post": {
-        "description": "Start pipeline training phase.",
-        "operationId": "train_pipeline_endpoint_api_v1_pipeline_train_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PipelineTrainRequest"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            },
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
               }
             }
           },
-          "required": true
-        },
-        "responses": {
-          "200": {
+          "500": {
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Train Pipeline Endpoint Api V1 Pipeline Train Post",
-                  "type": "object"
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
+            "description": "Internal Server Error"
           }
         },
-        "summary": "Train Pipeline Endpoint",
+        "summary": "List all pipeline runs with pagination",
         "tags": [
           "pipeline"
         ]
@@ -2969,6 +3006,16 @@
             },
             "description": "Successful Response"
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2978,6 +3025,52 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            },
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "summary": "Cancel a running pipeline",
@@ -3012,6 +3105,26 @@
             },
             "description": "Successful Response"
           },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -3021,6 +3134,52 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            },
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "summary": "Get pipeline evaluation report",
@@ -3055,6 +3214,16 @@
             },
             "description": "Successful Response"
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -3064,6 +3233,52 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            },
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Internal Server Error"
           }
         },
         "summary": "Get pipeline run status",
@@ -3225,11 +3440,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/RateLimitError"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3307,11 +3548,37 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
+                  "$ref": "#/components/schemas/RateLimitError"
                 }
               }
             },
-            "description": "Too Many Requests"
+            "description": "Too Many Requests",
+            "headers": {
+              "Retry-After": {
+                "description": "Seconds to wait before making a new request",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Limit": {
+                "description": "The maximum number of requests allowed in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Remaining": {
+                "description": "The number of requests remaining in the current period",
+                "schema": {
+                  "type": "integer"
+                }
+              },
+              "X-RateLimit-Reset": {
+                "description": "Seconds remaining until the rate limit resets",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            }
           },
           "500": {
             "content": {
@@ -3327,50 +3594,6 @@
         "summary": "Upload Text File",
         "tags": [
           "Upload"
-        ]
-      }
-    },
-    "/settings/webhooks": {
-      "post": {
-        "description": "Update configured webhooks.",
-        "operationId": "update_webhooks_endpoint_settings_webhooks_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SettingsWebhooksRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "title": "Response Update Webhooks Endpoint Settings Webhooks Post",
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Successful Response"
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            },
-            "description": "Validation Error"
-          }
-        },
-        "summary": "Update Webhooks Endpoint",
-        "tags": [
-          "settings"
         ]
       }
     }

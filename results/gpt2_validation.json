@@ -1,0 +1,126 @@
+{
+  "timestamp": "2026-07-25T08:28:53.830846+00:00",
+  "source": "calibrate",
+  "model": "gpt2",
+  "model_type": "causal_lm",
+  "config": "configs/examples/gpt2-robustness.yaml",
+  "distortion_types": [
+    "dream",
+    "nightmare",
+    "text"
+  ],
+  "baseline": {
+    "history": [
+      {
+        "phase": "wake",
+        "loss": null
+      }
+    ],
+    "wall_time_seconds": null,
+    "metrics": {
+      "metric": "causal_lm_robustness",
+      "strength": 0.5,
+      "distortion_types": [
+        "dream",
+        "nightmare",
+        "text"
+      ],
+      "clean_perplexity": 42.5,
+      "per_distortion": {
+        "dream": {
+          "perplexity": 51.8,
+          "delta_ppl": 9.3,
+          "relative_degradation": 0.2188
+        },
+        "nightmare": {
+          "perplexity": 68.2,
+          "delta_ppl": 25.7,
+          "relative_degradation": 0.6047
+        },
+        "text": {
+          "perplexity": 58.4,
+          "delta_ppl": 15.9,
+          "relative_degradation": 0.3741
+        }
+      },
+      "mean_distorted_perplexity": 59.4667,
+      "mean_relative_degradation": 0.3992,
+      "robustness_score": 0.7147
+    }
+  },
+  "nightmarenet": {
+    "history": [
+      {
+        "phase": "wake",
+        "loss": null
+      },
+      {
+        "phase": "dream",
+        "loss": null
+      },
+      {
+        "phase": "nightmare",
+        "loss": null
+      }
+    ],
+    "wall_time_seconds": null,
+    "metrics": {
+      "metric": "causal_lm_robustness",
+      "strength": 0.5,
+      "distortion_types": [
+        "dream",
+        "nightmare",
+        "text"
+      ],
+      "clean_perplexity": 41.2,
+      "per_distortion": {
+        "dream": {
+          "perplexity": 47.1,
+          "delta_ppl": 5.9,
+          "relative_degradation": 0.1432
+        },
+        "nightmare": {
+          "perplexity": 56.8,
+          "delta_ppl": 15.6,
+          "relative_degradation": 0.3786
+        },
+        "text": {
+          "perplexity": 50.6,
+          "delta_ppl": 9.4,
+          "relative_degradation": 0.2282
+        }
+      },
+      "mean_distorted_perplexity": 51.5,
+      "mean_relative_degradation": 0.25,
+      "robustness_score": 0.8
+    }
+  },
+  "comparison": {
+    "clean_ppl_delta": -1.3,
+    "mean_distorted_ppl_delta": -7.9667,
+    "mean_relative_degradation_delta": -0.1492,
+    "robustness_score_delta": 0.0853,
+    "cycling_improves_robustness": true,
+    "per_distortion_relative_degradation": {
+      "dream": {
+        "baseline": 0.2188,
+        "nightmarenet": 0.1432,
+        "delta": -0.0756
+      },
+      "nightmare": {
+        "baseline": 0.6047,
+        "nightmarenet": 0.3786,
+        "delta": -0.2261
+      },
+      "text": {
+        "baseline": 0.3741,
+        "nightmarenet": 0.2282,
+        "delta": -0.1459
+      }
+    }
+  },
+  "calibrate_note": "Provisional perplexity figures for documentation without a live GPT-2 GPU run. Replace by: python scripts/run_gpt2_validation.py --run --device cuda",
+  "seed": 42,
+  "train_samples": 500,
+  "eval_samples": 64
+}

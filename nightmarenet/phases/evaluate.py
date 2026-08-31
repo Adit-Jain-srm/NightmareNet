@@ -85,6 +85,27 @@ class EvaluatePhase(Phase):
                     }
                 )
 
+                # Auto-register evaluation_results.json
+                try:
+                    from pathlib import Path
+
+                    from nightmarenet.artifacts.manager import ArtifactManager
+
+                    manager = ArtifactManager()
+                    eval_cfg = context.config.get("evaluation", {})
+                    output_dir = eval_cfg.get("output_dir", "results")
+                    result_path = os.path.join(output_dir, "evaluation_results.json")
+                    manager.register(
+                        path=Path(result_path),
+                        run_id=context.run_id,
+                        artifact_type="evaluation_result",
+                        retention_policy=context.config.get("artifacts", {})
+                        .get("retention", {})
+                        .get("evaluation_result"),
+                    )
+                except Exception as e:
+                    logger.warning("Failed to auto-register evaluation results artifact: %s", e)
+
                 # EU AI Act Article 15 compliance report
                 tracking_cfg = context.config.get("tracking", {})
                 if tracking_cfg.get("compliance_report", False):
@@ -106,6 +127,28 @@ class EvaluatePhase(Phase):
                         tracker=context.tracker,
                     )
                     logger.info("Compliance report generated.")
+
+                    # Auto-register compliance reports (JSON & MD)
+                    try:
+                        from pathlib import Path
+
+                        from nightmarenet.artifacts.manager import ArtifactManager
+
+                        manager = ArtifactManager()
+                        for ext in ("json", "md"):
+                            report_path = os.path.join(
+                                output_dir, f"{context.run_id}_compliance_report.{ext}"
+                            )
+                            manager.register(
+                                path=Path(report_path),
+                                run_id=context.run_id,
+                                artifact_type="compliance_report",
+                                retention_policy=context.config.get("artifacts", {})
+                                .get("retention", {})
+                                .get("compliance_report"),
+                            )
+                    except Exception as e:
+                        logger.warning("Failed to auto-register compliance reports: %s", e)
 
                 self._compute_quality_feedback(context, comparison)
                 self._fire_webhooks(context, comparison)

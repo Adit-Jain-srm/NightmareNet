@@ -307,11 +307,28 @@ class Trainer:
         override_devices = None
         if distributed and distributed != "auto":
             override_devices = [int(x.strip()) for x in distributed.split(",")]
+
         self.device_pool = DevicePool(override_devices=override_devices)
         self.ddp_wrapper = DDPWrapper()
 
-        if self.device_pool.should_use_ddp():
-            self.ddp_wrapper.setup()
+        # Enable distributed training only when explicitly requested
+        self.use_distributed = self.training_config.get("distributed", False)
+
+        # CLI override takes precedence over config
+        if distributed is not None:
+            self.use_distributed = True
+
+        if self.use_distributed:
+            if self.device_pool.should_use_ddp():
+                logger.info("Distributed training enabled.")
+                self.ddp_wrapper.setup()
+            else:
+                logger.warning(
+                    "Distributed training requested, but fewer than 2 devices are available. "
+                    "Falling back to single-device training."
+                )
+        else:
+            logger.info("Distributed training disabled.")
 
         # Checkpointer and Resume
         self.checkpointer = AtomicCheckpointer(self.checkpoint_dir)
@@ -433,6 +450,24 @@ class Trainer:
         except Exception as e:
             logger.error("Post-save checkpoint integrity validation failed: %s", e)
             raise
+
+        # Auto-register checkpoint folder (after validation succeeds)
+        try:
+            from pathlib import Path
+
+            from nightmarenet.artifacts.manager import ArtifactManager
+
+            manager = ArtifactManager()
+            manager.register(
+                path=Path(path),
+                run_id=run_id_to_use,
+                artifact_type="checkpoint",
+                retention_policy=self.config.get("artifacts", {})
+                .get("retention", {})
+                .get("checkpoint"),
+            )
+        except Exception as e:
+            logger.warning("Failed to auto-register checkpoint artifact: %s", e)
 
     def _save_history(self):
         """Save training history to a JSON file."""
@@ -826,6 +861,7 @@ class Trainer:
                     model=self.model,
                     device_pool=self.device_pool,
                     ddp_wrapper=self.ddp_wrapper,
+                    distributed_enabled=self.use_distributed,
                 )
 
                 if phase == "wake":
@@ -861,6 +897,20 @@ class Trainer:
                         lr_scheduler=self.lr_scheduler,
                     )
                     result = dream_runner.run(dream_dataloader, num_epochs=num_epochs)
+                    if dream_generator is not None:
+                        accountant = getattr(dream_generator, "privacy_accountant", None)
+                        eps = None
+                        if getattr(dream_generator, "config", None):
+                            eps = dream_generator.config.get("dream_dp_epsilon")
+                        if accountant is not None and eps is not None:
+                            cumulative = accountant.spend(
+                                float(eps), cycle=cycle, note="dream_phase"
+                            )
+                            result["privacy_epsilon_spent"] = float(eps)
+                            result["privacy_epsilon_cumulative"] = cumulative
+                            remaining = accountant.remaining()
+                            if remaining is not None:
+                                result["privacy_epsilon_remaining"] = remaining
 
                 elif phase == "nightmare":
                     lr_multiplier = self.training_config.get("nightmare_lr_multiplier", 2.0)
@@ -1033,6 +1083,27 @@ class Trainer:
 
         self.tracker.finish()
         logger.info("Training complete. Final model saved to %s", final_path)
+
+        # Auto-register final model checkpoint directory (rank-zero only)
+        if not (dist.is_available() and dist.is_initialized()) or dist.get_rank() == 0:
+            try:
+                from pathlib import Path
+
+                from nightmarenet.artifacts.manager import ArtifactManager
+
+                run_id_to_use = getattr(self, "run_id", "default_run") or "default_run"
+                manager = ArtifactManager()
+                manager.register(
+                    path=Path(final_path),
+                    run_id=run_id_to_use,
+                    artifact_type="checkpoint",
+                    retention_policy=self.config.get("artifacts", {})
+                    .get("retention", {})
+                    .get("checkpoint"),
+                )
+            except Exception as e:
+                logger.warning("Failed to auto-register final model checkpoint: %s", e)
+
         return self.history
 
 
