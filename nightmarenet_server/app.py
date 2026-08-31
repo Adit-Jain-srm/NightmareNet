@@ -42,6 +42,19 @@ try:
 except ImportError:
     SessionMiddleware = None  # type: ignore[assignment,misc]
 
+try:
+    from nightmarenet_server.middleware.versioning import (
+        API_VERSION_HEADER,
+        API_VERSION_VALUE,
+        get_deprecation_headers,
+    )
+except ImportError:
+    API_VERSION_HEADER = "API-Version"  # type: ignore[assignment]
+    API_VERSION_VALUE = "v1"  # type: ignore[assignment]
+
+    def get_deprecation_headers(endpoint: Optional[Any]) -> Dict[str, str]:
+        return {}
+
 
 def _cors_origins() -> List[str]:
     """Parse ``NIGHTMARENET_CORS_ORIGINS`` into a list."""
@@ -298,6 +311,15 @@ def create_app() -> Optional[Any]:
             "dev-only-change-in-production",
         )
         app.add_middleware(SessionMiddleware, secret_key=session_secret)
+
+    @app.middleware("http")
+    async def _hosted_api_version_header(request: Any, call_next: Any) -> Any:
+        response = await call_next(request)
+        response.headers[API_VERSION_HEADER] = API_VERSION_VALUE
+        response.headers["X-API-Version"] = core_version
+        for name, value in get_deprecation_headers(request.scope.get("endpoint")).items():
+            response.headers[name] = value
+        return response
 
     _attach_audit_middleware(app)
     _attach_oauth(app)

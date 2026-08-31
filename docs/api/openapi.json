@@ -1820,6 +1820,7 @@
           }
         },
         "summary": "Compare Distortions",
+        "deprecated": true,
         "tags": [
           "Evaluation"
         ]
