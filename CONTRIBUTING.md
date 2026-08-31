@@ -300,6 +300,18 @@ NightmareNet has a strict OSS / hosted boundary. Treat it as a hard constraint w
 - [`docs/research/paper-draft.md`](docs/research/paper-draft.md) — academic paper draft (cite this in PRs that touch the algorithm)
 - [`docs/research/benchmark-v1.md`](docs/research/benchmark-v1.md) — reproducible benchmark methodology
 
+### Developer guides
+
+Contributor workflow docs live in [`docs/development/`](docs/development/):
+
+- [`docs/development/testing.md`](docs/development/testing.md) — running and writing tests, markers, coverage, and CI steps
+- [`docs/development/adding-distortions.md`](docs/development/adding-distortions.md) — the in-tree distortion engine workflow
+- [`docs/development/adding-metrics.md`](docs/development/adding-metrics.md) — adding and wiring an evaluation metric
+- [`docs/development/architecture.md`](docs/development/architecture.md) — module dependency and pipeline-flow diagrams
+- [`docs/development/code-style.md`](docs/development/code-style.md) — lint, format, mypy baseline policy, and commit conventions
+- [`docs/development/local-stack.md`](docs/development/local-stack.md) — running the API + frontend locally
+
+
 ---
 
 ## Adding a new distortion

@@ -124,6 +124,17 @@ In-depth documentation for individual features lives in [`docs/features/`](docs/
 
 Client developers can also use the committed OpenAPI spec at [`docs/api/openapi.json`](docs/api/openapi.json) (regenerate with `make openapi`).
 
+### Developer Guide
+
+Contributor workflow documentation lives in [`docs/development/`](docs/development/):
+
+*   [Testing](docs/development/testing.md) — pytest markers, coverage, frontend tests, and what CI runs.
+*   [Adding Distortions](docs/development/adding-distortions.md) — the in-tree distortion engine workflow and testing contract.
+*   [Adding Metrics](docs/development/adding-metrics.md) — implement and wire a new evaluation metric.
+*   [Architecture](docs/development/architecture.md) — module dependency and pipeline-flow diagrams.
+*   [Code Style](docs/development/code-style.md) — Ruff, pre-commit hooks, the mypy baseline policy, and commit conventions.
+*   [Local Stack](docs/development/local-stack.md) — run the API and frontend locally.
+
 ### Configuration & Notebooks
 
 *   [Configuration Guide](configs/README.md) — config schema (all top-level keys), the defaults inheritance/override model, validation rules, and annotated example configs.
