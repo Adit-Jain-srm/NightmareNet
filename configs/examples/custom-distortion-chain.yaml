@@ -1,0 +1,80 @@
+# Custom distortion chain
+# Tune the per-type distortion weights that make up the Dream and Nightmare
+# phases, and control how nightmare strength is scheduled within each epoch.
+#
+# Validate config:
+#   python -c "from nightmarenet.utils.config import load_config; load_config('configs/examples/custom-distortion-chain.yaml')"
+#
+# Preview a single distortion on ad-hoc text:
+#   nightmarenet distort --type nightmare --strength 0.7 --text "I love this movie"
+#
+# Run the full cycle with this config:
+#   nightmarenet train --config configs/examples/custom-distortion-chain.yaml
+
+model:
+  name: distilbert-base-uncased
+  type: seq_classification
+  num_labels: 2
+  max_length: 128
+  device: auto
+
+dataset:
+  name: glue
+  config: sst2            # extra dataset selector; passed through to the loader
+  text_column: sentence
+  label_column: label
+  max_samples: 500
+  streaming: false
+
+training:
+  wake_epochs: 1
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 2
+  batch_size: 8
+  learning_rate: 2.0e-5
+
+distortion:
+  dream_strength: 0.25       # global intensity for the (mild) Dream phase
+  nightmare_strength: 0.8    # global intensity for the (aggressive) Nightmare phase
+
+  # Ramp nightmare strength within each epoch instead of holding it constant.
+  # uniform | linear | cosine | step
+  strength_schedule: cosine
+  strength_min: 0.3          # schedule floor (used by non-uniform schedules)
+  strength_max: 0.9          # schedule ceiling
+
+  language: english          # keyboard_typo language
+  keyboard_layout: null      # null = derive from language (english -> qwerty)
+
+  # Per-type weights = probability of applying each engine when it is sampled.
+  # This is the "chain": every enabled engine can stack on the same example.
+  text:
+    char_swap: 0.4
+    char_insert: 0.2
+    char_delete: 0.2
+    keyboard_typo: 0.3
+    word_shuffle: 0.1
+    token_mask: 0.2
+  semantic:
+    synonym_replace: 0.5
+    negation_inject: 0.2
+    topic_splice: 0.2
+  adversarial:
+    contradiction: 0.3
+    ambiguity: 0.2
+    cross_domain: 0.2
+    misleading_context: 0.2
+    learned: 0.0                              # 0 = disabled (no learned attack)
+    learned_model: distilbert-base-uncased    # fallback MLM if learned is enabled
+
+compression:
+  pruning_ratio: 0.2
+  pruning_method: magnitude
+
+evaluation:
+  metrics: [recall, robustness]
+  robustness_strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+
+seed: 42

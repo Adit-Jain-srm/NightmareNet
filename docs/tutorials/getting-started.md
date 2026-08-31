@@ -57,6 +57,8 @@ Key config blocks include:
 *   **dataset**: Controls dataset source (e.g., Hugging Face `wikitext` or custom files).
 *   **evaluation**: Dictates which metrics (`recall`, `generalization`, `robustness`, `hallucination`) are calculated.
 
+For the full schema (every top-level key), the defaults inheritance model, validation rules, and annotated example configs, see the [Configuration Guide](../../configs/README.md).
+
 ---
 
 ## 4. Running Your First Evaluation
@@ -182,3 +184,13 @@ Now that you have run your first evaluation:
 1. Learn how to write your own custom perturbations in [Tutorial 2: Custom Distortions](custom-distortions.md).
 2. Deep dive into how metrics are calculated and how they apply to compliance frameworks in [Tutorial 3: Interpreting Results](interpreting-results.md).
 3. Hardening a model? Check out [Tutorial 5: Deployment](deployment.md) to serve the model locally or run it via the docker container.
+
+### Feature Guides
+
+For in-depth documentation of individual features, see the [`docs/features/`](../features/) directory:
+
+* [Distributed Training](../features/distributed-training.md) — run the cycle across multiple GPUs.
+* [Model Compression](../features/model-compression.md) — pruning, bottlenecks, and robust distillation.
+* [Transfer Learning](../features/transfer-learning.md) — reuse a hardened backbone on new tasks.
+* [Hyperparameter Optimization](../features/hpo.md) — tune configs with Optuna.
+* [Semantic Experiment Search](../features/search.md) — search runs with natural language.

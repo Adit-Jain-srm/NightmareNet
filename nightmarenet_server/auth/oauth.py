@@ -239,7 +239,10 @@ def build_oauth_router() -> Optional[Any]:
         return client
 
     @router.get("/{provider}/login", name="oauth_login")
-    async def oauth_login(provider: str, request: Request) -> Any:
+    async def oauth_login(
+        provider: str,
+        request: Request,
+    ) -> Any:
         if provider not in {"github", "google"}:
             raise HTTPException(status_code=404, detail=f"Unknown provider '{provider}'.")
         client = _require_oauth(provider)

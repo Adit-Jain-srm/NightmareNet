@@ -982,6 +982,73 @@ def cmd_export(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_artifacts(args: argparse.Namespace) -> int:
+    """Artifacts command group entry point."""
+    if not getattr(args, "artifacts_command", None):
+        print("Usage: nightmarenet artifacts [list | clean | show] [options]")
+        return 1
+
+    from nightmarenet.artifacts.manager import ArtifactManager
+
+    manager = ArtifactManager()
+
+    if args.artifacts_command == "list":
+        artifacts = manager.list_artifacts(run_id=args.run_id)
+        if not artifacts:
+            print("No registered artifacts found.")
+            return 0
+
+        headers = (
+            f"{'Path':<50} | {'Type':<18} | {'Run ID':<36} | "
+            f"{'Size (Bytes)':<12} | {'Created At':<24}"
+        )
+        print(headers)
+        print("-" * 128)
+        for art in artifacts:
+            path = art.get("artifact_path", "")
+            art_type = art.get("artifact_type", "")
+            run_id = art.get("run_id", "")
+            size = art.get("size_bytes", 0)
+            created = art.get("creation_time", "")
+            if len(path) > 48:
+                path = "..." + path[-45:]
+            print(f"{path:<50} | {art_type:<18} | {run_id:<36} | {size:<12} | {created:<24}")
+        return 0
+
+    elif args.artifacts_command == "clean":
+        older_than = args.older_than
+        deleted = manager.clean(older_than=older_than)
+        if not deleted:
+            print("No artifacts required cleaning.")
+        else:
+            print(f"Successfully cleaned {len(deleted)} artifacts.")
+        return 0
+
+    elif args.artifacts_command == "show":
+        from pathlib import Path
+
+        path = Path(args.path)
+        meta_path = Path(f"{path!s}.artifact-meta.json")
+        if not meta_path.exists():
+            meta_path = manager.root_dir / meta_path
+            if not meta_path.exists():
+                logger.error("No registered artifact metadata found for path: %s", args.path)
+                return 1
+
+        try:
+            with open(meta_path, encoding="utf-8") as f:
+                meta = json.load(f)
+            meta.pop("absolute_metadata_path", None)
+            meta.pop("absolute_artifact_path", None)
+            print(json.dumps(meta, indent=2))
+            return 0
+        except Exception as e:
+            logger.error("Failed to read metadata: %s", e)
+            return 1
+
+    return 0
+
+
 def cmd_compliance(args: argparse.Namespace) -> int:
     """Handle compliance export and verify."""
     import os
@@ -1297,6 +1364,25 @@ def build_parser() -> argparse.ArgumentParser:
     comp_verify = compliance_subparsers.add_parser("verify", help="Verify signed compliance report")
     comp_verify.add_argument("file", help="Path to .jws file")
 
+    # artifacts command
+    artifacts_parser = subparsers.add_parser(
+        "artifacts", help="Manage training and evaluation artifacts"
+    )
+    artifacts_subparsers = artifacts_parser.add_subparsers(
+        dest="artifacts_command", help="Artifacts commands"
+    )
+
+    list_parser = artifacts_subparsers.add_parser("list", help="List registered artifacts")
+    list_parser.add_argument("--run-id", help="Filter by run ID")
+
+    clean_parser = artifacts_subparsers.add_parser(
+        "clean", help="Clean up registered artifacts based on retention policy"
+    )
+    clean_parser.add_argument("--older-than", help="Retention threshold (e.g. 30d)")
+
+    show_parser = artifacts_subparsers.add_parser("show", help="Show artifact metadata details")
+    show_parser.add_argument("path", help="Path to the artifact file/directory")
+
     from nightmarenet.dev_cli import register_dev_parser
 
     register_dev_parser(subparsers)
@@ -1352,6 +1438,7 @@ def main(argv: Optional[list] = None) -> int:
         "export": cmd_export,
         "optimize": cmd_optimize,
         "compliance": cmd_compliance,
+        "artifacts": cmd_artifacts,
     }
 
     return commands[args.command](args)

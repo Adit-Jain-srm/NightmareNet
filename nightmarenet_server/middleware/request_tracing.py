@@ -38,7 +38,7 @@ class RequestTracingMiddleware(BaseHTTPMiddleware):  # type: ignore[misc]
 
         # 1. Accept incoming X-Request-ID or generate a new one
         incoming_id = request.headers.get("x-request-id") or request.headers.get("X-Request-ID")
-        request_id = incoming_id.strip() if incoming_id else str(uuid.uuid4())
+        request_id = (incoming_id or "").strip() or str(uuid.uuid4())
 
         # 2. Store in context variable for downstream logs and tasks
         token = request_id_ctx.set(request_id)

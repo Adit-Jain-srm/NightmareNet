@@ -118,3 +118,7 @@ skills-lock.json
 .vercel
 coverage.xml
 .nightmarenet_cache/
+
+# Do not ignore artifact metadata sidecar files
+!*.artifact-meta.json
+!**/*.artifact-meta.json

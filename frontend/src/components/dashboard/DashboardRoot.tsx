@@ -12,6 +12,10 @@ import {
   SkeletonStatTile,
 } from "@/components/ui/Skeleton";
 import { OnboardingOverlay } from "./OnboardingOverlay";
+import { ExperimentListSkeleton } from "./skeletons/ExperimentListSkeleton";
+import { RunDetailSkeleton } from "./skeletons/RunDetailSkeleton";
+import { PipelineGraphSkeleton } from "./skeletons/PipelineGraphSkeleton";
+import { ModelComparisonSkeleton } from "./skeletons/ModelComparisonSkeleton";
 import { WhatsNew } from "./WhatsNew";
 import { KeyboardHelp } from "./KeyboardHelp";
 import { AskNightmareDock } from "./AskNightmareDock";
@@ -111,12 +115,19 @@ function DashboardPanelFallback({
 
 type PanelSuspenseProps = DashboardPanelFallbackProps & {
   children: ReactNode;
+  /**
+   * Component-specific skeleton to use as the Suspense fallback instead
+   * of the generic `DashboardPanelFallback`. Takes precedence over `variant`.
+   */
+  skeleton?: ReactNode;
 };
 
-function PanelSuspense({ children, label, variant }: PanelSuspenseProps) {
+function PanelSuspense({ children, label, variant, skeleton }: PanelSuspenseProps) {
   return (
     <Suspense
-      fallback={<DashboardPanelFallback label={label} variant={variant} />}
+      fallback={
+        skeleton ?? <DashboardPanelFallback label={label} variant={variant} />
+      }
     >
       {children}
     </Suspense>
@@ -237,7 +248,10 @@ function DashboardRootInner() {
               </motion.div>
               <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <motion.div variants={fadeIn}>
-                  <PanelSuspense label="Phase Visualizer">
+                  <PanelSuspense
+                    label="Phase Visualizer"
+                    skeleton={<PipelineGraphSkeleton />}
+                  >
                     <PhaseVisualizer activePhase={2} />
                   </PanelSuspense>
                 </motion.div>
@@ -273,7 +287,10 @@ function DashboardRootInner() {
           >
             {section === "experiments" && (
               <motion.div variants={fadeIn}>
-                <PanelSuspense label="Experiments" variant="rows">
+                <PanelSuspense
+                  label="Experiments"
+                  skeleton={<ExperimentListSkeleton />}
+                >
                   <ExperimentList onSectionChange={navigate} />
                 </PanelSuspense>
               </motion.div>
@@ -287,7 +304,7 @@ function DashboardRootInner() {
             {section === "run-detail" && (
               <>
                 <motion.div variants={fadeIn}>
-                  <PanelSuspense label="Run Detail">
+                  <PanelSuspense label="Run Detail" skeleton={<RunDetailSkeleton />}>
                     <RunDetail />
                   </PanelSuspense>
                 </motion.div>
@@ -309,7 +326,10 @@ function DashboardRootInner() {
 
           {section === "phases" && (
             <motion.div variants={fadeIn}>
-              <PanelSuspense label="Phase Visualizer">
+              <PanelSuspense
+                label="Phase Visualizer"
+                skeleton={<PipelineGraphSkeleton />}
+              >
                 <PhaseVisualizer activePhase={1} />
               </PanelSuspense>
             </motion.div>
@@ -336,7 +356,10 @@ function DashboardRootInner() {
                 </PanelSuspense>
               </motion.div>
               <motion.div variants={fadeIn}>
-                <PanelSuspense label="Model Comparison">
+                <PanelSuspense
+                  label="Model Comparison"
+                  skeleton={<ModelComparisonSkeleton />}
+                >
                   <ModelComparison />
                 </PanelSuspense>
               </motion.div>
@@ -346,7 +369,10 @@ function DashboardRootInner() {
           {section === "compare" && (
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               <motion.div variants={fadeIn}>
-                <PanelSuspense label="Model Comparison">
+                <PanelSuspense
+                  label="Model Comparison"
+                  skeleton={<ModelComparisonSkeleton />}
+                >
                   <ModelComparison />
                 </PanelSuspense>
               </motion.div>
