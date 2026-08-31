@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 from nightmarenet.api.versioning import deprecated as core_deprecated
 from nightmarenet.api.versioning import get_deprecation_headers as core_get_deprecation_headers
@@ -19,6 +18,6 @@ def deprecated(sunset: str, alternative: Optional[str] = None) -> Callable[[F], 
     return core_deprecated(sunset=sunset, alternative=alternative)
 
 
-def get_deprecation_headers(endpoint: Optional[Any]) -> dict[str, str]:
+def get_deprecation_headers(endpoint: Optional[Any]) -> Dict[str, str]:
     """Return Deprecation/Sunset headers for hosted endpoints."""
     return core_get_deprecation_headers(endpoint)

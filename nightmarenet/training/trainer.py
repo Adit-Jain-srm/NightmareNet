@@ -451,6 +451,24 @@ class Trainer:
             logger.error("Post-save checkpoint integrity validation failed: %s", e)
             raise
 
+        # Auto-register checkpoint folder (after validation succeeds)
+        try:
+            from pathlib import Path
+
+            from nightmarenet.artifacts.manager import ArtifactManager
+
+            manager = ArtifactManager()
+            manager.register(
+                path=Path(path),
+                run_id=run_id_to_use,
+                artifact_type="checkpoint",
+                retention_policy=self.config.get("artifacts", {})
+                .get("retention", {})
+                .get("checkpoint"),
+            )
+        except Exception as e:
+            logger.warning("Failed to auto-register checkpoint artifact: %s", e)
+
     def _save_history(self):
         """Save training history to a JSON file."""
         path = os.path.join(self.log_dir, "training_history.json")
@@ -1065,6 +1083,27 @@ class Trainer:
 
         self.tracker.finish()
         logger.info("Training complete. Final model saved to %s", final_path)
+
+        # Auto-register final model checkpoint directory (rank-zero only)
+        if not (dist.is_available() and dist.is_initialized()) or dist.get_rank() == 0:
+            try:
+                from pathlib import Path
+
+                from nightmarenet.artifacts.manager import ArtifactManager
+
+                run_id_to_use = getattr(self, "run_id", "default_run") or "default_run"
+                manager = ArtifactManager()
+                manager.register(
+                    path=Path(final_path),
+                    run_id=run_id_to_use,
+                    artifact_type="checkpoint",
+                    retention_policy=self.config.get("artifacts", {})
+                    .get("retention", {})
+                    .get("checkpoint"),
+                )
+            except Exception as e:
+                logger.warning("Failed to auto-register final model checkpoint: %s", e)
+
         return self.history
 
 

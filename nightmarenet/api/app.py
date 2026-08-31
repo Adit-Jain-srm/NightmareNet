@@ -44,13 +44,7 @@ try:
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
-    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH
-    from nightmarenet.api.versioning import (
-        API_VERSION_HEADER,
-        API_VERSION_VALUE,
-        deprecated,
-        get_deprecation_headers,
-    )
+    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH, limiter
     from nightmarenet.api.schemas import (
         CompareRequest,
         CompareResponse,
@@ -65,12 +59,19 @@ try:
         PipelineReportResponse,
         PipelineRunsListResponse,
         PipelineStatusResponse,
+        RateLimitError,
         RobustnessRequest,
         RobustnessResponse,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
         UploadResponse,
+    )
+    from nightmarenet.api.versioning import (
+        API_VERSION_HEADER,
+        API_VERSION_VALUE,
+        deprecated,
+        get_deprecation_headers,
     )
     from nightmarenet.api.webhooks import router
 except ImportError as e:
@@ -83,6 +84,33 @@ _ROBUSTNESS_BODY = Body(...)
 _TRAINING_CONFIG_BODY = Body(...)
 _COMPARE_BODY = Body(...)
 _DEMO_BODY = Body(...)
+
+_RATE_LIMIT_HEADERS = {
+    "X-RateLimit-Limit": {
+        "description": "The maximum number of requests allowed in the current period",
+        "schema": {"type": "integer"},
+    },
+    "X-RateLimit-Remaining": {
+        "description": "The number of requests remaining in the current period",
+        "schema": {"type": "integer"},
+    },
+    "X-RateLimit-Reset": {
+        "description": "Seconds remaining until the rate limit resets",
+        "schema": {"type": "integer"},
+    },
+}
+
+_RATE_LIMIT_RESPONSE = {
+    "model": RateLimitError,
+    "description": "Too Many Requests",
+    "headers": {
+        "Retry-After": {
+            "description": "Seconds to wait before making a new request",
+            "schema": {"type": "integer"},
+        },
+        **_RATE_LIMIT_HEADERS,
+    },
+}
 
 
 # ------------------------------------------------------------------
@@ -234,6 +262,10 @@ def _char_similarity(a: str, b: str) -> float:
 _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
 
+WEBHOOKS_FILE_PATH = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
+)
+
 
 def _get_test_count() -> Optional[int]:
     """Return the number of collected tests, cached (optionally, dev-only)."""
@@ -290,7 +322,7 @@ async def health_check() -> HealthResponse:
     response_model=DistortionResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Distortion"],
@@ -335,7 +367,7 @@ async def generate_dream(
     response_model=DistortionResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Distortion"],
@@ -380,7 +412,7 @@ async def generate_nightmare(
     response_model=RobustnessResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Evaluation"],
@@ -497,7 +529,7 @@ _VALID_MODEL_TYPES = {"causal_lm", "masked_lm", "seq_classification"}
     response_model=TrainingConfigResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Training"],
@@ -658,7 +690,7 @@ async def preview_training_config(
     response_model=CompareResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Evaluation"],
@@ -750,7 +782,7 @@ async def compare_distortions(
     response_model=DemoResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Demo"],
@@ -840,7 +872,7 @@ _MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
     responses={
         400: {"model": ErrorResponse},
         413: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Upload"],
@@ -908,6 +940,11 @@ _PIPELINE_BODY = Body(...)
 @app.post(
     "/api/v1/pipeline/create",
     response_model=PipelineStatusResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Create and start an E2E pipeline run",
     tags=["pipeline"],
 )
@@ -1025,6 +1062,11 @@ async def create_pipeline(
 @app.get(
     "/api/v1/pipeline/{run_id}/status",
     response_model=PipelineStatusResponse,
+    responses={
+        404: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Get pipeline run status",
     tags=["pipeline"],
 )
@@ -1041,6 +1083,11 @@ async def get_pipeline_status(run_id: str):
 @app.post(
     "/api/v1/pipeline/{run_id}/cancel",
     response_model=PipelineStatusResponse,
+    responses={
+        404: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Cancel a running pipeline",
     tags=["pipeline"],
 )
@@ -1058,6 +1105,12 @@ async def cancel_pipeline(run_id: str):
 @app.get(
     "/api/v1/pipeline/{run_id}/report",
     response_model=PipelineReportResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Get pipeline evaluation report",
     tags=["pipeline"],
 )
@@ -1086,6 +1139,11 @@ app.include_router(router)
 @app.get(
     "/api/v1/pipeline/runs",
     response_model=PipelineRunsListResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="List all pipeline runs with pagination",
     tags=["pipeline"],
 )

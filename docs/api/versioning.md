@@ -45,7 +45,7 @@ And the middleware should expose headers like:
 API-Version: v1
 X-API-Version: 0.3.0
 Deprecation: true
-Sunset: Mon, 01 Dec 2026 00:00:00 GMT
+Sunset: Tue, 01 Dec 2026 00:00:00 GMT
 Link: </api/v1/evaluate/robustness>; rel="alternate"
 ```
 

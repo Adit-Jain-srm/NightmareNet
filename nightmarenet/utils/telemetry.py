@@ -74,7 +74,7 @@ class _NoOpTracer:
     def start_as_current_span(self, name: str, **kwargs: Any) -> Any:  # noqa: D401
         return _NoOpSpan()
 
-    @contextmanager  # type: ignore[arg-type]
+    @contextmanager
     def start_as_current_span_cm(self, name: str) -> Generator[_NoOpSpan, None, None]:
         yield _NoOpSpan()
 
@@ -130,21 +130,21 @@ def setup_telemetry(config: dict) -> None:
         return
 
     try:
-        from opentelemetry import metrics as otel_metrics  # type: ignore[import-untyped]
-        from opentelemetry import trace as otel_trace  # type: ignore[import-untyped]
-        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (  # type: ignore[import-untyped]
+        from opentelemetry import metrics as otel_metrics
+        from opentelemetry import trace as otel_trace
+        from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
             OTLPMetricExporter,
         )
-        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (  # type: ignore[import-untyped]
+        from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
             OTLPSpanExporter,
         )
-        from opentelemetry.sdk.metrics import MeterProvider  # type: ignore[import-untyped]
-        from opentelemetry.sdk.metrics.export import (  # type: ignore[import-untyped]
+        from opentelemetry.sdk.metrics import MeterProvider
+        from opentelemetry.sdk.metrics.export import (
             PeriodicExportingMetricReader,
         )
-        from opentelemetry.sdk.resources import Resource  # type: ignore[import-untyped]
-        from opentelemetry.sdk.trace import TracerProvider  # type: ignore[import-untyped]
-        from opentelemetry.sdk.trace.export import (  # type: ignore[import-untyped]
+        from opentelemetry.sdk.resources import Resource
+        from opentelemetry.sdk.trace import TracerProvider
+        from opentelemetry.sdk.trace.export import (
             BatchSpanProcessor,
         )
 
@@ -244,8 +244,8 @@ def trace_phase(
 
     if _OTEL_AVAILABLE:
         try:
-            from opentelemetry import trace as otel_trace  # type: ignore[import-untyped]
-            from opentelemetry.trace import StatusCode  # type: ignore[import-untyped]
+            from opentelemetry import trace as otel_trace
+            from opentelemetry.trace import StatusCode
 
             with tracer.start_as_current_span(  # type: ignore[union-attr]
                 f"nightmarenet.{phase_name}", kind=otel_trace.SpanKind.INTERNAL
@@ -305,7 +305,7 @@ def _record_duration(phase_name: str, elapsed: float, attrs: dict) -> None:
 def _sample_gpu_utilization() -> Optional[float]:
     """Return GPU utilisation % from pynvml if available, else None."""
     try:
-        import pynvml  # type: ignore[import-untyped]
+        import pynvml
 
         pynvml.nvmlInit()
         handle = pynvml.nvmlDeviceGetHandleByIndex(0)

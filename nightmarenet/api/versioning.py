@@ -1,11 +1,9 @@
 """API versioning and deprecation helpers for NightmareNet."""
 
-from __future__ import annotations
-
 import asyncio
 from datetime import datetime, timezone
 from functools import wraps
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, Dict, Optional, TypeVar
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -28,9 +26,7 @@ def _parse_sunset_date(value: str) -> str:
         else:
             dt = datetime.strptime(value, "%Y-%m-%d")
     except ValueError as exc:
-        raise ValueError(
-            "sunset must be a date in YYYY-MM-DD or ISO format"
-        ) from exc
+        raise ValueError("sunset must be a date in YYYY-MM-DD or ISO format") from exc
     if dt.tzinfo is None:
         dt = dt.replace(tzinfo=timezone.utc)
     return _format_http_date(dt)
@@ -41,10 +37,12 @@ def deprecated(sunset: str, alternative: Optional[str] = None) -> Callable[[F], 
 
     def decorator(func: F) -> F:
         if asyncio.iscoroutinefunction(func):
+
             @wraps(func)
             async def wrapper(*args: Any, **kwargs: Any) -> Any:
                 return await func(*args, **kwargs)
         else:
+
             @wraps(func)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 return func(*args, **kwargs)
@@ -58,16 +56,16 @@ def deprecated(sunset: str, alternative: Optional[str] = None) -> Callable[[F], 
     return decorator
 
 
-def get_deprecation_headers(endpoint: Optional[Any]) -> dict[str, str]:
+def get_deprecation_headers(endpoint: Optional[Any]) -> Dict[str, str]:
     """Return Deprecation/Sunset header values for a deprecated endpoint."""
     if endpoint is None or not getattr(endpoint, "__deprecated__", False):
         return {}
 
-    headers: dict[str, str] = {
+    headers: Dict[str, str] = {
         "Deprecation": "true",
         "Sunset": getattr(endpoint, "__deprecated_sunset__", ""),
     }
     alternative = getattr(endpoint, "__deprecated_alternative__", None)
     if alternative:
-        headers["Link"] = f"<{alternative}>; rel=\"alternate\""
+        headers["Link"] = f'<{alternative}>; rel="alternate"'
     return headers
