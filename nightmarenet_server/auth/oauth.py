@@ -216,8 +216,6 @@ def build_oauth_router() -> Optional[Any]:
     if APIRouter is None:
         return None
 
-    from nightmarenet_server.middleware.rate_limiting import RateLimiter
-
     router = APIRouter(prefix="/auth", tags=["auth"])
     oauth = _build_oauth_client()
     bearer = HTTPBearer(auto_error=False)
@@ -225,7 +223,6 @@ def build_oauth_router() -> Optional[Any]:
 
     bearer_param = Depends(bearer)
     session_param: Any = Depends(session_dep) if session_dep else None
-    strict_limiter = Depends(RateLimiter("STRICT"))
 
     def _require_oauth(provider: str) -> Any:
         if oauth is None:
@@ -245,7 +242,6 @@ def build_oauth_router() -> Optional[Any]:
     async def oauth_login(
         provider: str,
         request: Request,
-        _rate_limit: Any = strict_limiter,
     ) -> Any:
         if provider not in {"github", "google"}:
             raise HTTPException(status_code=404, detail=f"Unknown provider '{provider}'.")
@@ -258,7 +254,6 @@ def build_oauth_router() -> Optional[Any]:
         provider: str,
         request: Request,
         db: Any = session_param,
-        _rate_limit: Any = strict_limiter,
     ) -> Dict[str, Any]:
         if provider not in {"github", "google"}:
             raise HTTPException(status_code=404, detail=f"Unknown provider '{provider}'.")

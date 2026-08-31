@@ -61,23 +61,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.remove("dark", "light");
     root.classList.add(resolvedTheme);
 
-    if (resolvedTheme === "light") {
-      root.style.setProperty("--color-void", "#ffffff");
-      root.style.setProperty("--color-abyss", "#f8fafc");
-      root.style.setProperty("--color-deep", "#e2e8f0");
-      root.style.setProperty("--color-surface", "#cbd5e1");
-      root.style.setProperty("--color-muted", "#475569");
-      root.style.setProperty("--color-text", "#0f172a");
-      root.style.setProperty("--color-text-dim", "#334155");
-    } else {
-      root.style.setProperty("--color-void", "#030712");
-      root.style.setProperty("--color-abyss", "#0a0f1e");
-      root.style.setProperty("--color-deep", "#141b2d");
-      root.style.setProperty("--color-surface", "#1e293b");
-      root.style.setProperty("--color-muted", "#64748b");
-      root.style.setProperty("--color-text", "#f1f5f9");
-      root.style.setProperty("--color-text-dim", "#94a3b8");
-    }
   }, [resolvedTheme, mounted]);
 
   useEffect(() => {

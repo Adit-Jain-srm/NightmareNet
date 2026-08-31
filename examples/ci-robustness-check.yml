@@ -1,0 +1,39 @@
+# Example: NightmareNet robustness gate in CI
+#
+# Copy into your repo as `.github/workflows/robustness-check.yml`
+# (or reference this file from docs). Uses the composite action shipped
+# with NightmareNet.
+#
+# Fast path (no full model load): model_path is a label; evaluate runs the
+# dream/nightmare distortion sweep on CPU in well under 5 minutes.
+
+name: NightmareNet Robustness Check
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  robustness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Robustness gate
+        id: check
+        uses: Adit-Jain-srm/NightmareNet/.github/actions/robustness-check@v1
+        with:
+          model_path: distilbert-base-uncased
+          threshold: "0.5"
+          distortion_types: dream,nightmare
+
+      - name: Echo outputs
+        run: |
+          echo "score=${{ steps.check.outputs.robustness_score }}"
+          echo "passed=${{ steps.check.outputs.passed }}"
+          echo "report=${{ steps.check.outputs.report_path }}"

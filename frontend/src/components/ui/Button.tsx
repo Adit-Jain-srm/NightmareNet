@@ -16,7 +16,7 @@ export interface ButtonProps extends Omit<HTMLMotionProps<"button">, "ref" | "ch
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    "bg-neural text-void hover:bg-neural/90 border border-neural/40 shadow-[0_0_20px_rgba(6,182,212,0.25)]",
+    "bg-neural text-void hover:bg-neural/90 border border-neural/40 shadow-glow-button",
   secondary:
     "bg-white/5 text-slate-200 border border-white/10 hover:bg-white/10",
   ghost: "bg-transparent text-slate-300 hover:bg-white/5 border border-transparent",

@@ -27,19 +27,16 @@ TIER_MAPPINGS = [
     (r"^/docs", "UNLIMITED"),
     (r"^/redoc", "UNLIMITED"),
     (r"^/openapi.json", "UNLIMITED"),
-
     # STRICT
     (r"^/api/v1/auth/login", "STRICT"),
     (r"^/api/v1/auth/register", "STRICT"),
     (r"^/auth/.*", "STRICT"),
-
     # MODERATE
     (r"^/api/v1/pipeline/create", "MODERATE"),
     (r"^/api/v1/pipeline/[^/]+/cancel", "MODERATE"),
     (r"^/api/v1/settings/webhooks", "MODERATE"),
     (r"^/api/v1/notifications/test-webhook", "MODERATE"),
     (r"^/api/v1/experiments/[^/]+$", "MODERATE"),
-
     # GENEROUS
     (r"^/api/v1/pipeline/runs", "GENEROUS"),
     (r"^/api/v1/pipeline/[^/]+/status", "GENEROUS"),
@@ -51,6 +48,7 @@ TIER_MAPPINGS = [
 # Redis Client connection state
 _redis_client: Any = None
 _redis_initialized = False
+
 
 def get_redis_client() -> Optional[Any]:
     global _redis_client, _redis_initialized
@@ -65,30 +63,36 @@ def get_redis_client() -> Optional[Any]:
 
     try:
         import redis
+
         client = redis.from_url(redis_url, decode_responses=True)
         client.ping()
         _redis_client = client
         logger.info("Successfully connected to Redis for rate limiting.")
     except Exception as exc:
         logger.warning(
-            f"Failed to connect to Redis at {redis_url} ({exc}) - "
-            "falling back to in-memory rate limiting counter."
+            "Failed to connect to Redis at %s (%s) - "
+            "falling back to in-memory rate limiting counter.",
+            redis_url,
+            exc,
         )
         _redis_client = None
 
     _redis_initialized = True
     return _redis_client
 
+
 # In-memory storage structures
 _in_memory_db: Dict[str, int] = {}
 _in_memory_expiry: Dict[str, float] = {}
 _in_memory_lock = threading.Lock()
+
 
 def clear_rate_limits() -> None:
     """Clear all in-memory rate limiting counters (mainly for tests)."""
     with _in_memory_lock:
         _in_memory_db.clear()
         _in_memory_expiry.clear()
+
 
 def _check_in_memory(key: str, limit: int, window: int) -> Tuple[int, int]:
     """Check rate limit in memory. Returns (current_count, reset_seconds)."""
@@ -114,6 +118,7 @@ def _check_in_memory(key: str, limit: int, window: int) -> Tuple[int, int]:
         reset_seconds = int(window_start + window - current_time_int)
         return current_count, max(0, reset_seconds)
 
+
 def _check_redis(client: Any, key: str, limit: int, window: int) -> Tuple[int, int]:
     """Check rate limit in Redis. Returns (current_count, reset_seconds)."""
     now = time.time()
@@ -129,6 +134,7 @@ def _check_redis(client: Any, key: str, limit: int, window: int) -> Tuple[int, i
     current_count = int(results[0])
     reset_seconds = int(window_start + window - current_time_int)
     return current_count, max(0, reset_seconds)
+
 
 async def enforce_rate_limit(request: Request, tier_name: str) -> Tuple[bool, Dict[str, str]]:
     """Enforces rate limit for a given tier.
@@ -176,7 +182,7 @@ async def enforce_rate_limit(request: Request, tier_name: str) -> Tuple[bool, Di
             current_count, reset_seconds = _check_redis(redis_client, key, limit, window)
             used_redis = True
         except Exception as exc:
-            logger.warning(f"Redis rate limit check failed: {exc}. Falling back to in-memory.")
+            logger.warning("Redis rate limit check failed: %s. Falling back to in-memory.", exc)
 
     if not used_redis:
         current_count, reset_seconds = _check_in_memory(key, limit, window)
@@ -195,9 +201,11 @@ async def enforce_rate_limit(request: Request, tier_name: str) -> Tuple[bool, Di
 
     return exceeded, headers
 
+
 class RateLimitException(HTTPException):
     def __init__(self, detail: str = "Too many requests. Please try again later."):
         super().__init__(status_code=429, detail=detail)
+
 
 class RateLimiter:
     def __init__(self, tier: str):
@@ -210,6 +218,7 @@ class RateLimiter:
 
         if exceeded:
             raise RateLimitException(detail="Too many requests. Please try again later.")
+
 
 def find_route_dependencies(app_obj: Any, scope: Any) -> list:
     """Recursively search for route dependencies in app and sub-mounted apps."""
@@ -225,6 +234,7 @@ def find_route_dependencies(app_obj: Any, scope: Any) -> list:
                 return route.dependencies
             break
     return []
+
 
 class RateLimitingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next: Any) -> Any:
@@ -270,9 +280,9 @@ class RateLimitingMiddleware(BaseHTTPMiddleware):
                     status_code=429,
                     content={
                         "error": "Rate limit exceeded",
-                        "detail": "Too many requests. Please try again later."
+                        "detail": "Too many requests. Please try again later.",
                     },
-                    headers=headers
+                    headers=headers,
                 )
                 return response
 

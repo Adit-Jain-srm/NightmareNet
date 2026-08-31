@@ -7,6 +7,12 @@ from nightmarenet.distortions.base import BaseDistortion as BaseDistortion
 from nightmarenet.distortions.loader import (
     load_custom_engine as load_custom_engine,
 )
+from nightmarenet.distortions.multilingual import (
+    keyboard_typo as keyboard_typo,
+)
+from nightmarenet.distortions.multilingual import (
+    register_layout as register_layout,
+)
 from nightmarenet.distortions.registry import (
     DistortionRegistry as DistortionRegistry,
 )
@@ -36,4 +42,6 @@ __all__ = [
     "apply_semantic_distortions",
     "apply_adversarial_distortions",
     "load_custom_engine",
+    "keyboard_typo",
+    "register_layout",
 ]

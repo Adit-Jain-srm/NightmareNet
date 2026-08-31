@@ -27,6 +27,7 @@ def test_app():
     @app.exception_handler(RateLimitException)
     async def rate_limit_exception_handler(request: Request, exc: RateLimitException):
         from fastapi.responses import JSONResponse
+
         return JSONResponse(
             status_code=429,
             content={

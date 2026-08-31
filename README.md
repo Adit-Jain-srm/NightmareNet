@@ -105,11 +105,24 @@ Learn how to use, extend, and deploy NightmareNet through our step-by-step tutor
 
 *   [Tutorial 1: Getting Started](docs/tutorials/getting-started.md) — Install NightmareNet, configure your first project, and run your first model robustness evaluation in under 5 minutes.
 *   [Tutorial 2: Custom Distortions](docs/tutorials/custom-distortions.md) — Implement class-based or decorator-based custom perturbation engines and plug them into the registry.
+*   [Multilingual keyboard typos](docs/features/multilingual-keyboard-typo.md) — Layout-aware `keyboard_typo` for English, German, French, Russian, Hindi, Arabic.
 *   [Tutorial 3: Interpreting Results & Compliance](docs/tutorials/interpreting-results.md) — Understand robustness curves (AUC), generalization metrics, and generate signed EU AI Act compliance reports.
 *   [Tutorial 4: Vision Pipeline](docs/tutorials/vision-pipeline.md) — Load images, apply vision distortions (color jitter, noise, FGSM/PGD attacks), and evaluate vision models.
 *   [Tutorial 5: Deployment](docs/tutorials/deployment.md) — Configure, run, and scale production-grade docker containers, configure keys, and integrate alerts.
+*   [Tutorial 6: CI Robustness Check](docs/tutorials/ci-robustness-check.md) — Gate PRs with the `robustness-check` GitHub Action (threshold, score table, Marketplace branding).
 
 Client developers can also use the committed OpenAPI spec at [`docs/api/openapi.json`](docs/api/openapi.json) (regenerate with `make openapi`).
+
+### GitHub Action (robustness gate)
+
+```yaml
+- uses: Adit-Jain-srm/NightmareNet/.github/actions/robustness-check@v1
+  with:
+    model_path: distilbert-base-uncased
+    threshold: "0.7"
+```
+
+See [`examples/ci-robustness-check.yml`](examples/ci-robustness-check.yml) and [Tutorial 6](docs/tutorials/ci-robustness-check.md).
 
 ---
 
@@ -213,6 +226,18 @@ This starts:
 - `worker`
 
 > **Note:** The `db`, `redis`, and `worker` services are intended for the future hosted platform and are not required by the current open-source API. Running `docker compose up` without a profile starts only the functional services.
+
+### Verifying the stack
+
+After `docker compose up`, confirm the services actually came up healthy:
+
+```bash
+make verify-stack
+```
+
+Add `VERIFY_STACK_ARGS="--profile hosted"` if you started the `hosted` profile, to also
+check Redis, Postgres, and the worker. See [`docs/development/local-stack.md`](docs/development/local-stack.md#verifying-the-stack)
+for details.
 
 > **Tool version files**
 >
@@ -735,7 +760,19 @@ Run a standard benchmark suite (SST-2, AG News, IMDB) with reproducible seeds.
 nightmarenet benchmark --suite standard --model distilbert-base-uncased
 ```
 
-### `nightmarenet distort`
+
+#### Inference Performance Benchmark
+
+Benchmark model inference performance across configurable batch sizes. The command reports average latency, throughput, and peak GPU memory when CUDA is available. At least five warmup iterations are excluded from timing.
+
+```bash
+nightmarenet benchmark \
+  --model distilbert-base-uncased \
+  --config configs/default.yaml \
+  --batch-sizes 1,8,32
+```
+
+#### `nightmarenet distort`
 
 Apply a single distortion to an arbitrary string — useful for debugging distortion engines.
 
