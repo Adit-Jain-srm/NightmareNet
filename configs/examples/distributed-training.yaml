@@ -1,0 +1,58 @@
+# Distributed (multi-GPU) training
+# Enables NightmareNet's native DDP path. Each phase picks the right strategy:
+# Wake/Nightmare use DDP, Dream uses DataParallel, and Compress runs on a
+# single GPU. See docs/features/distributed-training.md for the full details.
+#
+# Validate config:
+#   python -c "from nightmarenet.utils.config import load_config; load_config('configs/examples/distributed-training.yaml')"
+#
+# Launch on all visible GPUs (DDP requires torchrun so RANK/WORLD_SIZE are set):
+#   torchrun --nproc_per_node=2 -m nightmarenet.cli train \
+#       --config configs/examples/distributed-training.yaml --distributed auto
+#
+# Or pin specific GPU IDs:
+#   torchrun --nproc_per_node=2 -m nightmarenet.cli train \
+#       --config configs/examples/distributed-training.yaml --distributed 0,1
+
+model:
+  name: distilbert-base-uncased
+  type: seq_classification
+  num_labels: 2
+  max_length: 128
+  device: auto             # "auto" lets each rank bind to its local GPU
+
+dataset:
+  name: glue
+  config: sst2
+  text_column: sentence
+  label_column: label
+  max_samples: 2000
+  streaming: false
+
+training:
+  wake_epochs: 1
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 2
+  batch_size: 16                    # per-GPU batch size under DDP
+  learning_rate: 2.0e-5
+  distributed: true                 # turn on the distributed code path
+  use_amp: true                     # mixed precision — recommended on multi-GPU
+  gradient_checkpointing: false     # enable to trade compute for memory on large models
+  gradient_accumulation_steps: 2    # effective batch = batch_size * num_gpus * this
+  checkpoint_dir: checkpoints/distributed
+  log_dir: logs/distributed
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.8
+
+compression:
+  pruning_ratio: 0.2
+
+evaluation:
+  metrics: [recall, robustness]
+  robustness_strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+
+seed: 42

@@ -8,13 +8,11 @@ import {
   FileText,
   Brain,
   Rocket,
-  Loader2,
   CheckCircle2,
   XCircle,
   ChevronRight,
   Workflow,
   BarChart3,
-  Download,
   AlertTriangle,
   Sparkles,
   Moon,
@@ -96,7 +94,7 @@ export default function PipelineLab() {
   const [dreamEpochs, setDreamEpochs] = useState(1);
   const [nightmareEpochs, setNightmareEpochs] = useState(1);
   const [batchSize, setBatchSize] = useState(8);
-  const [learningRate, setLearningRate] = useState(5e-5);
+  const [learningRate] = useState(5e-5);
   const [maxSamples, setMaxSamples] = useState(200);
   const [dreamStrength, setDreamStrength] = useState(0.25);
   const [nightmareStrength, setNightmareStrength] = useState(0.8);

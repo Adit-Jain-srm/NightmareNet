@@ -39,13 +39,12 @@ logger = logging.getLogger(__name__)
 try:
     from fastapi import Body, FastAPI, HTTPException, Query, Request, UploadFile
     from fastapi.middleware.cors import CORSMiddleware
-    from slowapi import Limiter
     from slowapi.errors import RateLimitExceeded
     from slowapi.middleware import SlowAPIMiddleware
-    from slowapi.util import get_remote_address
 
     from nightmarenet.api.auth import APIKeyMiddleware
     from nightmarenet.api.badge import router as badge_router
+    from nightmarenet.api.constants import WEBHOOKS_FILE_PATH, limiter
     from nightmarenet.api.schemas import (
         CompareRequest,
         CompareResponse,
@@ -56,26 +55,25 @@ try:
         DistortionResponse,
         ErrorResponse,
         HealthResponse,
-        PipelineCancelRequest,
         PipelineCreateRequest,
-        PipelineEvaluateRequest,
         PipelineReportResponse,
         PipelineRunsListResponse,
         PipelineStatusResponse,
-        # Adding the missing schemas for validation
-        PipelineTrainRequest,
+        RateLimitError,
         RobustnessRequest,
         RobustnessResponse,
-        SettingsWebhooksRequest,
-        TestWebhookRequest,
         TrainingConfigRequest,
         TrainingConfigResponse,
         TrainingPhasePreview,
         UploadResponse,
-        WebhookSettingsRequest,
-        WebhookSettingsResponse,
-        WebhookTestResponse,
     )
+    from nightmarenet.api.versioning import (
+        API_VERSION_HEADER,
+        API_VERSION_VALUE,
+        deprecated,
+        get_deprecation_headers,
+    )
+    from nightmarenet.api.webhooks import router
 except ImportError as e:
     raise ImportError(
         "FastAPI dependencies not installed. Install with: pip install nightmarenet[api]"
@@ -86,6 +84,33 @@ _ROBUSTNESS_BODY = Body(...)
 _TRAINING_CONFIG_BODY = Body(...)
 _COMPARE_BODY = Body(...)
 _DEMO_BODY = Body(...)
+
+_RATE_LIMIT_HEADERS = {
+    "X-RateLimit-Limit": {
+        "description": "The maximum number of requests allowed in the current period",
+        "schema": {"type": "integer"},
+    },
+    "X-RateLimit-Remaining": {
+        "description": "The number of requests remaining in the current period",
+        "schema": {"type": "integer"},
+    },
+    "X-RateLimit-Reset": {
+        "description": "Seconds remaining until the rate limit resets",
+        "schema": {"type": "integer"},
+    },
+}
+
+_RATE_LIMIT_RESPONSE = {
+    "model": RateLimitError,
+    "description": "Too Many Requests",
+    "headers": {
+        "Retry-After": {
+            "description": "Seconds to wait before making a new request",
+            "schema": {"type": "integer"},
+        },
+        **_RATE_LIMIT_HEADERS,
+    },
+}
 
 
 # ------------------------------------------------------------------
@@ -152,7 +177,13 @@ async def telemetry_middleware(request: Request, call_next):
 
 
 # --- Rate limiting ---
-limiter = Limiter(key_func=get_remote_address)
+_rate_limit_enabled = os.environ.get("RATELIMIT_ENABLED", "true").lower() not in (
+    "false",
+    "0",
+    "off",
+    "no",
+)
+limiter.enabled = _rate_limit_enabled
 app.state.limiter = limiter
 app.add_middleware(SlowAPIMiddleware)  # type: ignore[arg-type]
 
@@ -191,9 +222,12 @@ app.add_middleware(
 # --- API Version Header Middleware ---
 @app.middleware("http")
 async def add_api_version_header(request: Request, call_next):
-    """Automatically attach the X-API-Version header to all responses."""
+    """Automatically attach API version and deprecation headers to all responses."""
     response = await call_next(request)
+    response.headers[API_VERSION_HEADER] = API_VERSION_VALUE
     response.headers["X-API-Version"] = __version__
+    for name, value in get_deprecation_headers(request.scope.get("endpoint")).items():
+        response.headers[name] = value
     return response
 
 
@@ -228,10 +262,10 @@ def _char_similarity(a: str, b: str) -> float:
 _test_count_cache: dict[str, Any] = {"count": None, "checked_at": 0.0}
 _TEST_CACHE_TTL = 300  # refresh every 5 minutes
 
-
 WEBHOOKS_FILE_PATH = os.path.join(
     os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data", "webhooks.json"
 )
+
 
 def _get_test_count() -> Optional[int]:
     """Return the number of collected tests, cached (optionally, dev-only)."""
@@ -288,7 +322,7 @@ async def health_check() -> HealthResponse:
     response_model=DistortionResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Distortion"],
@@ -333,7 +367,7 @@ async def generate_dream(
     response_model=DistortionResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Distortion"],
@@ -378,7 +412,7 @@ async def generate_nightmare(
     response_model=RobustnessResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Evaluation"],
@@ -495,7 +529,7 @@ _VALID_MODEL_TYPES = {"causal_lm", "masked_lm", "seq_classification"}
     response_model=TrainingConfigResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Training"],
@@ -656,11 +690,13 @@ async def preview_training_config(
     response_model=CompareResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Evaluation"],
+    deprecated=True,
 )
+@deprecated(sunset="2026-12-01", alternative="/api/v1/evaluate/robustness")
 @limiter.limit("10/minute")
 async def compare_distortions(
     request: Request, body: CompareRequest = _COMPARE_BODY
@@ -746,7 +782,7 @@ async def compare_distortions(
     response_model=DemoResponse,
     responses={
         400: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Demo"],
@@ -836,7 +872,7 @@ _MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
     responses={
         400: {"model": ErrorResponse},
         413: {"model": ErrorResponse},
-        429: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
         500: {"model": ErrorResponse},
     },
     tags=["Upload"],
@@ -901,37 +937,14 @@ async def upload_text_file(request: Request, file: UploadFile) -> UploadResponse
 _PIPELINE_BODY = Body(...)
 
 
-# ADDED MISSING ENDPOINTS TO SATISFY PR REQUIREMENTS
-@app.post("/api/v1/pipeline/train", response_model=dict, tags=["pipeline"])
-async def train_pipeline_endpoint(request: PipelineTrainRequest):
-    """Start pipeline training phase."""
-    return {"status": "ok", "message": "Training started", "model": request.model_name}
-
-
-@app.post("/api/v1/pipeline/evaluate", response_model=dict, tags=["pipeline"])
-async def evaluate_pipeline_endpoint(request: PipelineEvaluateRequest):
-    """Evaluate pipeline robustness."""
-    return {"status": "ok", "message": "Evaluation started", "model": request.model_name}
-
-
-@app.post("/api/v1/pipeline/cancel", response_model=dict, tags=["pipeline"])
-async def cancel_pipeline_post_endpoint(request: PipelineCancelRequest):
-    """Cancel pipeline run via POST body (Legacy/Alternative)."""
-    return {"status": "ok", "message": "Pipeline cancelled", "pipeline_id": request.pipeline_id}
-
-
-@app.post("/settings/webhooks", response_model=dict, tags=["settings"])
-async def update_webhooks_endpoint(request: SettingsWebhooksRequest):
-    """Update configured webhooks."""
-    return {"status": "ok", "message": "Webhooks updated", "webhooks_count": len(request.webhooks)}
-
-
-# END MISSING ENDPOINTS
-
-
 @app.post(
     "/api/v1/pipeline/create",
     response_model=PipelineStatusResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Create and start an E2E pipeline run",
     tags=["pipeline"],
 )
@@ -1049,6 +1062,11 @@ async def create_pipeline(
 @app.get(
     "/api/v1/pipeline/{run_id}/status",
     response_model=PipelineStatusResponse,
+    responses={
+        404: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Get pipeline run status",
     tags=["pipeline"],
 )
@@ -1065,6 +1083,11 @@ async def get_pipeline_status(run_id: str):
 @app.post(
     "/api/v1/pipeline/{run_id}/cancel",
     response_model=PipelineStatusResponse,
+    responses={
+        404: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Cancel a running pipeline",
     tags=["pipeline"],
 )
@@ -1082,6 +1105,12 @@ async def cancel_pipeline(run_id: str):
 @app.get(
     "/api/v1/pipeline/{run_id}/report",
     response_model=PipelineReportResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        404: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="Get pipeline evaluation report",
     tags=["pipeline"],
 )
@@ -1104,51 +1133,17 @@ async def get_pipeline_report(run_id: str):
     )
 
 
-@app.get(
-    "/api/v1/settings/webhooks",
-    response_model=WebhookSettingsResponse,
-    summary="Get webhook settings",
-    tags=["settings"],
-)
-async def get_webhook_settings():
-    """Retrieve the current webhook settings."""
-    if not os.path.exists(WEBHOOKS_FILE_PATH):
-        return WebhookSettingsResponse(webhooks=[])
-    try:
-        with open(WEBHOOKS_FILE_PATH, encoding="utf-8") as f:
-            data = json.load(f)
-            return WebhookSettingsResponse(webhooks=data.get("webhooks", []))
-    except Exception as e:
-        logger.error("Failed to read webhooks: %s", e)
-        return WebhookSettingsResponse(webhooks=[])
-
-
-@app.post(
-    "/api/v1/settings/webhooks",
-    response_model=WebhookSettingsResponse,
-    summary="Save webhook settings",
-    tags=["settings"],
-)
-async def save_webhook_settings(
-    request: Request,
-    body: WebhookSettingsRequest,
-):
-    """Save webhook settings."""
-    try:
-        os.makedirs(os.path.dirname(WEBHOOKS_FILE_PATH), exist_ok=True)
-        with open(WEBHOOKS_FILE_PATH, "w", encoding="utf-8") as f:
-            json.dump({"webhooks": [w.model_dump() for w in body.webhooks]}, f, indent=2)
-        return WebhookSettingsResponse(webhooks=body.webhooks)
-    except Exception as e:
-        logger.error("Failed to save webhooks: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to save webhook settings."
-        ) from None
+app.include_router(router)
 
 
 @app.get(
     "/api/v1/pipeline/runs",
     response_model=PipelineRunsListResponse,
+    responses={
+        400: {"model": ErrorResponse},
+        429: _RATE_LIMIT_RESPONSE,
+        500: {"model": ErrorResponse},
+    },
     summary="List all pipeline runs with pagination",
     tags=["pipeline"],
 )
@@ -1176,90 +1171,6 @@ async def list_runs(
         offset=offset,
         limit=limit,
     )
-
-
-_TEST_WEBHOOK_BODY = Body(...)
-
-
-@app.post(
-    "/api/v1/notifications/test-webhook",
-    response_model=WebhookTestResponse,
-    responses={
-        400: {"model": ErrorResponse},
-        422: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Send a test notification to a webhook URL",
-    tags=["notifications"],
-)
-@limiter.limit("5/minute")
-async def test_webhook_endpoint(
-    request: Request,
-    body: TestWebhookRequest = _TEST_WEBHOOK_BODY,
-):
-    """Send a test notification payload to verify webhook integration."""
-    from nightmarenet.utils.webhooks import trigger_webhook, validate_webhook_url
-
-    if not validate_webhook_url(body.url):
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Invalid webhook URL. Must be an allowed HTTPS domain"
-                " and not resolve to an internal IP."
-            ),
-        )
-
-    # Temporary configuration dict containing the target webhook
-    temp_config = {
-        "notifications": {
-            "webhooks": [
-                {
-                    "url": body.url,
-                    "events": [body.event_type],
-                }
-            ]
-        }
-    }
-
-    try:
-        # Build some mock details depending on the event type
-        details = {
-            "test": "true",
-            "message": f"This is a test notification for {body.event_type}.",
-        }
-        if body.event_type == "run_complete":
-            details.update({"run_id": "test-run-12345", "status": "complete", "model": "gpt2"})
-        elif body.event_type == "regression_detected":
-            details.update(
-                {
-                    "robustness_delta": "-0.0543",
-                    "baseline_auc": "0.8520",
-                    "trained_auc": "0.7977",
-                }
-            )
-        elif body.event_type == "alert":
-            details.update(
-                {
-                    "gpu": "NVIDIA GeForce RTX 3050 Ti Laptop GPU",
-                    "usage_percent": "91.2%",
-                }
-            )
-        elif body.event_type == "deploy":
-            details.update({"mode": "full", "output_path": "results/benchmark-v1.json"})
-
-        trigger_webhook(
-            temp_config,
-            body.event_type,
-            f"Test notification: {body.event_type} integration test.",
-            details,
-        )
-        return WebhookTestResponse(status="ok")
-    except Exception as e:
-        logger.exception("Test webhook failed: %s", e)
-        raise HTTPException(
-            status_code=400,
-            detail=f"Failed to dispatch test webhook: {e}",
-        ) from None
 
 
 # ------------------------------------------------------------------

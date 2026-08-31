@@ -1,28 +1,30 @@
 @import "tailwindcss";
 
+@import "../styles/tokens.css";
+
 @theme inline {
-  --color-void: #030712;
-  --color-abyss: #0a0f1e;
-  --color-deep: #141b2d;
-  --color-surface: #1e293b;
-  --color-muted: #64748b;
-  --color-text: #f1f5f9;
-  --color-text-dim: #94a3b8;
-  --color-dream: #818cf8;
-  --color-dream-glow: #6366f1;
-  --color-dream-soft: #a5b4fc;
-  --color-nightmare: #f87171;
-  --color-nightmare-glow: #dc2626;
-  --color-nightmare-soft: #fca5a5;
-  --color-neural: #22d3ee;
-  --color-neural-glow: #06b6d4;
-  --color-neural-soft: #67e8f9;
-  --color-success: #34d399;
-  --color-success-glow: #10b981;
-  --color-warning: #fbbf24;
-  --color-warning-glow: #f59e0b;
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-void: var(--color-void);
+  --color-abyss: var(--color-abyss);
+  --color-deep: var(--color-deep);
+  --color-surface: var(--color-surface);
+  --color-muted: var(--color-muted);
+  --color-text: var(--color-text);
+  --color-text-dim: var(--color-text-dim);
+  --color-dream: var(--color-dream);
+  --color-dream-glow: var(--color-dream-glow);
+  --color-dream-soft: var(--color-dream-soft);
+  --color-nightmare: var(--color-nightmare);
+  --color-nightmare-glow: var(--color-nightmare-glow);
+  --color-nightmare-soft: var(--color-nightmare-soft);
+  --color-neural: var(--color-neural);
+  --color-neural-glow: var(--color-neural-glow);
+  --color-neural-soft: var(--color-neural-soft);
+  --color-success: var(--color-success);
+  --color-success-glow: var(--color-success-glow);
+  --color-warning: var(--color-warning);
+  --color-warning-glow: var(--color-warning-glow);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
 }
 
 /* ── Base resets ── */
@@ -38,9 +40,7 @@
     background: rgba(129, 140, 248, 0.25);
     color: var(--color-text);
   }
-  .light ::selection {
-    background: rgba(99, 102, 241, 0.2);
-  }
+
 }
 
 html {
@@ -132,96 +132,122 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.04);
 }
 
-/* ── Light mode overrides ── */
-.light .glass {
-  background: rgba(255, 255, 255, 0.75);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-}
 
-.light .glass-card {
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
 
-.light .glass-card:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), 0 0 60px rgba(99, 102, 241, 0.06);
-}
 
-.light .glass-navbar {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(0, 0, 0, 0.06);
-}
 
-.light .terminal {
-  background: rgba(248, 250, 252, 0.95);
-  border: 1px solid rgba(0, 0, 0, 0.1);
-}
 
-.light .scanlines::after {
-  display: none;
-}
+
+
+
+
+
+
+
 
 /* Force dark-only text colors to be readable in light mode */
-.light .text-slate-100 { color: #1e293b; }
-.light .text-slate-200 { color: #334155; }
-.light .text-slate-300 { color: #475569; }
-.light .text-slate-400 { color: #64748b; }
-.light .text-white { color: #0f172a; }
-.light .text-text { color: #64748b; }
+
+
+
+
+
+
 
 /* Borders that use white opacity — flip to black opacity */
-.light [class*="border-white"] {
-  border-color: rgba(0, 0, 0, 0.08);
-}
+
 
 /* Backgrounds that use white opacity — flip to black opacity */
-.light [class*="bg-white"] {
-  background-color: rgba(0, 0, 0, 0.03);
-}
+
 
 /* Gradient text needs darker stops in light mode */
-.light .text-gradient-dream {
-  background-image: linear-gradient(135deg, #6366f1, #4f46e5, #7c3aed);
-}
-.light .logo-net {
-  color: #5B6475 !important;
-}
+
+
 
 /* Demo section light mode fixes */
-.light .text-slate-400 { color: #475569; }
-.light .text-text-dim { color: #334155; }
-.light .text-text { color: #0f172a; }
 
-.light textarea {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border-color: rgba(0, 0, 0, 0.12) !important;
-  color: #0f172a !important;
-}
-.light textarea::placeholder { color: #94a3b8 !important; }
 
-.light textarea:focus {
-  border-color: rgba(8, 145, 178, 0.4) !important;
-  box-shadow: 0 0 0 1px rgba(8, 145, 178, 0.15) !important;
-}
 
-.light .bg-void\/40,
-.light .bg-void\/60 {
-  background: rgba(241, 245, 249, 0.8) !important;
-}
-.light .text-gradient-nightmare {
-  background-image: linear-gradient(135deg, #dc2626, #b91c1c, #ea580c);
-}
-.light .text-gradient-neural {
-  background-image: linear-gradient(135deg, #0891b2, #0e7490, #6366f1);
-}
-.light .text-gradient-hero {
-  background-image: linear-gradient(135deg, #0f172a 0%, #334155 40%, #4f46e5 70%, #0891b2 100%);
-}
+
+
+
+
+
+
+
+
+
+
 
 /* Button primary stays white text even in light mode */
-.light .btn-primary {
-  color: white;
+
+
+/* ── Dashboard Light Mode Overrides ── */
+.light {
+  color-scheme: light;
+}
+
+.light body {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.light .bg-void,
+.light .bg-void\/80,
+.light .bg-void\/85,
+.light .bg-void\/90,
+.light .bg-void\/95 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-abyss,
+.light .bg-abyss\/80,
+.light .bg-abyss\/90,
+.light .bg-abyss\/95 {
+  background-color: #ffffff !important;
+}
+
+.light .bg-deep,
+.light .bg-deep\/60,
+.light .bg-deep\/80,
+.light .bg-surface {
+  background-color: #f1f5f9 !important;
+}
+
+.light .border-slate-800,
+.light .border-slate-700,
+.light .border-slate-800\/60,
+.light .border-slate-800\/80 {
+  border-color: #e2e8f0 !important;
+}
+
+.light .bg-slate-900,
+.light .bg-slate-900\/50,
+.light .bg-slate-900\/80,
+.light .bg-slate-900\/90,
+.light .bg-slate-950 {
+  background-color: #f8fafc !important;
+}
+
+.light .bg-slate-800,
+.light .bg-slate-800\/50,
+.light .bg-slate-800\/80 {
+  background-color: #f1f5f9 !important;
+}
+
+.light select,
+.light option {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.light input:not([type="checkbox"]):not([type="radio"]) {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+.light input::placeholder {
+  color: #94a3b8 !important;
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -295,16 +321,8 @@ body {
 }
 
 /* Neon glows — disabled in light mode (invisible on white) */
-.light .glow-dream,
-.light .glow-nightmare,
-.light .glow-neural {
-  text-shadow: none;
-}
-.light .box-glow-dream,
-.light .box-glow-nightmare,
-.light .box-glow-neural {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-}
+
+
 
 /* Section divider — animated gradient line */
 .section-glow-line {
@@ -327,26 +345,11 @@ body {
 }
 
 /* Section divider — darker for light mode */
-.light .section-glow-line {
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(99, 102, 241, 0.3) 20%,
-    rgba(14, 116, 144, 0.4) 50%,
-    rgba(99, 102, 241, 0.3) 80%,
-    transparent 100%
-  );
-}
+
 
 /* Neural grid and dot-matrix — darker for light */
-.light .neural-grid {
-  background-image:
-    linear-gradient(rgba(99, 102, 241, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.06) 1px, transparent 1px);
-}
-.light .dot-matrix {
-  background-image: radial-gradient(rgba(99, 102, 241, 0.12) 1px, transparent 1px);
-}
+
+
 
 /* Section divider — animated gradient line */
 .section-glow-line {
@@ -610,13 +613,8 @@ body {
   background: rgba(30, 41, 59, 0.3);
 }
 
-.light .btn-ghost {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-}
-.light .btn-ghost:hover {
-  border-color: rgba(99, 102, 241, 0.4);
-  background: rgba(99, 102, 241, 0.06);
-}
+
+
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*          CARD INTERACTIONS                    */

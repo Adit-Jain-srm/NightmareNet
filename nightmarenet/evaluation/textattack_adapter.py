@@ -26,8 +26,7 @@ def _check_textattack_available() -> None:
         import textattack  # noqa: F401
     except ImportError as exc:
         raise ImportError(
-            "textattack is not installed. Install with: "
-            "pip install 'nightmarenet[attacks]'"
+            "textattack is not installed. Install with: pip install 'nightmarenet[attacks]'"
         ) from exc
 
 
@@ -50,8 +49,7 @@ def get_recipe(attack_name: str, model_wrapper: Any) -> Any:
     name = attack_name.lower()
     if name not in ATTACK_RECIPES:
         raise ValueError(
-            f"Unsupported attack: {attack_name!r}. "
-            f"Supported: {list(ATTACK_RECIPES.keys())}"
+            f"Unsupported attack: {attack_name!r}. Supported: {list(ATTACK_RECIPES.keys())}"
         )
 
     from textattack.attack_recipes import (
@@ -146,33 +144,31 @@ def run_textattack_evaluation(
             elapsed_time = time.time() - start_time
 
             successful_attacks = sum(
-                1 for r in attack_results
+                1
+                for r in attack_results
                 if isinstance(r, textattack.attack_results.SuccessfulAttackResult)
             )
             failed_attacks = sum(
-                1 for r in attack_results
+                1
+                for r in attack_results
                 if isinstance(r, textattack.attack_results.FailedAttackResult)
             )
             skipped_attacks = sum(
-                1 for r in attack_results
+                1
+                for r in attack_results
                 if isinstance(r, textattack.attack_results.SkippedAttackResult)
             )
 
             total_attempted = successful_attacks + failed_attacks
-            asr = (
-                (successful_attacks / total_attempted) * 100
-                if total_attempted > 0
-                else 0.0
-            )
+            asr = (successful_attacks / total_attempted) * 100 if total_attempted > 0 else 0.0
 
             non_skipped = [
-                r for r in attack_results
+                r
+                for r in attack_results
                 if not isinstance(r, textattack.attack_results.SkippedAttackResult)
             ]
             avg_queries = (
-                sum(r.num_queries for r in non_skipped) / len(non_skipped)
-                if non_skipped
-                else 0.0
+                sum(r.num_queries for r in non_skipped) / len(non_skipped) if non_skipped else 0.0
             )
 
             perturbation_pcts: list[float] = []
@@ -181,17 +177,14 @@ def run_textattack_evaluation(
                     original_words = r.original_result.attacked_text.words
                     perturbed_words = r.perturbed_result.attacked_text.words
                     diff_words = sum(
-                        1 for w1, w2 in zip(original_words, perturbed_words)
-                        if w1 != w2
+                        1 for w1, w2 in zip(original_words, perturbed_words) if w1 != w2
                     )
                     diff_words += abs(len(original_words) - len(perturbed_words))
                     pct = diff_words / max(len(original_words), 1) * 100
                     perturbation_pcts.append(pct)
 
             avg_perturbation = (
-                sum(perturbation_pcts) / len(perturbation_pcts)
-                if perturbation_pcts
-                else 0.0
+                sum(perturbation_pcts) / len(perturbation_pcts) if perturbation_pcts else 0.0
             )
 
             results[attack_name] = {
@@ -211,9 +204,7 @@ def run_textattack_evaluation(
     return results
 
 
-def format_comparison_table(
-    results: dict[str, dict[str, Any]], dataset_name: str = "sst2"
-) -> str:
+def format_comparison_table(results: dict[str, dict[str, Any]], dataset_name: str = "sst2") -> str:
     """Format results as a markdown-like comparison table.
 
     Args:
@@ -243,8 +234,7 @@ def format_comparison_table(
     for attack, res in results.items():
         if "error" in res:
             lines.append(
-                f"{attack.upper():<15} | {'ERROR':<10} | {'-':<12} | "
-                f"{'-':<10} | {'-':<15}"
+                f"{attack.upper():<15} | {'ERROR':<10} | {'-':<12} | {'-':<10} | {'-':<15}"
             )
             continue
 
@@ -253,8 +243,7 @@ def format_comparison_table(
         queries = f"{res['avg_queries']:.1f}"
         baseline = baselines.get((attack, dataset_name), "N/A")
         lines.append(
-            f"{attack.upper():<15} | {asr:<10} | {pert:<12} | "
-            f"{queries:<10} | {baseline:<15}"
+            f"{attack.upper():<15} | {asr:<10} | {pert:<12} | {queries:<10} | {baseline:<15}"
         )
 
     lines.append("-" * 75)

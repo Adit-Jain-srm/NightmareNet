@@ -57,6 +57,8 @@ Key config blocks include:
 *   **dataset**: Controls dataset source (e.g., Hugging Face `wikitext` or custom files).
 *   **evaluation**: Dictates which metrics (`recall`, `generalization`, `robustness`, `hallucination`) are calculated.
 
+For the full schema (every top-level key), the defaults inheritance model, validation rules, and annotated example configs, see the [Configuration Guide](../../configs/README.md).
+
 ---
 
 ## 4. Running Your First Evaluation
@@ -76,6 +78,9 @@ To output results in a structured format suitable for CI/CD gates:
 ```bash
 nightmarenet evaluate --text "Robustness check." --strengths "0.1,0.5,0.9" --json
 ```
+
+To wire the same gate into GitHub Actions (PR comment + threshold fail), use the
+composite Action — see [Tutorial 6: CI Robustness Check](ci-robustness-check.md).
 
 #### Expected CLI Output:
 ```json
@@ -118,8 +123,12 @@ model.to(device)
 
 # 2. Setup a dummy dataset and loader
 dataset = load_dataset("sst2", split="validation[:10]")
+
+
 def tokenize_fn(examples):
     return tokenizer(examples["sentence"], truncation=True, padding="max_length", max_length=128)
+
+
 tokenized = dataset.map(tokenize_fn, batched=True)
 tokenized.set_format("torch", columns=["input_ids", "attention_mask"])
 dataloader = DataLoader(tokenized, batch_size=2)
@@ -128,11 +137,8 @@ dataloader = DataLoader(tokenized, batch_size=2)
 config = {
     "model": {"name": model_name, "max_length": 128},
     "dataset": {"text_column": "sentence"},
-    "evaluation": {
-        "metrics": ["recall", "robustness"],
-        "robustness_strengths": [0.2, 0.5, 0.8]
-    },
-    "training": {"batch_size": 2}
+    "evaluation": {"metrics": ["recall", "robustness"], "robustness_strengths": [0.2, 0.5, 0.8]},
+    "training": {"batch_size": 2},
 }
 
 # 4. Initialize and run
@@ -143,7 +149,7 @@ results = evaluator.evaluate(
     clean_dataloader=dataloader,
     base_dataset=dataset,
     distortion_fn=registry.apply,
-    label="baseline_evaluation"
+    label="baseline_evaluation",
 )
 
 print(f"Clean Recall (Token Accuracy): {results['recall']['token_accuracy']:.2%}")
@@ -178,3 +184,13 @@ Now that you have run your first evaluation:
 1. Learn how to write your own custom perturbations in [Tutorial 2: Custom Distortions](custom-distortions.md).
 2. Deep dive into how metrics are calculated and how they apply to compliance frameworks in [Tutorial 3: Interpreting Results](interpreting-results.md).
 3. Hardening a model? Check out [Tutorial 5: Deployment](deployment.md) to serve the model locally or run it via the docker container.
+
+### Feature Guides
+
+For in-depth documentation of individual features, see the [`docs/features/`](../features/) directory:
+
+* [Distributed Training](../features/distributed-training.md) — run the cycle across multiple GPUs.
+* [Model Compression](../features/model-compression.md) — pruning, bottlenecks, and robust distillation.
+* [Transfer Learning](../features/transfer-learning.md) — reuse a hardened backbone on new tasks.
+* [Hyperparameter Optimization](../features/hpo.md) — tune configs with Optuna.
+* [Semantic Experiment Search](../features/search.md) — search runs with natural language.

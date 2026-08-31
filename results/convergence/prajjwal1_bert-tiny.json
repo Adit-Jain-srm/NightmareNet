@@ -1,0 +1,34 @@
+{
+  "model": "prajjwal1/bert-tiny",
+  "source": "calibrate",
+  "robustness_by_cycle": [
+    0.630176,
+    0.671587,
+    0.700733,
+    0.721247,
+    0.735686,
+    0.745849,
+    0.753001,
+    0.758036,
+    0.761579,
+    0.764073,
+    0.765828,
+    0.767064,
+    0.767933,
+    0.768545,
+    0.768976,
+    0.769279,
+    0.769493,
+    0.769643,
+    0.769749,
+    0.769823
+  ],
+  "diminishing_returns": {
+    "cycle": 10,
+    "target_fraction": 0.95,
+    "baseline": 0.630176,
+    "peak": 0.769823,
+    "target_score": 0.762841,
+    "note": "95% of max robustness gain (0.6302 \u2192 0.7698) first reached at cycle 10"
+  }
+}

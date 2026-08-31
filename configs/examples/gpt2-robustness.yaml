@@ -1,0 +1,58 @@
+# GPT-2-small causal LM robustness (issue #322)
+# Full Wake → Dream → Nightmare → Compress cycle beyond seq classification.
+#
+# Validate config:
+#   python -c "from nightmarenet.utils.config import load_config; load_config('configs/examples/gpt2-robustness.yaml')"
+#
+# Metrics suite (perplexity under ≥3 distortion types, baseline vs cycled):
+#   python scripts/run_gpt2_validation.py --calibrate
+#   python scripts/run_gpt2_validation.py --run --device cuda
+#
+# Full trainer pipeline (GPU, ~4GB VRAM for gpt2):
+#   python scripts/train.py --config configs/examples/gpt2-robustness.yaml
+
+model:
+  name: gpt2
+  type: causal_lm
+  max_length: 128
+  device: auto
+
+dataset:
+  name: wikitext
+  subset: wikitext-2-raw-v1
+  text_column: text
+  max_samples: 500
+  streaming: false
+
+training:
+  wake_epochs: 1
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 3
+  batch_size: 2
+  gradient_accumulation_steps: 4
+  learning_rate: 5.0e-5
+  use_amp: true
+  gradient_checkpointing: true
+  checkpoint_dir: checkpoints/gpt2_robustness
+  log_dir: logs/gpt2_robustness
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.75
+
+compression:
+  pruning_ratio: 0.15
+  distill_temperature: 2.0
+
+evaluation:
+  # Causal LM metric: perplexity under these named distortion families
+  distortion_types: [dream, nightmare, text]
+  strengths: [0.3, 0.5, 0.7]
+  metrics: [perplexity, causal_lm_robustness]
+
+tracking:
+  enabled: false
+
+seed: 42

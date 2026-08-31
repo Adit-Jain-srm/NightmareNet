@@ -1,0 +1,68 @@
+{
+  "timestamp": "2026-08-05T19:13:47.197854+00:00",
+  "source": "calibrate",
+  "seed": 42,
+  "anchor": {
+    "file": "results/gpu_benchmark.json",
+    "robustness_improvement_pct": 14.49,
+    "note": "No-DP NightmareNet DistilBERT SST-2 baseline"
+  },
+  "mechanism": {
+    "name": "gaussian",
+    "formula": "sigma = sensitivity * sqrt(2 * ln(1.25/delta)) / epsilon",
+    "delta": 1e-05,
+    "sensitivity": 1.0
+  },
+  "sweep": [
+    {
+      "epsilon": 1.0,
+      "delta": 1e-05,
+      "sensitivity": 1.0,
+      "sigma": 4.844805,
+      "robustness_improvement_pct": 5.48,
+      "privacy_strength": "strong"
+    },
+    {
+      "epsilon": 3.0,
+      "delta": 1e-05,
+      "sensitivity": 1.0,
+      "sigma": 1.614935,
+      "robustness_improvement_pct": 10.16,
+      "privacy_strength": "moderate"
+    },
+    {
+      "epsilon": 8.0,
+      "delta": 1e-05,
+      "sensitivity": 1.0,
+      "sigma": 0.605601,
+      "robustness_improvement_pct": 12.61,
+      "privacy_strength": "weak"
+    }
+  ],
+  "accountant": {
+    "cumulative_epsilon": 12.0,
+    "budget": 12.0,
+    "remaining": 0.0,
+    "events": [
+      {
+        "epsilon": 1.0,
+        "cycle": null,
+        "note": "calibrate_eps_1.0",
+        "cumulative": 1.0
+      },
+      {
+        "epsilon": 3.0,
+        "cycle": null,
+        "note": "calibrate_eps_3.0",
+        "cumulative": 4.0
+      },
+      {
+        "epsilon": 8.0,
+        "cycle": null,
+        "note": "calibrate_eps_8.0",
+        "cumulative": 12.0
+      }
+    ]
+  },
+  "notes": "Calibrated offline from gpu_benchmark.json. Replace with `python scripts/run_dp_dream_noise.py --run --device cuda` for measured rows."
+}

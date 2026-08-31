@@ -52,12 +52,18 @@ logger = logging.getLogger(__name__)
 class _Subscription:
     """Holds the event loop + queue for a single WebSocket connection."""
 
-    __slots__ = ("run_id", "loop", "queue")
+    __slots__ = ("run_id", "loop", "queue", "websocket")
 
-    def __init__(self, run_id: str, loop: asyncio.AbstractEventLoop) -> None:
+    def __init__(
+        self,
+        run_id: str,
+        loop: asyncio.AbstractEventLoop,
+        websocket: Optional[Any] = None,
+    ) -> None:
         self.run_id = run_id
         self.loop = loop
         self.queue: asyncio.Queue = asyncio.Queue(maxsize=1024)
+        self.websocket = websocket
 
     def deliver(self, event: Dict[str, Any]) -> None:
         """Schedule an event onto this subscriber's loop."""
@@ -88,9 +94,13 @@ class RunBroker:
         self._lock = threading.Lock()
         self._subs: Dict[str, List[_Subscription]] = {}
 
-    def subscribe(self, run_id: str) -> _Subscription:
+    def subscribe(self, run_id: str, websocket: Optional[Any] = None) -> _Subscription:
         """Register a new subscriber for ``run_id``."""
-        sub = _Subscription(run_id=run_id, loop=asyncio.get_event_loop())
+        sub = _Subscription(
+            run_id=run_id,
+            loop=asyncio.get_event_loop(),
+            websocket=websocket,
+        )
         with self._lock:
             self._subs.setdefault(run_id, []).append(sub)
         return sub
@@ -118,6 +128,18 @@ class RunBroker:
             sub.deliver(event)
         return len(subs)
 
+    async def close_all(self, code: int = 1001, reason: str = "Server shutting down") -> None:
+        """Close all active WebSocket connections across all subscriptions."""
+        with self._lock:
+            subs = [sub for sub_list in self._subs.values() for sub in sub_list]
+        for sub in subs:
+            sub.queue.put_nowait({"type": "__shutdown__"})
+            if sub.websocket is not None:
+                try:
+                    await sub.websocket.close(code=code, reason=reason)
+                except Exception:
+                    logger.debug("Error closing websocket for run %s", sub.run_id)
+
 
 _BROKER = RunBroker()
 
@@ -132,6 +154,11 @@ def publish_event(run_id: str, event: Dict[str, Any]) -> int:
     return _BROKER.publish(run_id, event)
 
 
+async def close_all_websockets(code: int = 1001, reason: str = "Server shutting down") -> None:
+    """Close all active WebSocket connections on the process broker singleton."""
+    await _BROKER.close_all(code=code, reason=reason)
+
+
 def build_realtime_router() -> Optional[Any]:
     """Construct the WebSocket router or ``None`` if FastAPI is missing."""
     if APIRouter is None:
@@ -142,11 +169,13 @@ def build_realtime_router() -> Optional[Any]:
     @router.websocket("/runs/{run_id}")
     async def stream_run_events(websocket: WebSocket, run_id: str) -> None:
         await websocket.accept()
-        sub = _BROKER.subscribe(run_id)
+        sub = _BROKER.subscribe(run_id, websocket=websocket)
         await websocket.send_text(json.dumps({"type": "subscribed", "run_id": run_id}))
         try:
             while True:
                 event = await sub.queue.get()
+                if event.get("type") == "__shutdown__":
+                    break
                 await websocket.send_text(json.dumps(event, default=str))
                 if event.get("type") in {"completed", "error"}:
                     break

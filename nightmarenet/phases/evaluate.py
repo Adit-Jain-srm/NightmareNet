@@ -10,6 +10,7 @@ from __future__ import annotations
 import logging
 import os
 import tempfile
+from typing import Any
 
 from nightmarenet.evaluation.evaluator import Evaluator
 from nightmarenet.exceptions import HubUploadError
@@ -84,6 +85,27 @@ class EvaluatePhase(Phase):
                     }
                 )
 
+                # Auto-register evaluation_results.json
+                try:
+                    from pathlib import Path
+
+                    from nightmarenet.artifacts.manager import ArtifactManager
+
+                    manager = ArtifactManager()
+                    eval_cfg = context.config.get("evaluation", {})
+                    output_dir = eval_cfg.get("output_dir", "results")
+                    result_path = os.path.join(output_dir, "evaluation_results.json")
+                    manager.register(
+                        path=Path(result_path),
+                        run_id=context.run_id,
+                        artifact_type="evaluation_result",
+                        retention_policy=context.config.get("artifacts", {})
+                        .get("retention", {})
+                        .get("evaluation_result"),
+                    )
+                except Exception as e:
+                    logger.warning("Failed to auto-register evaluation results artifact: %s", e)
+
                 # EU AI Act Article 15 compliance report
                 tracking_cfg = context.config.get("tracking", {})
                 if tracking_cfg.get("compliance_report", False):
@@ -106,6 +128,28 @@ class EvaluatePhase(Phase):
                     )
                     logger.info("Compliance report generated.")
 
+                    # Auto-register compliance reports (JSON & MD)
+                    try:
+                        from pathlib import Path
+
+                        from nightmarenet.artifacts.manager import ArtifactManager
+
+                        manager = ArtifactManager()
+                        for ext in ("json", "md"):
+                            report_path = os.path.join(
+                                output_dir, f"{context.run_id}_compliance_report.{ext}"
+                            )
+                            manager.register(
+                                path=Path(report_path),
+                                run_id=context.run_id,
+                                artifact_type="compliance_report",
+                                retention_policy=context.config.get("artifacts", {})
+                                .get("retention", {})
+                                .get("compliance_report"),
+                            )
+                    except Exception as e:
+                        logger.warning("Failed to auto-register compliance reports: %s", e)
+
                 self._compute_quality_feedback(context, comparison)
                 self._fire_webhooks(context, comparison)
                 self._maybe_push_hub(context, comparison)
@@ -116,7 +160,9 @@ class EvaluatePhase(Phase):
 
         return PhaseResult(success=True, phase_name=self.name, data={"comparison": comparison})
 
-    def _compute_quality_feedback(self, context: PipelineContext, comparison: dict) -> None:
+    def _compute_quality_feedback(
+        self, context: PipelineContext, comparison: dict[str, Any]
+    ) -> None:
         if not context.adaption_quality:
             return
 
@@ -127,7 +173,7 @@ class EvaluatePhase(Phase):
                     robustness_delta = comparison[key]
                     break
 
-        feedback: dict = {
+        feedback: dict[str, Any] = {
             "adaption_phases_optimized": list(context.adaption_quality.keys()),
             "robustness_delta": robustness_delta,
         }
@@ -146,7 +192,7 @@ class EvaluatePhase(Phase):
         context.quality_feedback = feedback
         logger.info("Quality feedback: %s", feedback)
 
-    def _fire_webhooks(self, context: PipelineContext, comparison: dict) -> None:
+    def _fire_webhooks(self, context: PipelineContext, comparison: dict[str, Any]) -> None:
         robustness_metric = comparison.get("metrics", {}).get("robustness", {})
         robustness_delta = robustness_metric.get("deltas", {}).get("auc_robustness")
         if robustness_delta is None:
@@ -190,7 +236,7 @@ class EvaluatePhase(Phase):
                 {"model": context.config.get("model", {}).get("name", "unknown")},
             )
 
-    def _maybe_push_hub(self, context: PipelineContext, comparison: dict) -> None:
+    def _maybe_push_hub(self, context: PipelineContext, comparison: dict[str, Any]) -> None:
         tracking_cfg = context.config.get("tracking", {})
         auto_push_repo = tracking_cfg.get("auto_push_hub")
         if not auto_push_repo:
