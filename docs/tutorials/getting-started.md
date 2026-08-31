@@ -57,6 +57,8 @@ Key config blocks include:
 *   **dataset**: Controls dataset source (e.g., Hugging Face `wikitext` or custom files).
 *   **evaluation**: Dictates which metrics (`recall`, `generalization`, `robustness`, `hallucination`) are calculated.
 
+For the full schema (every top-level key), the defaults inheritance model, validation rules, and annotated example configs, see the [Configuration Guide](../../configs/README.md).
+
 ---
 
 ## 4. Running Your First Evaluation
