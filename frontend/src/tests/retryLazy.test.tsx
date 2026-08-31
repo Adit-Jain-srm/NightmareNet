@@ -106,9 +106,7 @@ describe("retryLazy", () => {
     render(
       React.createElement(
         TestErrorBoundary,
-        {
-          fallback: React.createElement("div", null, "Boundary caught: Permanent CDN Failure"),
-        },
+        { fallback: React.createElement("div", null, "Boundary caught: Permanent CDN Failure") },
         React.createElement(
           Suspense,
           { fallback: React.createElement("div", null, "Loading...") },

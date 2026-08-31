@@ -19,14 +19,30 @@ Usage:
 import importlib.metadata
 import inspect
 import logging
-from typing import Any, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
-import torch
+try:
+    from typing import TypeAlias
+except ImportError:
+    from typing_extensions import TypeAlias
+
+try:
+    import torch
+except ImportError:
+    torch = None  # type: ignore[assignment]
 
 from nightmarenet.distortions.base import BaseDistortion
 
 DistortionFn = Callable[[str, float, Optional[int]], str]
-VisionDistortionFn = Callable[[torch.Tensor, float, Optional[int]], torch.Tensor]
+
+if TYPE_CHECKING:
+    import torch as _torch
+
+    VisionDistortionFn = Callable[[_torch.Tensor, float, Optional[int]], _torch.Tensor]
+    VisionApplyReturn: TypeAlias = _torch.Tensor
+else:
+    VisionDistortionFn = Callable[..., Any]
+    VisionApplyReturn: TypeAlias = Any
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +62,7 @@ class DistortionRegistry:
 
     def _register_builtins(self) -> None:
         from nightmarenet.distortions import dream as dream_mod
+        from nightmarenet.distortions import homoglyph as homoglyph_mod
         from nightmarenet.distortions import nightmare as nightmare_mod
         from nightmarenet.distortions.multilingual.typo_engine import keyboard_typo
 
@@ -64,6 +81,15 @@ class DistortionRegistry:
             metadata={
                 "phase": "nightmare",
                 "description": "Adversarial perturbation",
+                "source": "builtin",
+            },
+        )
+        self.register(
+            "homoglyph",
+            homoglyph_mod.distort,
+            metadata={
+                "phase": "nightmare",
+                "description": "Homoglyph and keyboard typo substitution",
                 "source": "builtin",
             },
         )

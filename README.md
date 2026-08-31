@@ -76,7 +76,7 @@ flowchart LR
 |-------|-----------|-----------|
 | **Wake** | Establish clean-data competence | Standard cross-entropy fine-tuning |
 | **Dream** | Build invariance to plausible distribution shift | Synonym, paraphrase, syntactic augmentation at strength 0.2-0.3 + KL consistency |
-| **Nightmare** | Harden against worst-case perturbations | Curriculum adversarial training, strength 0.5-0.9, character/word/sentence-level attacks |
+| **Nightmare** | Harden against worst-case perturbations | Curriculum adversarial training, strength 0.5-0.9, character (homoglyph/typo)/word/sentence-level attacks |
 | **Compress** | Preserve robustness, shed parameters | Adversarial robust distillation (RSLAD-style) + magnitude pruning |
 
 The student model becomes the next cycle's learner. After 3-5 cycles, robustness saturates and the cycle terminates.
