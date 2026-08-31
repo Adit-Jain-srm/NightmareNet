@@ -496,6 +496,14 @@ export function ExperimentList({
       });
   }, [query, filter, dateRange, modelFilter, source, semanticIds]);
 
+  const counts = useMemo(() => ({
+    all: source.length,
+    running: source.filter((e) => e.status === "running").length,
+    complete: source.filter((e) => e.status === "complete").length,
+    failed: source.filter((e) => e.status === "failed").length,
+    queued: source.filter((e) => e.status === "queued").length,
+  }), [source]);
+
   const sourceEmpty = source.length === 0;
 
   const handleStartFirst = useCallback(() => {
@@ -772,19 +780,31 @@ export function ExperimentList({
             className="!py-1.5 !text-xs"
             aria-label="Search experiments"
           />
-          <Select
-            size="sm"
-            value={filter}
-            onChange={(v) => setFilter(v as typeof filter)}
-            className="w-32"
-            options={[
-              { value: "all", label: "All states" },
-              { value: "running", label: "Running" },
-              { value: "complete", label: "Complete" },
-              { value: "failed", label: "Failed" },
-              { value: "queued", label: "Queued" },
-            ]}
-          />
+          <div className="flex items-center gap-1.5 ml-2 mr-auto" role="group" aria-label="Filter by status">
+            {[
+              { id: "all", label: "All", count: counts.all },
+              { id: "running", label: "Running", count: counts.running },
+              { id: "complete", label: "Complete", count: counts.complete },
+              { id: "failed", label: "Failed", count: counts.failed },
+              { id: "queued", label: "Queued", count: counts.queued },
+            ].map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                aria-pressed={filter === f.id}
+                onClick={() => setFilter(f.id as typeof filter)}
+                className={[
+                  "inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neural",
+                  filter === f.id
+                    ? "bg-white/10 text-white"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-white/5",
+                ].join(" ")}
+              >
+                {f.label} <span className="ml-1 opacity-50">({f.count})</span>
+              </button>
+            ))}
+          </div>
+
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
           <Select
             size="sm"
