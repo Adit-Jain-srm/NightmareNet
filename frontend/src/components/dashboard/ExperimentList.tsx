@@ -32,6 +32,7 @@ import {
   IconPlus,
   IconSearch,
   IconSpinner,
+  IconX,
 } from "./icons";
 
 interface Experiment {
@@ -396,9 +397,10 @@ export function ExperimentList({
 
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | Experiment["status"]>("all");
+  const [modelFilter, setModelFilter] = useState<string>("all");
   const [semanticIds, setSemanticIds] = useState<string[] | null>(null);
   const [semanticPending, setSemanticPending] = useState(false);
-  const [semanticError, setSemanticError] = useState(false);
+  const [semanticError, setSemanticError] = useState<false | "rate_limit" | "generic">(false);
   const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [experimentToDelete, setExperimentToDelete] = useState<string | null>(null);
@@ -414,6 +416,17 @@ export function ExperimentList({
       localNames[exp.id] ? { ...exp, name: localNames[exp.id] } : exp
     );
   }, [experiments, localNames]);
+
+  const uniqueModels = useMemo(() => {
+    const models = new Set(source.map((r) => r.model).filter(Boolean));
+    return Array.from(models).sort();
+  }, [source]);
+
+  useEffect(() => {
+    if (modelFilter !== "all" && !uniqueModels.includes(modelFilter)) {
+      setModelFilter("all");
+    }
+  }, [modelFilter, uniqueModels]);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -437,15 +450,16 @@ export function ExperimentList({
           if (cancelled) return;
           setSemanticIds(response.results.map((result) => result.run_id));
         })
-        .catch(() => {
+        .catch((err) => {
           if (cancelled) return;
           setSemanticIds(null);
-          setSemanticError(true);
+          const isRateLimited = err?.status === 429 || err?.message?.includes("429");
+          setSemanticError(isRateLimited ? "rate_limit" : "generic");
         })
         .finally(() => {
           if (!cancelled) setSemanticPending(false);
         });
-    }, 250);
+    }, 400);
 
     return () => {
       cancelled = true;
@@ -461,6 +475,7 @@ export function ExperimentList({
         if (filter !== "all" && r.status !== filter) return false;
         // Date range filter (AND logic)
         if (!isInDateRange(r.createdAt, dateRange)) return false;
+        if (modelFilter !== "all" && r.model !== modelFilter) return false;
         // Text / semantic search filter
         if (!query.trim()) return true;
         if (semanticRank.has(r.id)) return true;
@@ -479,7 +494,7 @@ export function ExperimentList({
         if (bRank === undefined) return -1;
         return aRank - bRank;
       });
-  }, [query, filter, dateRange, source, semanticIds]);
+  }, [query, filter, dateRange, modelFilter, source, semanticIds]);
 
   const sourceEmpty = source.length === 0;
 
@@ -528,9 +543,9 @@ export function ExperimentList({
 
   const handleConfirmDelete = useCallback(async () => {
     if (!experimentToDelete) return;
-    
+
     setLoadingActions((prev) => new Set(prev).add(experimentToDelete));
-    
+
     try {
       await deleteExperiment(experimentToDelete);
       toast.push({
@@ -559,7 +574,7 @@ export function ExperimentList({
 
   const handleRerun = useCallback(async (row: Experiment) => {
     setLoadingActions((prev) => new Set(prev).add(row.id));
-    
+
     try {
       const baseConfig = row.config || {
         source_type: "text" as const,
@@ -570,14 +585,14 @@ export function ExperimentList({
         dream_strength: 0.25,
         nightmare_strength: 0.8,
       };
-      
+
       // Apply 1.2x strength multiplier for re-run
       const config = {
         ...baseConfig,
         dream_strength: (baseConfig.dream_strength ?? 0.25) * 1.2,
         nightmare_strength: (baseConfig.nightmare_strength ?? 0.8) * 1.2,
       };
-      
+
       await createPipeline(config);
       toast.push({
         title: "Re-run queued",
@@ -601,7 +616,7 @@ export function ExperimentList({
 
   const handleExport = useCallback(async (id: string) => {
     setLoadingActions((prev) => new Set(prev).add(id));
-    
+
     try {
       const response = await exportExperiment(id, "csv");
       const url = URL.createObjectURL(response);
@@ -610,7 +625,7 @@ export function ExperimentList({
       a.download = `${id}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      
+
       toast.push({
         title: "Export prepared",
         description: `${id}.csv downloaded successfully.`,
@@ -771,6 +786,27 @@ export function ExperimentList({
             ]}
           />
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
+          <Select
+            size="sm"
+            value={modelFilter}
+            onChange={(v) => setModelFilter(v)}
+            className="w-36"
+            options={[
+              { value: "all", label: "All models" },
+              ...uniqueModels.map((m) => ({ value: m, label: m })),
+            ]}
+          />
+          {modelFilter !== "all" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label="Clear model filter"
+              onClick={() => setModelFilter("all")}
+              title="Clear model filter"
+            >
+              <IconX size={12} />
+            </Button>
+          )}
           <Button variant="ghost" size="sm" aria-label="Filter" onClick={() => setFilter(filter === "all" ? "running" : "all")} title="Toggle running filter">
             <IconFilter size={12} />
           </Button>
@@ -800,7 +836,9 @@ export function ExperimentList({
         <div className="border-b border-white/[0.06] px-4 py-2 text-[11px] text-slate-400">
           {semanticPending
             ? "Searching experiment meaning..."
-            : "Semantic search unavailable; using local matches."}
+            : semanticError === "rate_limit"
+              ? "Too many requests (429). Using local matches while cooling down."
+              : "Semantic search unavailable; using local matches."}
         </div>
       ) : null}
       {loading ? (

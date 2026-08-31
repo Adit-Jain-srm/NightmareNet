@@ -17,6 +17,7 @@ Usage:
 """
 
 import importlib.metadata
+import inspect
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
@@ -40,7 +41,6 @@ if TYPE_CHECKING:
     VisionDistortionFn = Callable[[_torch.Tensor, float, Optional[int]], _torch.Tensor]
     VisionApplyReturn: TypeAlias = _torch.Tensor
 else:
-    # Runtime: keep flexible when torch is optional / missing at import time.
     VisionDistortionFn = Callable[..., Any]
     VisionApplyReturn: TypeAlias = Any
 
@@ -64,6 +64,7 @@ class DistortionRegistry:
         from nightmarenet.distortions import dream as dream_mod
         from nightmarenet.distortions import homoglyph as homoglyph_mod
         from nightmarenet.distortions import nightmare as nightmare_mod
+        from nightmarenet.distortions.multilingual.typo_engine import keyboard_typo
 
         self.register(
             "dream",
@@ -89,6 +90,15 @@ class DistortionRegistry:
             metadata={
                 "phase": "nightmare",
                 "description": "Homoglyph and keyboard typo substitution",
+                "source": "builtin",
+            },
+        )
+        self.register(
+            "keyboard_typo",
+            keyboard_typo,
+            metadata={
+                "phase": "dream",
+                "description": "Layout-aware multilingual keyboard typos",
                 "source": "builtin",
             },
         )
@@ -149,12 +159,23 @@ class DistortionRegistry:
         text: str,
         strength: float = 0.3,
         seed: Optional[int] = None,
+        **kwargs: Any,
     ) -> str:
-        """Apply a named distortion to text."""
+        """Apply a named distortion to text.
+
+        Extra keyword arguments (e.g. ``language``, ``keyboard_layout``) are
+        forwarded when the registered function accepts them.
+        """
         if name not in self._engines:
             available = ", ".join(sorted(self._engines.keys()))
             raise KeyError(f"Unknown distortion '{name}'. Available: {available}")
-        return self._engines[name](text, strength, seed)
+        fn = self._engines[name]
+        if kwargs:
+            sig = inspect.signature(fn)
+            supported = set(sig.parameters.keys())
+            filtered = {k: v for k, v in kwargs.items() if k in supported}
+            return fn(text, strength, seed, **filtered)
+        return fn(text, strength, seed)
 
     def list_engines(self) -> List[Dict[str, Any]]:
         """List all registered distortion engines with metadata."""
@@ -339,10 +360,10 @@ class VisionDistortionRegistry:
     def apply(
         self,
         name: str,
-        image: Any,
+        image: torch.Tensor,
         strength: float = 0.3,
         seed: Optional[int] = None,
-    ) -> VisionApplyReturn:
+    ) -> torch.Tensor:
         """Apply a named vision distortion to an image tensor."""
         if name not in self._engines:
             available = ", ".join(sorted(self._engines.keys()))

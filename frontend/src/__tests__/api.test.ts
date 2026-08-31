@@ -271,5 +271,25 @@ describe("API module", () => {
       const { getHealth } = await import("@/lib/api");
       await expect(getHealth()).rejects.toThrow("API error 418");
     });
+
+    it("retains res.status on thrown errors including rate limit responses with custom detail", async () => {
+      const make429 = () => ({
+        ok: false,
+        status: 429,
+        headers: new Headers(),
+        clone: function () { return this; },
+        json: async () => ({ detail: "Rate limit exceeded" }),
+      });
+      mockFetch.mockImplementation(async () => make429());
+
+      const { getHealth } = await import("@/lib/api");
+      try {
+        await getHealth();
+        expect.fail("Should have thrown error");
+      } catch (err: any) {
+        expect(err.message).toBe("Rate limit exceeded");
+        expect(err.status).toBe(429);
+      }
+    }, 15000);
   });
 });

@@ -13,6 +13,8 @@ import {
 
 type Tab = "compare" | "spectrum";
 
+const DEFAULT_STRENGTHS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
+
 /* ── Resilience Chart (Canvas) ── */
 function ResilienceChart({ data }: { data: RobustnessResponse }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -124,7 +126,6 @@ export default function ResilienceLab() {
 
   const [error, setError] = useState<string | null>(null);
 
-  const DEFAULT_STRENGTHS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9];
 
   const handleCompare = useCallback(async () => {
     setCompareLoading(true);
@@ -223,6 +224,8 @@ export default function ResilienceLab() {
 <textarea
   id="resilience-test-text"
   aria-label="Test text for resilience comparison"
+  value={text}
+  onChange={(e) => setText(e.target.value)}
   rows={2}
   className="w-full bg-void/60 border border-white/[0.06] rounded-xl px-4 py-3 text-sm font-mono text-text placeholder:text-slate-400 focus:outline-none focus:border-neural/30 resize-none transition-colors"
 />

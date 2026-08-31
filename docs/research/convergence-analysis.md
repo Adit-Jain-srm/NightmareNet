@@ -1,9 +1,9 @@
 # Training convergence analysis — cycle count and early stopping
 
-**Date:** 2026-07-23  
-**Issue:** [#324](https://github.com/Adit-Jain-srm/NightmareNet/issues/324)  
-**Config:** [`configs/examples/convergence-study.yaml`](../../configs/examples/convergence-study.yaml)  
-**Script:** [`scripts/convergence_analysis.py`](../../scripts/convergence_analysis.py)  
+**Date:** 2026-07-23
+**Issue:** [#324](https://github.com/Adit-Jain-srm/NightmareNet/issues/324)
+**Config:** [`configs/examples/convergence-study.yaml`](../../configs/examples/convergence-study.yaml)
+**Script:** [`scripts/convergence_analysis.py`](../../scripts/convergence_analysis.py)
 **Artifacts:** [`results/convergence/`](../../results/convergence/)
 
 ---

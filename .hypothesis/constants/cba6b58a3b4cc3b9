@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/data/scraper.py
-# hypothesis_version: 6.141.1
-
-[1.0, 100, 512, 'User-Agent', '[%d/%d] Scraping %s', '\\s+', 'article', 'aside', 'blockquote', 'body', 'button', 'figcaption', 'figure', 'footer', 'form', 'h1', 'h2', 'h3', 'h4', 'header', 'html.parser', 'iframe', 'li', 'main', 'menu', 'menuitem', 'nav', 'noscript', 'p', 'script', 'style', 'svg', 'text']

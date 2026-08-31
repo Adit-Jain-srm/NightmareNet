@@ -8,8 +8,8 @@ import * as api from "@/lib/api";
 const mockPush = vi.fn();
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush }),
+  usePathname: () => "/dashboard",
   useSearchParams: () => new URLSearchParams(),
-  usePathname: () => "/",
 }));
 
 // Mock sounds
@@ -95,6 +95,10 @@ const mockExperiments = [
 describe("ExperimentList Row Actions", () => {
   let mockClick: any;
 
+  const origCreateObjectURL = global.URL.createObjectURL;
+  const origRevokeObjectURL = global.URL.revokeObjectURL;
+  const origMatchMedia = Object.getOwnPropertyDescriptor(window, "matchMedia");
+
   beforeAll(() => {
     global.URL.createObjectURL = vi.fn(() => "blob:mock-url");
     global.URL.revokeObjectURL = vi.fn();
@@ -116,6 +120,11 @@ describe("ExperimentList Row Actions", () => {
 
   afterAll(() => {
     mockClick.mockRestore();
+    global.URL.createObjectURL = origCreateObjectURL;
+    global.URL.revokeObjectURL = origRevokeObjectURL;
+    if (origMatchMedia) {
+      Object.defineProperty(window, "matchMedia", origMatchMedia);
+    }
   });
 
   beforeEach(() => {
@@ -134,7 +143,10 @@ describe("ExperimentList Row Actions", () => {
     const compareBtn = screen.getByRole("menuitem", { name: /Compare test-experiment to baseline/i });
     fireEvent.click(compareBtn);
 
-    expect(mockPush).toHaveBeenCalledWith("/compare?ids=exp_123");
+    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
+      title: "Comparing to baseline",
+      variant: "info",
+    }));
   });
 
   it("Delete opens confirmation dialog, Cancel delete does not call API", async () => {
@@ -186,12 +198,11 @@ describe("ExperimentList Row Actions", () => {
     const rerunBtn = screen.getByRole("menuitem", { name: /Re-run test-experiment with strength/i });
     fireEvent.click(rerunBtn);
 
-    expect(api.createPipeline).toHaveBeenCalledWith({
+    expect(api.createPipeline).toHaveBeenCalledWith(expect.objectContaining({
       source_type: "text",
       dream_strength: 0.6, // 0.5 * 1.2
       nightmare_strength: 0.96, // 0.8 * 1.2
-      model_name: "GPT-2",
-    });
+    }));
 
     await waitFor(() => {
       expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
@@ -201,18 +212,25 @@ describe("ExperimentList Row Actions", () => {
     });
   });
 
-  it("Missing config shows error toast for Re-run", async () => {
+  it("Missing config uses defaults for Re-run", async () => {
+    vi.mocked(api.createPipeline).mockResolvedValueOnce({} as any);
     render(<ExperimentList experiments={mockExperiments} />);
     openMenu("missing-config-exp");
 
     const rerunBtn = screen.getByRole("menuitem", { name: /Re-run missing-config-exp with strength/i });
     fireEvent.click(rerunBtn);
 
-    expect(api.createPipeline).not.toHaveBeenCalled();
-    expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
-      title: "Missing configuration",
-      variant: "error",
+    expect(api.createPipeline).toHaveBeenCalledWith(expect.objectContaining({
+      dream_strength: 0.3, // 0.25 * 1.2
+      nightmare_strength: 0.96, // 0.8 * 1.2
     }));
+
+    await waitFor(() => {
+      expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
+        title: "Re-run queued",
+        variant: "success",
+      }));
+    });
   });
 
   it("Export calls exportExperiment(id, 'csv') and triggers browser download", async () => {
@@ -273,7 +291,7 @@ describe("ExperimentList Row Actions", () => {
 
     await waitFor(() => {
       expect(mockPushToast).toHaveBeenCalledWith(expect.objectContaining({
-        title: "API Error",
+        title: "Delete failed",
         description: "Network Error",
         variant: "error",
       }));

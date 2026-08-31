@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/api/badge.py
-# hypothesis_version: 6.141.1
-
-[0.0, 0.4, 0.5, 0.6, 0.75, 0.8, 0.9, 1.0, 200, 400, '#22c55e', '#84cc16', '#9f9f9f', '#eab308', '#ef4444', '#f97316', '/api/v1/badge', '/latest.svg', '/{score}.json', '/{score}.svg', 'Badge', 'Badge metadata', 'Cache-Control', 'application/json', 'auc_robustness', 'color', 'comparison', 'complete', 'content', 'critical', 'description', 'elite', 'fair', 'image/svg+xml', 'label', 'last_heartbeat', 'message', 'metrics', 'no data', 'public, max-age=300', 'robustness', 'robustness_score', 'score', 'start_time', 'status', 'strong', 'trained', 'trained_auc', 'trained_results', 'weak']

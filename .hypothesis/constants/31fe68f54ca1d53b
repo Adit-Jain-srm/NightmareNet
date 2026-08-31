@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/compliance/report.py
-# hypothesis_version: 6.141.1
-
-[8192, '## EU AI Act Mapping', '## Model', '## NIST AI RMF', '## Robustness', '1.0', 'Artifact integrity', 'Dataset information', 'EU AI Act Article 15', 'Evaluation metrics', 'Govern', 'Manage', 'Map', 'Measure', 'Model metadata', 'Reproducibility', 'Robustness metrics', 'Training lineage', 'accuracy', 'article', 'artifact_integrity', 'auc_robustness', 'checkpoint.pt', 'clean_accuracy', 'config', 'config_sha256', 'cybersecurity', 'dataset', 'delta', 'deltas', 'distorted_accuracy', 'environment', 'eu_ai_act', 'generated_at', 'gpu', 'latest', 'metrics', 'model', 'model.pt', 'model.safetensors', 'model_sha256', 'name', 'nist_ai_rmf', 'path', 'platform', 'python_version', 'pytorch_model.bin', 'pytorch_version', 'rb', 'requirements', 'results', 'robustness', 'schema_version', 'trained', 'training_lineage', 'type', 'utf-8', 'w']

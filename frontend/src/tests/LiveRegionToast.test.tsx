@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from "vitest";
 import { render, screen, act, fireEvent } from "@testing-library/react";
-
 import React from "react";
 
 // ---------------------------------------------------------------------------
@@ -117,7 +116,7 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
     expect(region).toHaveClass("sr-only");
   });
 
-  it("announces toast title after debounce when toast is pushed", () => {
+  it("announces toast title after debounce when toast is pushed", async () => {
     renderWithProvider("Export complete", "success");
 
     fireEvent.click(screen.getByTestId("push-toast"));
@@ -128,7 +127,7 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
     expect(region?.textContent).toBe("Export complete");
   });
 
-  it("includes description in announcement when provided", () => {
+  it("includes description in announcement when provided", async () => {
     renderWithProvider("Pipeline started", "info", "Run will take ~10 minutes");
 
     fireEvent.click(screen.getByTestId("push-toast"));
@@ -138,7 +137,7 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
     expect(region?.textContent).toBe("Pipeline started: Run will take ~10 minutes");
   });
 
-  it("uses role=alert and aria-live=assertive for error toasts", () => {
+  it("uses role=alert and aria-live=assertive for error toasts", async () => {
     renderWithProvider("API Error", "error", "Connection refused");
 
     fireEvent.click(screen.getByTestId("push-toast"));
@@ -150,7 +149,7 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
     expect(region?.textContent).toBe("API Error: Connection refused");
   });
 
-  it("uses role=status and aria-live=polite for non-error toasts", () => {
+  it("uses role=status and aria-live=polite for non-error toasts", async () => {
     renderWithProvider("Re-run queued", "success");
 
     fireEvent.click(screen.getByTestId("push-toast"));
@@ -161,7 +160,7 @@ describe("LiveRegion + ToastProvider aria-live announcements", () => {
     expect(region).toHaveAttribute("aria-live", "polite");
   });
 
-  it("debounces rapid pushes — only the latest message is announced", () => {
+  it("debounces rapid pushes — only the latest message is announced", async () => {
     function MultiPush() {
       const toast = useToast();
       return (

@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/utils/telemetry.py
-# hypothesis_version: 6.141.1
-
-[5000, '%', 'endpoint', 'gpu_utilization', 'nightmarenet', 'observability', 'otel_endpoint', 'otel_service_name', 'phase', 'robustness_score', 's', 'service', 'service.name']

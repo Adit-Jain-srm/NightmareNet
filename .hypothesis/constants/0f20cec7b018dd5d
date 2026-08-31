@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet_server/search/index.py
-# hypothesis_version: 6.141.1
-
-[0.0, '.', '.nightmarenet_search', '.tmp', '<', '<=', '>', '>=', 'config', 'created_after', 'created_at', 'dimension', 'exclude_terms', 'faiss', 'field', 'index.', 'index.json', 'metadata', 'metrics', 'model', 'op', 'records', 'run_id', 'status', 'utf-8', 'value', 'vectors', 'w']

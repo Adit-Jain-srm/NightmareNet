@@ -106,7 +106,7 @@ Keep critical instructions in files (CLAUDE.md, CONTEXT.md), NOT in conversation
 ## Handoff — Session Split
 
 **Why split:** [signal that triggered]
-**Progress:** [what's done]  
+**Progress:** [what's done]
 **Current state:** [modified files, test status]
 **Critical rules still active:** [list the 3-5 rules that must carry forward]
 **Next steps:** [exact actions — numbered, specific]
