@@ -29,7 +29,7 @@ except ImportError:
 try:
     import torch
 except ImportError:
-    torch = None  # type: ignore[assignment]
+    torch = None
 
 from nightmarenet.distortions.base import BaseDistortion
 
