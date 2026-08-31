@@ -194,12 +194,12 @@ def _attach_audit(app: Any) -> None:
 def _attach_audit_middleware(app: Any) -> None:
     """Correlation id + mutation audit (Starlette: last added runs first)."""
     try:
-        from nightmarenet_server.middleware import AuditMiddleware, RequestIdMiddleware
+        from nightmarenet_server.middleware import AuditMiddleware, RequestTracingMiddleware
     except ImportError:
         logger.info("Audit middleware unavailable; skipping.")
         return
     app.add_middleware(AuditMiddleware)
-    app.add_middleware(RequestIdMiddleware)
+    app.add_middleware(RequestTracingMiddleware)
 
 
 def _init_db_safe() -> None:

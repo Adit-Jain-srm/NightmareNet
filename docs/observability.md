@@ -60,6 +60,17 @@ These spans become the parent trace for downstream pipeline operations.
 
 ---
 
+## Structured Logging & Request Tracing
+
+NightmareNet automatically generates or accepts an `X-Request-ID` HTTP header for correlation. 
+
+- The `X-Request-ID` header is attached to API responses.
+- It is automatically injected into all JSON and plain-text log records via the `RequestIdFilter`.
+- When dispatched to the Celery worker, the correlation ID is propagated via task headers (`x-correlation-id`) so background processes continue the same trace.
+- A summary log indicating `method`, `path`, `status`, and `duration_ms` is logged upon completion of every HTTP request.
+
+---
+
 ## Pipeline Tracing
 
 Pipeline execution creates child spans for major phases including:
