@@ -375,6 +375,12 @@ Mirror the package layout under `tests/`. At minimum:
 - **No NaN/Inf in metrics:** wrap suspicious arithmetic with the helpers in `nightmarenet/evaluation/metrics.py`.
 - **Logging:** use module loggers (`logger = logging.getLogger(__name__)`); don't `print` in library code.
 
+### Vulnerability Scanning & Overrides
+
+- Pull requests that change dependency manifests (`pyproject.toml`, `requirements*.txt`, or `frontend/package*.json`) automatically trigger blocking vulnerability scans in CI (`pip-audit` for Python and `npm audit --audit-level=high` for Node.js).
+- If a dependency introduces an acknowledged false positive or an unpatched CVE with compensating controls, add the CVE/GHSA ID to `.pip-audit-known-vulnerabilities` in the repository root (one ID per line).
+- Weekly scheduled scans (`.github/workflows/security-scan.yml`) monitor all dependencies for newly disclosed CVEs.
+
 ### Frontend
 
 - TypeScript only. No `any` in committed code — `@typescript-eslint/no-explicit-any` is enforced as a warning (see [`docs/development/code-style.md`](docs/development/code-style.md)); new code should not introduce new `any` usages even though the rule doesn't yet fail CI.
