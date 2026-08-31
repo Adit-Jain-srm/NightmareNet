@@ -12,9 +12,13 @@ Usage:
 import argparse
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Optional
+from rich.console import Console
+
+console = Console(highlight=False)
 
 from nightmarenet import __version__
 from nightmarenet.hub.core import pull_model, push_model
@@ -77,15 +81,22 @@ def cmd_train(args: argparse.Namespace) -> int:
     )
 
     try:
-        pipeline.run()
+        with console.status("[bold green]Training pipeline running...", spinner="dots") as status:
+            def on_event_rich(event: dict) -> None:
+                phase = event.get("status", "unknown")
+                msg = event.get("message", "")
+                status.update(f"[cyan][{phase}][/cyan] {msg}")
+                logger.info("[%s] %s", phase, msg)
+            pipeline.on_event = on_event_rich
+            pipeline.run()
     except KeyboardInterrupt:
-        logger.info("Training interrupted. Saving checkpoint...")
+        console.print("[yellow]Training interrupted. Saving checkpoint...[/yellow]")
         return 130
 
     metrics = pipeline.metrics
-    logger.info("Training complete!")
-    logger.info("  Final loss: %.4f", metrics.phase_loss)
-    logger.info("  Status: %s", metrics.status)
+    console.print("[bold green]Training complete![/bold green]")
+    console.print(f"  Final loss: {metrics.phase_loss:.4f}")
+    console.print(f"  Status: {metrics.status}")
 
     if args.output:
         output_dir = Path(args.output)
@@ -168,12 +179,13 @@ def cmd_evaluate(args: argparse.Namespace) -> int:
         clean_dl = _tokenize_dataset(eval_dataset, tokenizer, text_column, max_length, batch_size)
 
         evaluator = Evaluator(model_obj, tokenizer, config, device=device)
-        results = evaluator.evaluate(
-            clean_dataloader=clean_dl,
-            base_dataset=eval_dataset,
-            distortion_fn=lambda x, strength: x,
-            label="evaluate-cli",
-        )
+        with console.status("[bold green]Evaluating robustness...", spinner="dots"):
+            results = evaluator.evaluate(
+                clean_dataloader=clean_dl,
+                base_dataset=eval_dataset,
+                distortion_fn=lambda x, strength: x,
+                label="evaluate-cli",
+            )
 
         calib = results.get("calibration")
         if calib and not json_only:
@@ -387,24 +399,25 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
             logger.error("Inference benchmark failed: %s", exc)
             return 1
 
-        print("\nInference Benchmark Results")
-        print("=" * 80)
-        print(
-            f"{'Batch':>8} {'Latency (ms)':>16} "
-            f"{'Throughput (samples/s)':>25} {'Peak Memory (MB)':>20}"
-        )
-        print("-" * 80)
+        from rich.table import Table
+
+        table = Table(title="Inference Benchmark Results")
+        table.add_column("Batch", justify="right", style="cyan")
+        table.add_column("Latency (ms)", justify="right", style="green")
+        table.add_column("Throughput (samples/s)", justify="right", style="magenta")
+        table.add_column("Peak Memory (MB)", justify="right", style="yellow")
 
         for result in results["results"]:
             memory = (
                 f"{result['peak_memory_mb']:.2f}" if result["peak_memory_mb"] is not None else "N/A"
             )
-            print(
-                f"{result['batch_size']:>8} "
-                f"{result['average_latency_ms']:>16.3f} "
-                f"{result['throughput_samples_per_sec']:>25.3f} "
-                f"{memory:>20}"
+            table.add_row(
+                str(result['batch_size']),
+                f"{result['average_latency_ms']:.3f}",
+                f"{result['throughput_samples_per_sec']:.3f}",
+                memory
             )
+        console.print(table)
 
         try:
             output_path = save_results(
@@ -538,9 +551,9 @@ def cmd_benchmark(args: argparse.Namespace) -> int:
     logger.info("  Target Paper Specification: +%.2f%%", 14.0)
 
     if robustness_delta >= 0.14:
-        logger.info("[SUCCESS] Metrics match or exceed canonical paper specifications!")
+        console.print("[bold green][SUCCESS] Metrics match or exceed canonical paper specifications![/bold green]")
     else:
-        logger.warning("Benchmark completed, but metrics diverged below the target paper standard.")
+        console.print("[bold yellow]Benchmark completed, but metrics diverged below the target paper standard.[/bold yellow]")
 
     return 0
 
@@ -664,9 +677,9 @@ def cmd_distort(args: argparse.Namespace) -> int:
             args.engine, text, strength=strength, seed=args.seed, **apply_kwargs
         )
         engine_meta = registry.get_engine_metadata(args.engine)
-        print(f"Original:  {text}")
-        print(f"Distorted: {result}")
-        print(
+        console.print(f"Original:  {text}")
+        console.print(f"Distorted: {result}")
+        console.print(
             f"  Engine: {args.engine}, Phase: {engine_meta.get('phase', 'unknown')}, "
             f"Strength: {strength}"
         )
@@ -691,12 +704,12 @@ def cmd_distort(args: argparse.Namespace) -> int:
             logger.error("Unknown distortion type: %s", args.type)
             return 1
 
-        print(f"Original:  {text}")
-        print(f"Distorted: {result}")
+        console.print(f"Original:  {text}")
+        console.print(f"Distorted: {result}")
         extra = ""
         if args.type == "keyboard_typo" and getattr(args, "language", None):
             extra = f", Language: {args.language}"
-        print(f"  Type: {args.type}, Strength: {strength}{extra}")
+        console.print(f"  Type: {args.type}, Strength: {strength}{extra}")
 
     return 0
 
@@ -757,8 +770,16 @@ def cmd_transfer(args: argparse.Namespace) -> int:
             t_acc = t_data.get("clean_accuracy", 0.0)
             b_acc = b_data.get("clean_accuracy", 0.0)
 
-            report = generate_transfer_report(t_rob, b_rob, t_acc, b_acc, 0.0, 0.0)
-            logger.info(report)
+            from rich.table import Table
+            table = Table(title="Transfer Efficiency Report", show_header=True, header_style="bold magenta")
+            table.add_column("Metric", style="cyan")
+            table.add_column("Baseline", justify="right")
+            table.add_column("Transferred", justify="right")
+            table.add_column("Delta", justify="right", style="green")
+
+            table.add_row("Robustness Score", f"{b_rob:.4f}", f"{t_rob:.4f}", f"{t_rob - b_rob:+.4f}")
+            table.add_row("Clean Accuracy", f"{b_acc:.4f}", f"{t_acc:.4f}", f"{t_acc - b_acc:+.4f}")
+            console.print(table)
         except Exception as e:
             logger.error("Error measuring transfer efficiency: %s", e)
             return 1
@@ -833,19 +854,16 @@ def cmd_optimize(args: argparse.Namespace) -> int:
     try:
         from nightmarenet.optimization.hpo import OPTUNA_AVAILABLE, HyperparameterOptimizer
     except ImportError as e:
-        print(f"Error: {e}", file=sys.stderr)
+        console.print(f"[bold red]Error:[/bold red] {e}")
         return 1
 
     if not OPTUNA_AVAILABLE:
-        print(
-            "Error: Optuna is required for HPO. Install it with: pip install 'nightmarenet[hpo]'",
-            file=sys.stderr,
-        )
+        console.print("[bold red]Error:[/bold red] Optuna is required for HPO. Install it with: pip install 'nightmarenet[hpo]'")
         return 1
 
     config_path = Path(args.config)
     if not config_path.exists():
-        print(f"Error: config file not found: {config_path}", file=sys.stderr)
+        console.print(f"[bold red]Error:[/bold red] config file not found: {config_path}")
         return 1
 
     try:
@@ -854,7 +872,7 @@ def cmd_optimize(args: argparse.Namespace) -> int:
             optimizer.n_trials = args.n_trials
         optimizer.optimize()
     except Exception as e:
-        print(f"Optimization failed: {e}", file=sys.stderr)
+        console.print(f"[bold red]Optimization failed:[/bold red] {e}")
         return 1
 
     return 0
@@ -1041,11 +1059,7 @@ def cmd_compliance(args: argparse.Namespace) -> int:
         # Read the verification key
         key = os.environ.get("NIGHTMARENET_SIGNING_KEY")
         if not key:
-            print(
-                "Error: NIGHTMARENET_SIGNING_KEY must be set in environment or configs "
-                "for verification.",
-                file=sys.stderr,
-            )
+            console.print("[bold red]Error:[/bold red] NIGHTMARENET_SIGNING_KEY must be set in environment or configs for verification.")
             return 1
 
         with open(args.file) as f:
@@ -1053,17 +1067,17 @@ def cmd_compliance(args: argparse.Namespace) -> int:
 
         result = verify_signed_json(token, key)
         if result.is_valid:
-            print("VALID")
+            console.print("[bold green]VALID[/bold green]")
             payload = result.payload or {}
-            print(f"Schema version: {payload.get('schema_version', 'unknown')}")
-            print(f"Timestamp: {payload.get('timestamp', 'unknown')}")
+            console.print(f"Schema version: {payload.get('schema_version', 'unknown')}")
+            console.print(f"Timestamp: {payload.get('timestamp', 'unknown')}")
             # Python-jose does not automatically expose the signer identity
             # unless encoded in headers or payload
-            print("Signer: Project Key")
+            console.print("Signer: Project Key")
             return 0
         else:
-            print("INVALID")
-            print(f"Error: {result.error}", file=sys.stderr)
+            console.print("[bold red]INVALID[/bold red]")
+            console.print(f"[bold red]Error:[/bold red] {result.error}")
             return 1
 
     elif args.action == "export":
@@ -1074,7 +1088,7 @@ def cmd_compliance(args: argparse.Namespace) -> int:
             # The PDF path should continue using pdf_builder.py."
             # Since this is a new CLI command to wrap it, let's look at how report.py is used.
             # We would need to mock or load config, comparison, model_path.
-            print("Exporting PDF...", file=sys.stderr)
+            console.print("Exporting PDF...")
             import yaml
 
             from nightmarenet.compliance.report import generate_pdf
@@ -1085,7 +1099,7 @@ def cmd_compliance(args: argparse.Namespace) -> int:
                 config = yaml.safe_load(f) or {}
 
             pdf_path = generate_pdf(config, {}, "", output_dir=".")
-            print(f"Exported to {pdf_path}")
+            console.print(f"Exported to {pdf_path}")
             return 0
 
         elif fmt == "json-signed":
@@ -1106,11 +1120,7 @@ def cmd_compliance(args: argparse.Namespace) -> int:
                         key = f.read().strip()
 
             if not key:
-                print(
-                    "Error: NIGHTMARENET_SIGNING_KEY is required. Set NIGHTMARENET_SIGNING_KEY "
-                    "or compliance.signing_key_path.",
-                    file=sys.stderr,
-                )
+                console.print("[bold red]Error:[/bold red] NIGHTMARENET_SIGNING_KEY is required. Set NIGHTMARENET_SIGNING_KEY or compliance.signing_key_path.")
                 return 1
 
             # Generate dummy data or use actual config
@@ -1121,10 +1131,10 @@ def cmd_compliance(args: argparse.Namespace) -> int:
                 out_path = Path("results") / "compliance-report.jws"
                 with open(out_path, "w") as f:
                     f.write(token)
-                print(f"Exported signed JSON to {out_path}")
+                console.print(f"Exported signed JSON to {out_path}")
                 return 0
             except Exception as e:
-                print(f"Error exporting signed JSON: {e}", file=sys.stderr)
+                console.print(f"[bold red]Error exporting signed JSON:[/bold red] {e}")
                 return 1
 
     return 1
@@ -1153,6 +1163,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--quiet",
         action="store_true",
         help="Suppress informational output (only ERROR level logging)",
+    )
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Disable color and formatting output",
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
@@ -1379,6 +1394,10 @@ def main(argv: Optional[list] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    no_color = getattr(args, "no_color", False) or os.environ.get("NO_COLOR") == "1"
+    global console
+    console = Console(no_color=no_color, highlight=False)
+
     if not args.command:
         parser.print_help()
         return 0
@@ -1395,6 +1414,12 @@ def main(argv: Optional[list] = None) -> int:
     from nightmarenet.utils.logging_config import setup_logging
 
     setup_logging(log_level=log_level, console=not json_mode, file_logging=False)
+
+    if not json_mode and not getattr(args, "no_color", False) and os.environ.get("NO_COLOR") != "1":
+        from rich.logging import RichHandler
+        root_logger = logging.getLogger("nightmarenet")
+        root_logger.handlers = [h for h in root_logger.handlers if not isinstance(h, logging.StreamHandler)]
+        root_logger.addHandler(RichHandler(console=console, show_path=False, rich_tracebacks=True))
 
     if args.command == "dev":
         from nightmarenet.dev_cli import run_dev
