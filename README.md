@@ -113,6 +113,11 @@ Learn how to use, extend, and deploy NightmareNet through our step-by-step tutor
 
 Client developers can also use the committed OpenAPI spec at [`docs/api/openapi.json`](docs/api/openapi.json) (regenerate with `make openapi`).
 
+### Configuration & Notebooks
+
+*   [Configuration Guide](configs/README.md) — config schema (all top-level keys), the defaults inheritance/override model, validation rules, and annotated example configs.
+*   [Notebooks Guide](notebooks/README.md) — the Colab-ready walkthrough notebooks with prerequisites, runtime, and expected output.
+
 ### GitHub Action (robustness gate)
 
 ```yaml
