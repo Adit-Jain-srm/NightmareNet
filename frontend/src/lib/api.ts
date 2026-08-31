@@ -1,3 +1,5 @@
+import { withRetry } from "./retry";
+
 /**
  * API origin for browser/SSR fetches.
  * - If `NEXT_PUBLIC_API_URL` is set, it wins (e.g. split domains or e2e).
@@ -137,19 +139,24 @@ function authHeaders(): Record<string, string> {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${getApiBase()}${path}`, {
+  const url = `${getApiBase()}${path}`;
+  const requestOptions: RequestInit = {
     ...options,
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
       ...options?.headers,
     },
-  });
+  };
+
+  const res = await withRetry(() => fetch(url, requestOptions));
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `API error ${res.status}`);
+    const body = (await res.json().catch(() => ({}))) ?? {};
+    const error = new Error(body.detail || body.error || `API error ${res.status}`);
+    Object.assign(error, { status: res.status });
+    throw error;
   }
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 export function getHealth(): Promise<HealthResponse> {
@@ -201,8 +208,10 @@ export async function uploadTextFile(file: File): Promise<UploadResponse> {
     body: formData,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || body.error || `Upload failed (${res.status})`);
+    const body = (await res.json().catch(() => ({}))) ?? {};
+    const error = new Error(body.detail || body.error || `Upload failed (${res.status})`);
+    Object.assign(error, { status: res.status });
+    throw error;
   }
   return res.json();
 }
@@ -246,6 +255,7 @@ export interface PipelineCreateRequest {
   learning_rate?: number;
   batch_size?: number;
   max_samples?: number;
+  seed?: number;
   dream_strength?: number;
   nightmare_strength?: number;
   webhooks?: { url: string; events: string[] }[];
@@ -383,7 +393,9 @@ export async function* askCopilot(
     } catch {
       // body wasn't JSON; keep status code message
     }
-    throw new Error(detail);
+    const error = new Error(detail);
+    Object.assign(error, { status: res.status });
+    throw error;
   }
   if (!res.body) {
     throw new Error("Copilot returned no stream body");
@@ -419,7 +431,7 @@ export async function* askCopilot(
         }
       }
     }
-    } finally {
+  } finally {
     try {
       reader.releaseLock();
     } catch {
@@ -532,7 +544,9 @@ export async function* optimizeDataStream(
     } catch {
       // non-JSON response
     }
-    throw new Error(detail);
+    const error = new Error(detail);
+    Object.assign(error, { status: res.status });
+    throw error;
   }
   if (!res.body) {
     throw new Error("No stream body returned");
@@ -711,4 +725,25 @@ export function updateExperiment(runId: string, data: { name: string }): Promise
     method: "PATCH",
     body: JSON.stringify(data),
   });
+}
+
+/** Redirect the browser to the hosted OIDC SSO login endpoint. */
+export function startSsoLogin(orgId?: string, providerId?: string): void {
+  if (typeof window === "undefined") return;
+  const params = new URLSearchParams();
+  if (orgId) params.set("org_id", orgId);
+  if (providerId) params.set("provider_id", providerId);
+  const qs = params.toString();
+  const base = getApiBase() || "";
+  window.location.href = `${base}/api/v1/auth/sso/login${qs ? `?${qs}` : ""}`;
+}
+
+export function storeSsoAccessToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("nightmarenet-access-token", token);
+}
+
+export function getSsoAccessToken(): string | undefined {
+  if (typeof window === "undefined") return undefined;
+  return localStorage.getItem("nightmarenet-access-token") || undefined;
 }

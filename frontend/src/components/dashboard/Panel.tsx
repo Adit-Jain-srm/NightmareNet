@@ -44,7 +44,7 @@ export function Panel({
         "relative flex h-full flex-col overflow-hidden rounded-xl",
         "border border-white/[0.06] hover:border-white/[0.12]",
         "bg-[rgba(2,6,23,0.72)] backdrop-blur-[12px] backdrop-saturate-[1.15]",
-        "shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
+        "shadow-panel",
         "transition-[border-color] duration-200 ease-out",
         glowMap[glow],
         className,

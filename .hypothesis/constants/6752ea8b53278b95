@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/certification.py
-# hypothesis_version: 6.141.1
-
-[0.0, 0.001, 0.25, 0.5, 100, 128, 1000, 'attention_mask', 'certification', 'certified_accuracy', 'config', 'cpu', 'input_ids', 'label', 'metric', 'n_samples', 'num_labels', 'pt', 'results', 'text']

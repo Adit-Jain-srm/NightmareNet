@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/evaluation/format_results.py
-# hypothesis_version: 6.141.1
-
-[0.0, 1000, 1000000, 'N/A', 'Unknown', '\\_', '\\begin{table}[h]', '\\begin{tabular}{lc}', '\\centering', '\\end{table}', '\\end{tabular}', '\\hline', '_', 'abstained', 'certification', 'certified_accuracy', 'certified_radius', 'csv', 'ensemble', 'json', 'latency', 'latex', 'metric', 'model', 'models_summary', 'n_samples', 'params', 'results', 'robustness', 'sample_index', 'samples', 'samples_certified', 'utf-8', 'w']

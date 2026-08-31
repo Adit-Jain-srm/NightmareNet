@@ -1,20 +1,47 @@
 """NightmareNet: Autonomous AI Self-Improvement Platform."""
 
-__version__ = "0.3.1"  # x-release-please-version
+from __future__ import annotations
 
-try:
-    from nightmarenet.distortions.registry import get_registry as get_registry
-except ImportError:
-    get_registry = None  # type: ignore[assignment]
+from typing import Any
 
-try:
-    from nightmarenet.evaluation.evaluator import Evaluator as Evaluator
-except ImportError:
-    Evaluator = None  # type: ignore[assignment, misc]
-
-try:
-    from nightmarenet.pipeline import Pipeline as Pipeline
-except ImportError:
-    Pipeline = None  # type: ignore[assignment, misc]
+__version__ = "0.4.0"  # x-release-please-version
 
 __all__ = ["Pipeline", "Evaluator", "get_registry", "__version__"]
+
+_LAZY_EXPORTS = frozenset({"Pipeline", "Evaluator", "get_registry"})
+
+_INSTALL_HINT = (
+    "Install NightmareNet with its dependencies, e.g. "
+    "`pip install nightmarenet` (add extras such as `[api]` as needed)."
+)
+
+
+def __getattr__(name: str) -> Any:
+    """Lazy-import public exports so missing deps raise a clear ImportError."""
+    if name not in _LAZY_EXPORTS:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+    try:
+        if name == "Pipeline":
+            from nightmarenet.pipeline import Pipeline as _Pipeline
+
+            globals()["Pipeline"] = _Pipeline
+            return _Pipeline
+        if name == "Evaluator":
+            from nightmarenet.evaluation.evaluator import Evaluator as _Evaluator
+
+            globals()["Evaluator"] = _Evaluator
+            return _Evaluator
+        # name == "get_registry"
+        from nightmarenet.distortions.registry import get_registry as _get_registry
+
+        globals()["get_registry"] = _get_registry
+        return _get_registry
+    except ImportError as exc:
+        raise ImportError(
+            f"Cannot import {name!r} from nightmarenet: {exc}. {_INSTALL_HINT}"
+        ) from exc
+
+
+def __dir__() -> list[str]:
+    return sorted(list(__all__))

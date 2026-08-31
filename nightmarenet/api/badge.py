@@ -141,11 +141,15 @@ def _extract_robustness_score(run: dict) -> Optional[float]:
 
     comparison = run.get("comparison") or metrics.get("comparison") or {}
     if isinstance(comparison, dict):
-        rob_metric = comparison.get("metrics", {}).get("robustness", {})
+        # Explicit None nested values break `.get("k", {}).get(...)` — use `or {}`.
+        comparison_metrics = comparison.get("metrics") or {}
+        rob_metric = comparison_metrics.get("robustness") or {}
         if isinstance(rob_metric, dict):
-            auc = rob_metric.get("trained", {}).get("auc_robustness")
-            if isinstance(auc, (int, float)) and not isinstance(auc, bool):
-                return float(auc)
+            trained = rob_metric.get("trained") or {}
+            if isinstance(trained, dict):
+                auc = trained.get("auc_robustness")
+                if isinstance(auc, (int, float)) and not isinstance(auc, bool):
+                    return float(auc)
         for key in ("trained_auc", "auc_robustness", "robustness_score"):
             auc = comparison.get(key)
             if isinstance(auc, (int, float)) and not isinstance(auc, bool):
@@ -153,7 +157,7 @@ def _extract_robustness_score(run: dict) -> Optional[float]:
 
     trained_res = run.get("trained_results") or metrics.get("trained_results") or {}
     if isinstance(trained_res, dict):
-        rob_res = trained_res.get("robustness", {})
+        rob_res = trained_res.get("robustness") or {}
         if isinstance(rob_res, dict):
             auc = rob_res.get("auc_robustness") or rob_res.get("score")
             if isinstance(auc, (int, float)) and not isinstance(auc, bool):
@@ -199,7 +203,15 @@ async def latest_badge_svg() -> Response:
 
     score: Optional[float] = None
     for run in completed_runs:
-        s = _extract_robustness_score(run)
+        try:
+            s = _extract_robustness_score(run)
+        except Exception as e:
+            logger.warning(
+                "Failed to extract robustness score from run %s: %s",
+                run.get("run_id", "<unknown>"),
+                e,
+            )
+            continue
         if s is not None:
             score = s
             break

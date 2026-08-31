@@ -1,4 +1,0 @@
-# file: /Users/aayu/NightmareNet/nightmarenet/utils/webhooks.py
-# hypothesis_version: 6.141.1
-
-[0.85, 429, 500, 600, '.webhook.office.com', '/api/webhooks/', '/services/', 'Content-Type', 'User-Agent', 'application/json', 'dashboard_url', 'discord.com', 'discordapp.com', 'events', 'hooks.slack.com', 'https', 'notifications', 'url', 'utf-8', 'webhooks']

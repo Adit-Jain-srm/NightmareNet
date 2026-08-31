@@ -104,7 +104,11 @@ remain the dominant defenses but trade clean for adversarial accuracy.
 **Curriculum Adversarial Training (CAT)** [Cai et al., 2018] schedules
 perturbation budgets from small to large, with follow-up dynamic-strength work
 [Wang et al., 2019; Zhang et al., 2020]. **FreeLB** [Zhu et al., 2020]
-amortizes adversarial cost via free large-batch updates. NightmareNet
+amortizes adversarial cost via free large-batch updates. Multilingual typo
+robustness work such as MulTypo [Zhao et al., ACL 2026] shows that
+keyboard-layout noise hits low-resource languages hardest; NightmareNet
+exposes a clean-room layout-aware `keyboard_typo` engine for the same
+evaluation setting. NightmareNet
 inherits curriculum scheduling inside its Nightmare phase, but the surrounding
 Dream and Compress phases address two failure modes that curriculum training
 alone cannot: (a) distribution-shift sensitivity (handled by Dream) and
@@ -820,7 +824,7 @@ Reproduce with: `python scripts/generate_appendix_e_examples.py` (generates all 
 
 ## Appendix F — Compute Cost Breakdown Per Phase and Cycle
 
-To evaluate the computational efficiency of NightmareNet relative to traditional robustness training paradigms, we perform a formal FLOP (Floating Point Operations) analysis. 
+To evaluate the computational efficiency of NightmareNet relative to traditional robustness training paradigms, we perform a formal FLOP (Floating Point Operations) analysis.
 
 ### F.1 Profiling Methodology
 Measurements were conducted on `distilbert-base-uncased` (66M parameters) using a batch size of 8 and a sequence length of 128, representing the standard configuration for our SST-2 benchmarks. Forward-pass FLOPs were traced dynamically using `fvcore.nn.FlopCountAnalysis`, yielding **43.542 GFLOPs per forward pass**.
@@ -866,4 +870,3 @@ These results indicate that sleep-inspired multi-phase consolidation offers a hi
 
 *End of paper draft v0.1.*  *Camera-ready production via Pandoc → LaTeX
 (`pandoc paper-draft.md -o paper.pdf --template=neurips_2026.tex`).*
-

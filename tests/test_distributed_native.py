@@ -92,15 +92,33 @@ def test_apply_phase_strategy(mock_logger):
 
     # Wake phase
     with mock.patch.object(ddp_wrapper, "wrap_model", return_value="ddp_model"):
-        res = apply_phase_strategy("wake", model, device_pool, ddp_wrapper)
+        res = apply_phase_strategy(
+            "wake",
+            model,
+            device_pool,
+            ddp_wrapper,
+            distributed_enabled=True,
+        )
         assert res == "ddp_model"
 
     # Dream phase (DataParallel)
-    res = apply_phase_strategy("dream", model, device_pool, ddp_wrapper)
+    res = apply_phase_strategy(
+        "dream",
+        model,
+        device_pool,
+        ddp_wrapper,
+        distributed_enabled=True,
+    )
     assert isinstance(res, nn.DataParallel)
 
     # Compress phase (Single GPU)
-    res = apply_phase_strategy("compress", model, device_pool, ddp_wrapper)
+    res = apply_phase_strategy(
+        "compress",
+        model,
+        device_pool,
+        ddp_wrapper,
+        distributed_enabled=True,
+    )
     assert res is model
 
 
@@ -243,7 +261,13 @@ def test_strategy_nightmare_phase(mock_logger):
     ddp_wrapper.is_initialized = True
 
     with mock.patch.object(ddp_wrapper, "wrap_model", return_value="ddp_model"):
-        res = apply_phase_strategy("nightmare", model, device_pool, ddp_wrapper)
+        res = apply_phase_strategy(
+            "nightmare",
+            model,
+            device_pool,
+            ddp_wrapper,
+            distributed_enabled=True,
+        )
         assert res == "ddp_model"
 
 
@@ -255,7 +279,13 @@ def test_strategy_single_device_fallback(mock_logger):
     ddp_wrapper = DDPWrapper()
     ddp_wrapper.is_initialized = True
 
-    res = apply_phase_strategy("wake", model, device_pool, ddp_wrapper)
+    res = apply_phase_strategy(
+        "wake",
+        model,
+        device_pool,
+        ddp_wrapper,
+        distributed_enabled=True,
+    )
     assert res is model
 
 
@@ -267,8 +297,35 @@ def test_strategy_ddp_not_initialized_fallback(mock_logger):
     ddp_wrapper = DDPWrapper()
     ddp_wrapper.is_initialized = False
 
-    res = apply_phase_strategy("wake", model, device_pool, ddp_wrapper)
+    res = apply_phase_strategy(
+        "wake",
+        model,
+        device_pool,
+        ddp_wrapper,
+        distributed_enabled=True,
+    )
     assert res is model
+
+
+@mock.patch("nightmarenet.distributed.strategies.logger")
+def test_strategy_distributed_disabled(mock_logger):
+    """Test that distributed wrappers are skipped when distributed execution is disabled."""
+    model = SimpleModel()
+    device_pool = DevicePool(override_devices=[0, 1])
+    ddp_wrapper = DDPWrapper()
+    ddp_wrapper.is_initialized = True
+
+    with mock.patch.object(ddp_wrapper, "wrap_model") as mock_wrap:
+        result = apply_phase_strategy(
+            "wake",
+            model,
+            device_pool,
+            ddp_wrapper,
+            distributed_enabled=False,
+        )
+
+        assert result is model
+        mock_wrap.assert_not_called()
 
 
 # ============================================================================

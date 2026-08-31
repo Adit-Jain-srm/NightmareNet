@@ -1,0 +1,56 @@
+# BERT-base SST-2 full-cycle benchmark with memory optimizations (issue #306)
+# Scaling validation beyond DistilBERT (66M → 110M params).
+#
+# Validate:  python -c "from nightmarenet.utils.config import load_config; load_config('configs/benchmark_sst2_bert_base.yaml')"
+# Metrics:   python scripts/run_bert_base_scaling.py --run --device cuda
+# Trainer:   python scripts/train.py --config configs/benchmark_sst2_bert_base.yaml
+#
+# Target hardware: GPU with >= 8 GB VRAM (T4 / RTX 3060+). Aggressive settings may fit 4–6 GB.
+
+model:
+  name: bert-base-uncased
+  type: seq_classification
+  max_length: 128
+  num_labels: 2
+  device: auto
+
+dataset:
+  name: glue
+  config: sst2
+  text_column: sentence
+  label_column: label
+  # Same sample budget as DistilBERT full-cycle / GPU benchmarks for apples-to-apples compare.
+  max_samples: 500
+
+training:
+  wake_epochs: 2
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 3
+  # Memory: small micro-batch; accumulate to keep effective batch ≈ 16 (4 × 4).
+  batch_size: 4
+  gradient_accumulation_steps: 4
+  learning_rate: 2.0e-5
+  # Memory: FP16 autocast + GradScaler (trainer key is use_amp, not mixed_precision).
+  use_amp: true
+  # Memory: recompute activations in backward; trades compute for VRAM (~30–40% savings).
+  gradient_checkpointing: true
+  checkpoint_dir: checkpoints/bert_base_sst2
+  log_dir: logs/bert_base_sst2
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.75
+
+compression:
+  pruning_ratio: 0.15
+  distill_temperature: 2.0
+
+evaluation:
+  strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+
+tracking:
+  enabled: false
+
+seed: 42

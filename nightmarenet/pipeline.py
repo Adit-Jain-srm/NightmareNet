@@ -423,6 +423,28 @@ class Pipeline:
         Returns:
             The evaluation comparison dict.
         """
+        # Auto-register training log file if active
+        from nightmarenet.utils.logging_config import get_active_log_file
+
+        log_file = get_active_log_file()
+        if log_file:
+            try:
+                from pathlib import Path
+
+                from nightmarenet.artifacts.manager import ArtifactManager
+
+                manager = ArtifactManager()
+                manager.register(
+                    path=Path(log_file),
+                    run_id=self.run_id,
+                    artifact_type="log",
+                    retention_policy=self.config.get("artifacts", {})
+                    .get("retention", {})
+                    .get("log"),
+                )
+            except Exception as e:
+                logger.warning("Failed to auto-register log artifact: %s", e)
+
         self.ingest(
             urls=urls,
             file_path=file_path,
