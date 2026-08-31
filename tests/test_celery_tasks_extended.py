@@ -12,6 +12,7 @@ Covers:
 """
 
 import json
+from contextlib import ExitStack
 from unittest import mock
 
 import pytest
@@ -19,7 +20,7 @@ import pytest
 pytest.importorskip("sqlalchemy")
 
 from nightmarenet_server.tasks import fallback_worker, training
-from nightmarenet_server.tasks.celery_app import build_celery_app, celery_app
+from nightmarenet_server.tasks.celery_app import build_celery_app
 
 
 def test_celery_app_configuration():
@@ -62,14 +63,12 @@ def test_task_retry_behavior():
         try:
             raise transient_error
         except Exception as exc:
-            return self.retry(exc=exc, countdown=2 ** self.request.retries, max_retries=3)
+            return self.retry(exc=exc, countdown=2**self.request.retries, max_retries=3)
 
     with pytest.raises(Exception, match="Retried"):
         dummy_retry_task(mock_task_self, "run_retry_1", {})
 
-    mock_task_self.retry.assert_called_once_with(
-        exc=transient_error, countdown=2, max_retries=3
-    )
+    mock_task_self.retry.assert_called_once_with(exc=transient_error, countdown=2, max_retries=3)
 
 
 def test_task_soft_time_limit_and_timeout_handling():
@@ -77,6 +76,7 @@ def test_task_soft_time_limit_and_timeout_handling():
     try:
         from celery.exceptions import SoftTimeLimitExceeded
     except ImportError:
+
         class SoftTimeLimitExceeded(Exception):
             pass
 
@@ -84,15 +84,23 @@ def test_task_soft_time_limit_and_timeout_handling():
     mock_pipeline = mock.MagicMock()
     mock_pipeline.run.side_effect = SoftTimeLimitExceeded("Task timed out after 25s")
 
-    with (
-        mock.patch("nightmarenet.pipeline.Pipeline", return_value=mock_pipeline, create=True),
-        mock.patch(
-            "nightmarenet_server.tasks.training._get_session_factory",
-            return_value=mock_session_factory,
-        ),
-        mock.patch("nightmarenet_server.tasks.training._update_run_status") as mock_update,
-        mock.patch("nightmarenet_server.tasks.training._broadcast") as mock_broadcast,
-    ):
+    with ExitStack() as stack:
+        stack.enter_context(
+            mock.patch("nightmarenet.pipeline.Pipeline", return_value=mock_pipeline, create=True)
+        )
+        stack.enter_context(
+            mock.patch(
+                "nightmarenet_server.tasks.training._get_session_factory",
+                return_value=mock_session_factory,
+            )
+        )
+        mock_update = stack.enter_context(
+            mock.patch("nightmarenet_server.tasks.training._update_run_status")
+        )
+        mock_broadcast = stack.enter_context(
+            mock.patch("nightmarenet_server.tasks.training._broadcast")
+        )
+
         with pytest.raises(SoftTimeLimitExceeded):
             training.execute_pipeline("run_timeout_99", {})
 
@@ -130,22 +138,36 @@ def test_execute_pipeline_full_flow_db_and_websocket():
     def fake_run():
         on_event = mock_pipeline_cls.call_args[1].get("on_event")
         if on_event:
-            on_event({"type": "progress", "status": "running", "phase": "training", "progress_pct": 50.0})
+            on_event(
+                {"type": "progress", "status": "running", "phase": "training", "progress_pct": 50.0}
+            )
 
     mock_pipeline.run.side_effect = fake_run
     mock_pipeline_cls = mock.MagicMock(return_value=mock_pipeline)
 
-    with (
-        mock.patch("nightmarenet.pipeline.Pipeline", mock_pipeline_cls, create=True),
-        mock.patch(
-            "nightmarenet_server.tasks.training._get_session_factory",
-            return_value=mock_session_factory,
-        ),
-        mock.patch("nightmarenet_server.tasks.training._persist_event") as mock_persist,
-        mock.patch("nightmarenet_server.tasks.training._update_run_status") as mock_update,
-        mock.patch("nightmarenet_server.tasks.training._broadcast") as mock_broadcast,
-        mock.patch("nightmarenet_server.tasks.training._upsert_search_index") as mock_upsert,
-    ):
+    with ExitStack() as stack:
+        stack.enter_context(
+            mock.patch("nightmarenet.pipeline.Pipeline", mock_pipeline_cls, create=True)
+        )
+        stack.enter_context(
+            mock.patch(
+                "nightmarenet_server.tasks.training._get_session_factory",
+                return_value=mock_session_factory,
+            )
+        )
+        mock_persist = stack.enter_context(
+            mock.patch("nightmarenet_server.tasks.training._persist_event")
+        )
+        mock_update = stack.enter_context(
+            mock.patch("nightmarenet_server.tasks.training._update_run_status")
+        )
+        mock_broadcast = stack.enter_context(
+            mock.patch("nightmarenet_server.tasks.training._broadcast")
+        )
+        mock_upsert = stack.enter_context(
+            mock.patch("nightmarenet_server.tasks.training._upsert_search_index")
+        )
+
         metrics = training.execute_pipeline("run_full_flow", {"learning_rate": 0.001})
 
         assert metrics == {"accuracy": 0.92, "loss": 0.15}
@@ -173,13 +195,24 @@ def test_search_indexing_on_pipeline_completion():
     mock_embedder = mock.MagicMock()
     mock_embedder.embed_run.return_value = [0.1, 0.2, 0.3]
 
-    with (
-        mock.patch("nightmarenet_server.models.Run", mock.MagicMock()),
-        mock.patch("nightmarenet_server.models.AuditLog", mock.MagicMock()),
-        mock.patch("nightmarenet_server.search.embedder.document_from_orm", return_value=mock_doc),
-        mock.patch("nightmarenet_server.search.embedder.ExperimentEmbedder", return_value=mock_embedder),
-        mock.patch("nightmarenet_server.search.endpoints.get_index", return_value=mock_index),
-    ):
+    with ExitStack() as stack:
+        stack.enter_context(mock.patch("nightmarenet_server.models.Run", mock.MagicMock()))
+        stack.enter_context(mock.patch("nightmarenet_server.models.AuditLog", mock.MagicMock()))
+        stack.enter_context(
+            mock.patch(
+                "nightmarenet_server.search.embedder.document_from_orm", return_value=mock_doc
+            )
+        )
+        stack.enter_context(
+            mock.patch(
+                "nightmarenet_server.search.embedder.ExperimentEmbedder",
+                return_value=mock_embedder,
+            )
+        )
+        stack.enter_context(
+            mock.patch("nightmarenet_server.search.endpoints.get_index", return_value=mock_index)
+        )
+
         training._upsert_search_index(mock_session_factory, "run_search_1")
 
         mock_index.add.assert_called_once_with(
@@ -208,10 +241,10 @@ def test_fallback_worker_claim_next_run():
     mock_query.first.return_value = mock_run
     mock_session.get.return_value = mock_experiment
 
-    with (
-        mock.patch("nightmarenet_server.models.Run", mock.MagicMock()),
-        mock.patch("nightmarenet_server.models.Experiment", mock.MagicMock()),
-    ):
+    with ExitStack() as stack:
+        stack.enter_context(mock.patch("nightmarenet_server.models.Run", mock.MagicMock()))
+        stack.enter_context(mock.patch("nightmarenet_server.models.Experiment", mock.MagicMock()))
+
         result = fallback_worker._claim_next_run(mock_session_factory)
         assert result == ("pending_run_1", {"batch_size": 32})
         assert mock_run.status == "running"
@@ -232,10 +265,10 @@ def test_fallback_worker_claim_next_run_empty():
     mock_query.with_for_update.return_value = mock_query
     mock_query.first.return_value = None
 
-    with (
-        mock.patch("nightmarenet_server.models.Run", mock.MagicMock()),
-        mock.patch("nightmarenet_server.models.Experiment", mock.MagicMock()),
-    ):
+    with ExitStack() as stack:
+        stack.enter_context(mock.patch("nightmarenet_server.models.Run", mock.MagicMock()))
+        stack.enter_context(mock.patch("nightmarenet_server.models.Experiment", mock.MagicMock()))
+
         result = fallback_worker._claim_next_run(mock_session_factory)
         assert result is None
         mock_session.close.assert_called_once()
