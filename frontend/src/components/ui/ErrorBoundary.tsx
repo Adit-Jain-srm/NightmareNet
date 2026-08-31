@@ -6,6 +6,7 @@ import {
   type ErrorInfo,
   type ReactNode,
 } from "react";
+import { reportError } from "@/lib/error-reporting";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -33,9 +34,10 @@ export class ErrorBoundary extends Component<
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    if (process.env.NODE_ENV !== "test") {
-      console.error("NightmareNet UI error:", error, errorInfo);
-    }
+    reportError(error, {
+      componentStack: errorInfo.componentStack ?? undefined,
+      source: "ErrorBoundary",
+    });
 
     this.props.onError?.(error, errorInfo);
   }

@@ -32,6 +32,7 @@ This model has been robustified using the NightmareNet framework.
 ```
 """
 
+
 def generate_model_card(repo_id: str, metadata: Dict[str, Any]) -> str:
     """
     Auto-generates an academic/robustness HuggingFace Model Card (README.md)
@@ -39,7 +40,6 @@ def generate_model_card(repo_id: str, metadata: Dict[str, Any]) -> str:
     """
     # Extract tags and metric for ModelCardData
     robustness_score = metadata.get("robustness_score", 0.0)
-
 
     # Custom tags for nightmarenet
     custom_tags = {}
@@ -71,7 +71,7 @@ def generate_model_card(repo_id: str, metadata: Dict[str, Any]) -> str:
                 ],
             }
         ],
-        **custom_tags
+        **custom_tags,
     )
 
     # Try to extract template from config
@@ -119,10 +119,6 @@ def generate_model_card(repo_id: str, metadata: Dict[str, Any]) -> str:
     else:
         template_content = DEFAULT_TEMPLATE
 
-    card = ModelCard.from_template(
-        card_data,
-        template_str=template_content,
-        **kwargs
-    )
+    card = ModelCard.from_template(card_data, template_str=template_content, **kwargs)
 
     return str(card)

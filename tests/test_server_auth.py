@@ -12,6 +12,15 @@ except ImportError:
 from nightmarenet_server.auth import api_keys, jwt_helpers
 
 
+@pytest.fixture(autouse=True)
+def _set_jwt_secret(monkeypatch):
+    monkeypatch.setenv("NIGHTMARENET_JWT_SECRET", "test_secret_key_for_jwt")
+
+def mock_env():
+    with mock.patch.dict("os.environ", {"NIGHTMARENET_JWT_SECRET": "testsecret"}):
+        yield
+
+
 @pytest.mark.skipif(jwt is None, reason="PyJWT not installed")
 def test_jwt_encode_decode():
     token = jwt_helpers.create_access_token(subject="user_123", role="admin")
@@ -20,6 +29,7 @@ def test_jwt_encode_decode():
     assert decoded["sub"] == "user_123"
     assert decoded["role"] == "admin"
     assert decoded["typ"] == "access"
+
 
 @pytest.mark.skipif(jwt is None, reason="PyJWT not installed")
 def test_jwt_expiry():
@@ -30,10 +40,12 @@ def test_jwt_expiry():
         with pytest.raises(jwt.ExpiredSignatureError):
             jwt.decode(token, jwt_helpers.get_secret(), algorithms=["HS256"])
 
+
 @pytest.mark.skipif(jwt is None, reason="PyJWT not installed")
 def test_jwt_invalid_token():
     with pytest.raises(jwt.DecodeError):
         jwt_helpers.decode_access_token("invalid.token.string")
+
 
 def test_generate_api_key():
     plaintext, hashed = api_keys.generate_api_key()
@@ -41,22 +53,20 @@ def test_generate_api_key():
     assert len(hashed) == 64  # SHA256 hex digest length
     assert api_keys._hash_key(plaintext) == hashed
 
+
 def test_mint_api_key():
     mock_session = mock.MagicMock()
     mock_api_key_cls = mock.MagicMock()
 
     with mock.patch("nightmarenet_server.auth.api_keys.ApiKey", mock_api_key_cls, create=True):
         plaintext, api_key = api_keys.mint_api_key(
-            session=mock_session,
-            org_id="org_1",
-            user_id="user_1",
-            name="test_key",
-            scopes=["read"]
+            session=mock_session, org_id="org_1", user_id="user_1", name="test_key", scopes=["read"]
         )
         assert plaintext.startswith("nm_")
         mock_session.add.assert_called_once()
         mock_session.commit.assert_called_once()
         mock_session.refresh.assert_called_once()
+
 
 def test_revoke_api_key():
     mock_session = mock.MagicMock()
@@ -68,6 +78,7 @@ def test_revoke_api_key():
         assert res is True
         mock_session.delete.assert_called_once_with(mock_row)
         mock_session.commit.assert_called_once()
+
 
 def test_revoke_api_key_not_found():
     mock_session = mock.MagicMock()

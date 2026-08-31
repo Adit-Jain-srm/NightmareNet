@@ -11,6 +11,7 @@ import {
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useSounds } from "@/lib/sounds";
+import { LiveRegion } from "@/components/a11y/LiveRegion";
 
 export type ToastVariant = "info" | "success" | "warning" | "error";
 
@@ -65,10 +66,38 @@ const variantIcons: Record<ToastVariant, ReactNode> = {
   ),
 };
 
+/**
+ * Debounce delay (ms) for the aria-live region.
+ * Prevents duplicate or overlapping announcements when multiple toasts fire
+ * in rapid succession (e.g. a loading toast immediately followed by a
+ * completion toast).
+ */
+const ANNOUNCE_DEBOUNCE_MS = 150;
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
   const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const { playSuccess, playError, playNotification } = useSounds();
+
+  // --- Screen reader announcement state ---
+  const [liveMessage, setLiveMessage] = useState("");
+  const [liveAssertive, setLiveAssertive] = useState(false);
+  const announceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /**
+   * Schedule an aria-live announcement, debounced so rapid consecutive pushes
+   * produce a single announcement with the latest message.
+   */
+  const announce = useCallback((message: string, assertive: boolean) => {
+    if (announceTimer.current !== null) {
+      clearTimeout(announceTimer.current);
+    }
+    announceTimer.current = setTimeout(() => {
+      setLiveMessage(message);
+      setLiveAssertive(assertive);
+      announceTimer.current = null;
+    }, ANNOUNCE_DEBOUNCE_MS);
+  }, []);
 
   const dismiss = useCallback((id: string) => {
     const t = timers.current.get(id);
@@ -95,9 +124,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       else if (variant === "error") playError();
       else playNotification();
 
+      // Announce to screen readers — errors are assertive (interrupt),
+      // all other variants are polite (wait for idle).
+      const announcementText = description
+        ? `${title}: ${description}`
+        : title;
+      announce(announcementText, variant === "error");
+
       return id;
     },
-    [dismiss, playSuccess, playError, playNotification]
+    [dismiss, playSuccess, playError, playNotification, announce],
   );
 
   useEffect(() => {
@@ -105,15 +141,29 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     return () => {
       ref.forEach((t) => clearTimeout(t));
       ref.clear();
+      // Clean up any pending announce debounce on unmount.
+      if (announceTimer.current !== null) {
+        clearTimeout(announceTimer.current);
+      }
     };
   }, []);
 
   return (
     <ToastContext.Provider value={{ push, dismiss }}>
       {children}
+      {/*
+       * Visually-hidden live region — separate from the visual toast stack so
+       * screen reader output is not affected by animation or visual styling.
+       * Error toasts use assertive mode to interrupt immediately; all others
+       * use polite mode to queue behind the current speech.
+       */}
+      <LiveRegion
+        id="toast-live-region"
+        message={liveMessage}
+        assertive={liveAssertive}
+      />
       <div
-        aria-live="polite"
-        aria-atomic="true"
+        aria-hidden="true"
         className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-full max-w-sm flex-col gap-2"
       >
         <AnimatePresence>

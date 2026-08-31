@@ -35,7 +35,7 @@ ACTIVE until all branches resolved. Don't let me start building until questions 
 ## Depth Control
 
 - Simple task (< 5 min): 3-4 questions
-- Medium task (< 1 hour): 5-8 questions  
+- Medium task (< 1 hour): 5-8 questions
 - Complex task (> 1 hour): full tree, multiple sub-branches per question
 
 ## When to Stop
@@ -52,11 +52,11 @@ Stop grilling when:
 ## Example Exchange
 
 ```
-Agent: "WHO is this for? My recommendation: solo developers working on 
+Agent: "WHO is this for? My recommendation: solo developers working on
        side projects who hit the same deployment friction every weekend."
 User:  "Actually it's for teams — 3-5 devs sharing staging environments."
-Agent: "Good — that changes scope significantly. WHAT specific pain does 
-       this eliminate? My recommendation: 'We broke staging again because 
+Agent: "Good — that changes scope significantly. WHAT specific pain does
+       this eliminate? My recommendation: 'We broke staging again because
        two people deployed at the same time.'"
 ```
 

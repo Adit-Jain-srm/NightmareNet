@@ -35,7 +35,7 @@ async function resilientCall<T>(
   options: { retries?: number; timeout?: number; fallback?: T } = {}
 ): Promise<T> {
   const { retries = 3, timeout = 5000, fallback } = options;
-  
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const controller = new AbortController();
@@ -87,21 +87,21 @@ async function withRetry<T>(
   config = RETRY_CONFIG
 ): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
     try {
       return await fn();
     } catch (error: any) {
       lastError = error;
-      
+
       if (!isRetryable(error, config)) throw error;
       if (attempt === config.maxAttempts) throw error;
-      
+
       const delay = Math.min(
         config.baseDelay * Math.pow(2, attempt - 1) + Math.random() * 500,
         config.maxDelay
       );
-      
+
       console.warn(`Attempt ${attempt} failed, retrying in ${delay}ms:`, error.message);
       await sleep(delay);
     }
@@ -128,12 +128,12 @@ class CircuitBreaker {
   private failures = 0;
   private lastFailure = 0;
   private state: 'closed' | 'open' | 'half-open' = 'closed';
-  
+
   constructor(
     private threshold = 5,       // Open after 5 failures
     private resetTimeout = 30000 // Try again after 30s
   ) {}
-  
+
   async call<T>(fn: () => Promise<T>, fallback?: () => T): Promise<T> {
     if (this.state === 'open') {
       if (Date.now() - this.lastFailure > this.resetTimeout) {
@@ -143,7 +143,7 @@ class CircuitBreaker {
         throw new Error('Circuit breaker is OPEN — service unavailable');
       }
     }
-    
+
     try {
       const result = await fn();
       this.onSuccess();
@@ -154,12 +154,12 @@ class CircuitBreaker {
       throw error;
     }
   }
-  
+
   private onSuccess() {
     this.failures = 0;
     this.state = 'closed';
   }
-  
+
   private onFailure() {
     this.failures++;
     this.lastFailure = Date.now();
@@ -190,7 +190,7 @@ async function withTimeout<T>(
 ): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
-  
+
   try {
     const result = await fn(controller.signal);
     return result;
@@ -261,7 +261,7 @@ interface DLQEntry {
 
 class JobProcessor {
   private maxAttempts = 3;
-  
+
   async process(job: any, handler: (job: any) => Promise<void>): Promise<void> {
     for (let attempt = 1; attempt <= this.maxAttempts; attempt++) {
       try {
@@ -282,7 +282,7 @@ class JobProcessor {
       }
     }
   }
-  
+
   private async sendToDLQ(entry: DLQEntry): Promise<void> {
     // Store in DLQ table/queue for manual investigation
     console.error('Job moved to DLQ:', entry);

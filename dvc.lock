@@ -1,7 +1,7 @@
 schema: '2.0'
 stages:
   prepare_sst2:
-    cmd: python scripts/prepare_sst2_sample.py --output 
+    cmd: python scripts/prepare_sst2_sample.py --output
       data/processed/sst2_sample.csv
     deps:
     - path: scripts/prepare_sst2_sample.py

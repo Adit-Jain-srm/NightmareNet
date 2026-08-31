@@ -19,6 +19,11 @@ export default defineConfig({
       "playwright-report/**",
       "test-results/**",
     ],
+    poolOptions: {
+      threads: {
+        singleThread: true,
+      },
+    },
   },
   resolve: {
     alias: {

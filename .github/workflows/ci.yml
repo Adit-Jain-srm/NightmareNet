@@ -20,10 +20,10 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12"]
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
@@ -35,42 +35,87 @@ jobs:
 
       # Ruff lint/format run in .github/workflows/pre-commit.yml (avoids duplicate checks)
 
-      - name: Type check with mypy
+      - name: Type check with mypy (strict, baseline-enforced)
+        # Strict mode is enforced repo-wide, but pre-existing violations in
+        # mypy_baseline.txt are frozen and don't fail CI. Only NEW errors -
+        # in new files, or new lines in changed files - fail the build.
+        # See docs/development/code-style.md for the full policy and how to
+        # update the baseline.
         if: matrix.python-version == '3.12'
-        run: >
-          mypy nightmarenet/
-          --ignore-missing-imports
-          --disable-error-code import-untyped
-          --disable-error-code operator
-          --python-version 3.12
+        run: |
+          set +e
+          set -o pipefail
+
+          mypy nightmarenet/ --python-version 3.12 | tee mypy-output.txt | mypy-baseline filter --baseline-path mypy_baseline.txt --allow-unsynced | tee mypy-filter-output.txt
+          statuses=("${PIPESTATUS[@]}")
+          mypy_status="${statuses[0]}"
+          baseline_status="${statuses[2]}"
+
+          echo "mypy exit status: ${mypy_status}"
+          echo "mypy-baseline filter exit status: ${baseline_status}"
+
+          # mypy uses exit code 1 for ordinary type-checking diagnostics.
+          # The baseline filter decides whether those diagnostics are new.
+          # Exit codes >1 indicate an actual mypy execution failure.
+          if [ "${mypy_status}" -gt 1 ]; then
+            echo "::error::mypy failed to execute correctly (exit code ${mypy_status})."
+            exit "${mypy_status}"
+          fi
+
+          if [ "${baseline_status}" -ne 0 ]; then
+            echo "::error::New mypy errors were introduced (not present in mypy_baseline.txt)."
+            exit "${baseline_status}"
+          fi
+
+          if grep -Eiq "resolved|fixed" mypy-filter-output.txt; then
+            echo "::notice::Existing mypy baseline entries were fixed; contributor reduced type-checking debt."
+          else
+            echo "Mypy baseline unchanged: existing baseline findings are allowed."
+          fi
 
       - name: Run tests with coverage
+        working-directory: .
         env:
           HF_HUB_DOWNLOAD_TIMEOUT: 60
           HF_DATASETS_TIMEOUT: 60
+        run: |
+          PYTHONPATH=. pytest -m "not slow" --cov=nightmarenet --cov-report=xml --cov-report=term-missing > pytest_output.txt 2>&1 || true
+          cat pytest_output.txt
+          if grep -q "failed" pytest_output.txt; then exit 1; fi
+
+      - name: Upload Pytest Log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-log-${{ matrix.python-version }}
+          path: pytest_output.txt
+
+      - name: Upload coverage to Codecov
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          flags: unittests
+          name: nightmarenet-coverage
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Validate notebooks with nbmake
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
         run: >
-          PYTHONPATH=.
-          pytest -m "not slow"
-          --cov=nightmarenet
-          --cov-report=xml
-          --cov-report=term-missing
+          pytest --nbmake notebooks/ --timeout=120
 
       - name: Check OpenAPI spec drift
         if: matrix.python-version == '3.12'
         run: PYTHONPATH=. python scripts/export_openapi.py --check
 
-      - name: Upload coverage to Codecov
-        if: matrix.python-version == '3.12'
-        uses: codecov/codecov-action@v7
-        with:
-          files: coverage.xml
-          fail_ci_if_error: false
-
       - name: Set up Node.js
         if: matrix.python-version == '3.12'
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -84,6 +129,16 @@ jobs:
           NPM_CONFIG_FETCH_TIMEOUT: 300000
         run: npm ci
 
+      - name: Lint frontend
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type-check frontend
+        if: matrix.python-version == '3.12'
+        working-directory: frontend
+        run: npx tsc --noEmit
+
       - name: Run frontend unit tests
         if: matrix.python-version == '3.12'
         working-directory: frontend
@@ -96,21 +151,11 @@ jobs:
 
       - name: Check frontend bundle size
         if: matrix.python-version == '3.12' && github.event_name == 'pull_request'
-        uses: andresz1/size-limit-action@v1
+        uses: andresz1/size-limit-action@94bc357df29c36c8f8d50ea497c3e225c3c95d1d # v1.8.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           directory: frontend
           skip_step: build
-
-      - name: Lint frontend
-        if: matrix.python-version == '3.12'
-        working-directory: frontend
-        run: npm run lint
-
-      - name: Type-check frontend
-        if: matrix.python-version == '3.12'
-        working-directory: frontend
-        run: npx tsc --noEmit
 
       - name: Install Playwright Chromium
         if: matrix.python-version == '3.12'
@@ -124,7 +169,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always() && matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: playwright-accessibility-report
           path: frontend/playwright-report/
@@ -132,7 +177,7 @@ jobs:
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: coverage-report
           path: coverage.xml
@@ -144,10 +189,21 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check for dependency file changes
+        id: changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            python_deps:
+              - 'pyproject.toml'
+              - 'requirements*.txt'
+            node_deps:
+              - 'frontend/package*.json'
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
           python-version: "3.12"
           cache: pip
@@ -166,18 +222,49 @@ jobs:
             --exit-zero
           bandit -r nightmarenet -ll --exit-zero
 
-      - name: Run pip-audit (dependency vulnerability scan)
+      - name: Run pip-audit (Python dependency vulnerability scan)
+        if: steps.changes.outputs.python_deps == 'true' || github.event_name == 'push'
         run: |
+          IGNORE_ARGS=()
+          if [ -f .pip-audit-known-vulnerabilities ]; then
+            while IFS= read -r line || [ -n "$line" ]; do
+              clean=$(echo "$line" | sed 's/#.*//' | xargs)
+              if [ -n "$clean" ]; then
+                IGNORE_ARGS+=("--ignore-vuln" "$clean")
+              fi
+            done < .pip-audit-known-vulnerabilities
+          fi
           pip-audit \
             --progress-spinner=off \
             --format json \
             --output pip-audit-report.json \
-            || true
-          pip-audit --progress-spinner=off || true
+            "${IGNORE_ARGS[@]}" || {
+              echo "::error::High/Critical Python dependency vulnerabilities detected! Fix vulnerabilities or add CVE ID to .pip-audit-known-vulnerabilities"
+              pip-audit --progress-spinner=off "${IGNORE_ARGS[@]}"
+              exit 1
+            }
+          pip-audit --progress-spinner=off "${IGNORE_ARGS[@]}"
+
+      - name: Set up Node.js for dependency audit
+        if: steps.changes.outputs.node_deps == 'true' || github.event_name == 'push'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Run npm audit (Node.js dependency vulnerability scan)
+        if: steps.changes.outputs.node_deps == 'true' || github.event_name == 'push'
+        working-directory: frontend
+        run: |
+          npm audit --audit-level=high || {
+            echo "::error::High/Critical Node.js dependency vulnerabilities detected! Run 'npm audit fix' in frontend/"
+            exit 1
+          }
 
       - name: Upload security reports
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: security-reports
           path: |
@@ -200,13 +287,13 @@ jobs:
             dockerfile: docker/Dockerfile.worker
             tag: nightmarenet/worker:ci
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
 
       - name: Build ${{ matrix.image }} image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
           file: ${{ matrix.dockerfile }}

@@ -80,8 +80,13 @@ results/*
 !results/convergence/
 !results/convergence/**
 !results/multi_dataset_benchmark.json
+!results/gpt2_validation.json
+!results/bert_base_scaling.json
+!results/dp_dream_noise.json
 checkpoints/
+checkpoints_vision/
 logs/
+logs_vision/
 
 # DVC — large/managed data lives in cache/remote, not git
 .dvc/cache
@@ -113,3 +118,7 @@ skills-lock.json
 .vercel
 coverage.xml
 .nightmarenet_cache/
+
+# Do not ignore artifact metadata sidecar files
+!*.artifact-meta.json
+!**/*.artifact-meta.json

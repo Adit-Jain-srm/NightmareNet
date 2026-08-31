@@ -1,0 +1,71 @@
+# Multi-dataset training
+# A training config takes ONE dataset block per run. To harden a model across
+# several datasets, run this config once per dataset (swapping the `dataset`
+# block), reusing the resulting checkpoint as the starting point for the next.
+# This file documents that workflow and is a valid, runnable single-dataset run.
+#
+# Validate config:
+#   python -c "from nightmarenet.utils.config import load_config; load_config('configs/examples/multi-dataset-training.yaml')"
+#
+# Run across datasets (each is a separate run; carry the checkpoint forward):
+#   nightmarenet train --config configs/examples/multi-dataset-training.yaml \
+#       --output ./runs/sst2
+#   # then point the next run's model.name at ./runs/sst2 and switch the
+#   # dataset block to ag_news / imdb, etc.
+
+model:
+  # For run 2+, set this to the previous run's output directory to continue
+  # hardening the same weights across datasets.
+  name: distilbert-base-uncased
+  type: seq_classification
+  num_labels: 2            # match the current dataset's label count
+  max_length: 128
+  device: auto
+
+# --- Active dataset for THIS run -------------------------------------------
+# Swap this block per run. Examples of other datasets are in the comments below.
+dataset:
+  name: glue
+  config: sst2             # GLUE task selector (extra key, passed to the loader)
+  text_column: sentence
+  label_column: label
+  max_samples: 500
+  streaming: false
+
+# --- Other datasets to cycle through (uncomment one per run) ---------------
+# dataset:
+#   name: ag_news
+#   text_column: text
+#   label_column: label
+#   max_samples: 500
+#
+# dataset:
+#   name: imdb
+#   text_column: text
+#   label_column: label
+#   max_samples: 500
+
+training:
+  wake_epochs: 1
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 2
+  batch_size: 8
+  learning_rate: 2.0e-5
+  # Keep per-dataset runs in separate directories so checkpoints don't collide.
+  checkpoint_dir: checkpoints/multi_dataset
+  log_dir: logs/multi_dataset
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.8
+
+compression:
+  pruning_ratio: 0.2
+
+evaluation:
+  metrics: [recall, robustness]
+  robustness_strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+
+seed: 42

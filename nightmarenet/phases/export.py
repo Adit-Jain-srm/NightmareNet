@@ -41,4 +41,23 @@ class ExportPhase(Phase):
             return PhaseResult(success=False, phase_name=self.name, error=str(exc))
 
         logger.info("Model exported to %s", self.output_dir)
+
+        # Auto-register exported model directory
+        try:
+            from pathlib import Path
+
+            from nightmarenet.artifacts.manager import ArtifactManager
+
+            manager = ArtifactManager()
+            manager.register(
+                path=Path(self.output_dir),
+                run_id=context.run_id,
+                artifact_type="exported_model",
+                retention_policy=context.config.get("artifacts", {})
+                .get("retention", {})
+                .get("exported_model"),
+            )
+        except Exception as e:
+            logger.warning("Failed to auto-register exported model: %s", e)
+
         return PhaseResult(success=True, phase_name=self.name, data={"output_dir": self.output_dir})

@@ -580,7 +580,9 @@ class TestUploadEndpoint:
         assert "Unsupported file type" in response.json()["detail"]
 
     def test_upload_rejects_too_large(self, monkeypatch):
-        import nightmarenet.api.app as api_module
+        import importlib
+
+        api_module = importlib.import_module("nightmarenet.api.app")
 
         monkeypatch.setattr(api_module, "_MAX_UPLOAD_BYTES", 10)
         response = client.post(
@@ -916,13 +918,14 @@ def test_missing_compliance_report(tmp_path, monkeypatch):
 
 
 class TestAPIVersionHeader:
-    """Test that all API responses include the X-API-Version header."""
+    """Test that all API responses include the API-Version and X-API-Version headers."""
 
     def test_health_has_version_header(self):
         from nightmarenet import __version__
 
         response = client.get("/api/v1/health")
         assert response.status_code == 200
+        assert response.headers.get("API-Version") == "v1"
         assert response.headers.get("X-API-Version") == __version__
 
     def test_dream_has_version_header(self):
@@ -933,6 +936,7 @@ class TestAPIVersionHeader:
             json={"text": "Hello world.", "strength": 0.3},
         )
         assert response.status_code == 200
+        assert response.headers.get("API-Version") == "v1"
         assert response.headers.get("X-API-Version") == __version__
 
     def test_validation_error_has_version_header(self):
@@ -943,6 +947,7 @@ class TestAPIVersionHeader:
             json={"text": "", "strength": 0.3},  # Empty text triggers validation error
         )
         assert response.status_code == 422
+        assert response.headers.get("API-Version") == "v1"
         assert response.headers.get("X-API-Version") == __version__
 
     def test_unauthorized_has_version_header(self, monkeypatch):
@@ -963,6 +968,7 @@ class TestAPIVersionHeader:
                 json={"text": "Auth test.", "strength": 0.1},
             )
             assert response.status_code == 401
+            assert response.headers.get("API-Version") == "v1"
             assert response.headers.get("X-API-Version") == __version__
         finally:
             # Cleanup
@@ -974,4 +980,25 @@ class TestAPIVersionHeader:
 
         response = client.get("/api/v1/nonexistent-route")
         assert response.status_code == 404
+        assert response.headers.get("API-Version") == "v1"
         assert response.headers.get("X-API-Version") == __version__
+
+    def test_compare_endpoint_deprecation_headers(self):
+        response = client.post(
+            "/api/v1/compare",
+            json={
+                "text": "Versioning header test.",
+                "baseline_strength": 0.3,
+                "challenge_strength": 0.7,
+                "seed": 42,
+            },
+        )
+        assert response.status_code == 200
+        assert response.headers.get("Deprecation") == "true"
+        assert response.headers.get("Sunset") is not None
+        assert response.headers.get("Link") == "</api/v1/evaluate/robustness>; rel=\"alternate\""
+
+    def test_openapi_marks_compare_deprecated(self):
+        response = client.get("/openapi.json")
+        data = response.json()
+        assert data["paths"]["/api/v1/compare"]["post"]["deprecated"] is True
