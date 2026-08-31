@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-__version__ = "0.4.0"  # x-release-please-version
+__version__ = "0.5.0"  # x-release-please-version
 
 __all__ = ["Pipeline", "Evaluator", "get_registry", "__version__"]
 

@@ -4,6 +4,56 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.5.0](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.4.0...nightmarenet-v0.5.0) (2026-08-31)
+
+
+### Features
+
+* add API versioning headers and deprecation support ([#732](https://github.com/Adit-Jain-srm/NightmareNet/issues/732)) ([872c257](https://github.com/Adit-Jain-srm/NightmareNet/commit/872c257f40a0f8316b204a735abb15ecc4ea5459))
+* add cross-architecture robustness evaluation ([#579](https://github.com/Adit-Jain-srm/NightmareNet/issues/579)) ([5853afd](https://github.com/Adit-Jain-srm/NightmareNet/commit/5853afdb79c9a9e736539880c427dbb77d4659bb))
+* add layout-aware multilingual keyboard typo engine ([#698](https://github.com/Adit-Jain-srm/NightmareNet/issues/698)) ([#747](https://github.com/Adit-Jain-srm/NightmareNet/issues/747)) ([4704b19](https://github.com/Adit-Jain-srm/NightmareNet/commit/4704b19671b32fc6fcf2aff59a0c17f7ef6e3f4a))
+* add model inference benchmark dashboard ([#749](https://github.com/Adit-Jain-srm/NightmareNet/issues/749)) ([023ea8d](https://github.com/Adit-Jain-srm/NightmareNet/commit/023ea8d8c3d41b3e2cf272a2d7c652a31d6b9926))
+* add nightmarenet-robustness-check GitHub Action ([#702](https://github.com/Adit-Jain-srm/NightmareNet/issues/702)) ([#724](https://github.com/Adit-Jain-srm/NightmareNet/issues/724)) ([7900204](https://github.com/Adit-Jain-srm/NightmareNet/commit/7900204d2f167c31ce5d037a9963d6309dc43ea7))
+* add request tracing middleware ([#778](https://github.com/Adit-Jain-srm/NightmareNet/issues/778)) ([a70132e](https://github.com/Adit-Jain-srm/NightmareNet/commit/a70132e73d67065581d1032d24b52196d2ce998b))
+* add unified nightmarenet dev CLI for local workflows ([#723](https://github.com/Adit-Jain-srm/NightmareNet/issues/723)) ([11edb8a](https://github.com/Adit-Jain-srm/NightmareNet/commit/11edb8aa23f381867543834f206c87ce40282ab6))
+* **artifacts:** implement decentralized artifact registry and retention policies ([#731](https://github.com/Adit-Jain-srm/NightmareNet/issues/731)) ([edb26e2](https://github.com/Adit-Jain-srm/NightmareNet/commit/edb26e24a4d2c919250ee97e0d40304c8040e7ba))
+* **dashboard:** add component-specific loading skeletons ([#685](https://github.com/Adit-Jain-srm/NightmareNet/issues/685)) ([#746](https://github.com/Adit-Jain-srm/NightmareNet/issues/746)) ([c5ec96a](https://github.com/Adit-Jain-srm/NightmareNet/commit/c5ec96a94f41f3bd10834b450227a5822f0873d7))
+* **frontend:** add Sentry-compatible error reporting ([#682](https://github.com/Adit-Jain-srm/NightmareNet/issues/682)) ([#775](https://github.com/Adit-Jain-srm/NightmareNet/issues/775)) ([91aa3b8](https://github.com/Adit-Jain-srm/NightmareNet/commit/91aa3b8d2339232f8859c26846d0c5b1db6aaf2f))
+* **frontend:** implement design tokens system ([#737](https://github.com/Adit-Jain-srm/NightmareNet/issues/737)) ([648c253](https://github.com/Adit-Jain-srm/NightmareNet/commit/648c25394755f71244c69942bd84068b752fcd05))
+* implement signed JSON compliance export ([#736](https://github.com/Adit-Jain-srm/NightmareNet/issues/736)) ([9d773a4](https://github.com/Adit-Jain-srm/NightmareNet/commit/9d773a4f406bd5cc2aaea1caad0d3db727321646))
+* **infra:** add mypy strict baseline and TypeScript no-explicit-any enforcement ([#684](https://github.com/Adit-Jain-srm/NightmareNet/issues/684)) ([3db46aa](https://github.com/Adit-Jain-srm/NightmareNet/commit/3db46aa5e55583d6f32b27d50e09ed07f010a116))
+* **pipeline:** add experiment tagging, persistence, and validation ([#507](https://github.com/Adit-Jain-srm/NightmareNet/issues/507)) ([#714](https://github.com/Adit-Jain-srm/NightmareNet/issues/714)) ([54eb645](https://github.com/Adit-Jain-srm/NightmareNet/commit/54eb6455549bce6ae08598cb7468a86148306ee1))
+* **server:** add enterprise OIDC SSO with PKCE and JIT provisioning ([#722](https://github.com/Adit-Jain-srm/NightmareNet/issues/722)) ([f56aa59](https://github.com/Adit-Jain-srm/NightmareNet/commit/f56aa59b9654e2446c79be8a95ba79eda89457b1))
+* **server:** add immutable SOC 2 audit log system ([#721](https://github.com/Adit-Jain-srm/NightmareNet/issues/721)) ([89d331c](https://github.com/Adit-Jain-srm/NightmareNet/commit/89d331c54eb146d589a79e02c24200e5f12d10cc))
+* **server:** implement per-endpoint rate limiting with tiered configuration ([#730](https://github.com/Adit-Jain-srm/NightmareNet/issues/730)) ([198381d](https://github.com/Adit-Jain-srm/NightmareNet/commit/198381d50c987e390dc6acf54c6c82e3246e9451))
+* wire ExperimentList row actions to real API endpoints ([#420](https://github.com/Adit-Jain-srm/NightmareNet/issues/420)) ([c5d231f](https://github.com/Adit-Jain-srm/NightmareNet/commit/c5d231fb5f6584a93da79be700323272a029acf8))
+
+
+### Bug Fixes
+
+* 756: Resolve Python 3.9 syntax, CPU memory, and logger bugs ([#767](https://github.com/Adit-Jain-srm/NightmareNet/issues/767)) ([452ce81](https://github.com/Adit-Jain-srm/NightmareNet/commit/452ce81af967cadcfc9524ecb690a3538d35989a))
+* add metrics attr to _FakePipeline in pipeline_runner tests ([2dbae77](https://github.com/Adit-Jain-srm/NightmareNet/commit/2dbae77ede405700beb412085f28322e3ab2108d))
+* allow unsynced baseline entries in mypy CI step ([8450c3a](https://github.com/Adit-Jain-srm/NightmareNet/commit/8450c3a35e8992271ac7b3cc8e5d3164fc9a1d9b))
+* consolidate webhook rate limiter into shared api/constants.py ([#715](https://github.com/Adit-Jain-srm/NightmareNet/issues/715)) ([921efd0](https://github.com/Adit-Jain-srm/NightmareNet/commit/921efd035e308ea92637e251cca8203cf1f63276))
+* **pipeline_runner:** add thread safety with threading.Lock for _runners registry ([#494](https://github.com/Adit-Jain-srm/NightmareNet/issues/494)) ([#710](https://github.com/Adit-Jain-srm/NightmareNet/issues/710)) ([c44d9bd](https://github.com/Adit-Jain-srm/NightmareNet/commit/c44d9bd588e8b63230bc03239877050caca0f0d9))
+* preserve failure categories and wire evaluation flow ([#416](https://github.com/Adit-Jain-srm/NightmareNet/issues/416)) ([943eacd](https://github.com/Adit-Jain-srm/NightmareNet/commit/943eacd29ee9236af77e88087539e23c6b098cca))
+* prevent logging 'I/O on closed file' traceback in CLI tests ([d5021cc](https://github.com/Adit-Jain-srm/NightmareNet/commit/d5021ccfc140748fc15a953962363016b74a95ca))
+* prevent pipefail from propagating mypy exit code to baseline filter ([896925d](https://github.com/Adit-Jain-srm/NightmareNet/commit/896925d811fc5da925f6d357ac1d24666427dfa5))
+* regenerate mypy baseline from CI output (include notes, real line numbers) ([7293434](https://github.com/Adit-Jain-srm/NightmareNet/commit/72934343a924b7fc8c3d374f8bf9ce478eaa5d0b))
+* regenerate mypy_baseline.txt after PR [#749](https://github.com/Adit-Jain-srm/NightmareNet/issues/749) merge ([f8062a0](https://github.com/Adit-Jain-srm/NightmareNet/commit/f8062a0f1e38c8e348dabac99b31b15b860fa22c))
+* remove unused type: ignore[import-untyped] comments ([6b25b81](https://github.com/Adit-Jain-srm/NightmareNet/commit/6b25b81134dc00ac0fa0abaf1c9bae7d1de70f46))
+* resolve CI failures (mypy baseline + benchmark test) ([ae44be7](https://github.com/Adit-Jain-srm/NightmareNet/commit/ae44be7152be161a02f2beda4244e6d2b4401ccb))
+* resolve issue [#693](https://github.com/Adit-Jain-srm/NightmareNet/issues/693) graceful server shutdown ([#751](https://github.com/Adit-Jain-srm/NightmareNet/issues/751)) ([377b394](https://github.com/Adit-Jain-srm/NightmareNet/commit/377b39425016ac75e72be2f3f65eabe97f2c91f6))
+* save/clear/restore root logger handlers around the CLI invocation. ([d5021cc](https://github.com/Adit-Jain-srm/NightmareNet/commit/d5021ccfc140748fc15a953962363016b74a95ca))
+
+
+### Documentation
+
+* add config guide, notebook table, and 4 example configs ([#669](https://github.com/Adit-Jain-srm/NightmareNet/issues/669)) ([#782](https://github.com/Adit-Jain-srm/NightmareNet/issues/782)) ([424543c](https://github.com/Adit-Jain-srm/NightmareNet/commit/424543c50fe8c5047f35d3a94a0a32ceb60236c6))
+* add developer workflow guides (testing, distortions, metrics, architecture) ([#668](https://github.com/Adit-Jain-srm/NightmareNet/issues/668)) ([#781](https://github.com/Adit-Jain-srm/NightmareNet/issues/781)) ([6377475](https://github.com/Adit-Jain-srm/NightmareNet/commit/63774756f5828ee066c6650b0f4804b6dd6f3319))
+* add feature guides for distributed, compression, transfer, HPO, and search ([#667](https://github.com/Adit-Jain-srm/NightmareNet/issues/667)) ([#780](https://github.com/Adit-Jain-srm/NightmareNet/issues/780)) ([e8b605e](https://github.com/Adit-Jain-srm/NightmareNet/commit/e8b605e4b02edf042ffc68a95f59de5f2a879d78))
+* add GitHub Discussions templates and redirects ([#704](https://github.com/Adit-Jain-srm/NightmareNet/issues/704)) ([#726](https://github.com/Adit-Jain-srm/NightmareNet/issues/726)) ([7432abd](https://github.com/Adit-Jain-srm/NightmareNet/commit/7432abdbb53324039921d58b7ab89823c4f2f6e2))
+
 ## [0.4.0](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.3.1...nightmarenet-v0.4.0) (2026-08-06)
 
 
