@@ -11,6 +11,7 @@ the package is absent so that existing environments are unaffected.
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import os
 import sys
@@ -19,7 +20,17 @@ from datetime import datetime
 _INITIALIZED = False
 
 #: Fields always included in every JSON log record.
-_JSON_LOG_FIELDS = ["asctime", "levelname", "name", "message"]
+_JSON_LOG_FIELDS = ["asctime", "levelname", "name", "message", "request_id"]
+
+request_id_ctx: contextvars.ContextVar[str] = contextvars.ContextVar("request_id", default="")
+
+
+class RequestIdFilter(logging.Filter):
+    """Injects the current request ID into log records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.request_id = request_id_ctx.get()
+        return True
 
 
 def _build_formatter(json_logs: bool) -> logging.Formatter:
@@ -41,7 +52,7 @@ def _build_formatter(json_logs: bool) -> logging.Formatter:
                 )
 
             return JsonFormatter(
-                fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+                fmt="%(asctime)s %(levelname)s %(name)s %(request_id)s %(message)s",
                 datefmt="%Y-%m-%dT%H:%M:%SZ",
                 rename_fields={"asctime": "timestamp", "levelname": "level", "name": "logger"},
             )
@@ -52,7 +63,7 @@ def _build_formatter(json_logs: bool) -> logging.Formatter:
             )
 
     return logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        fmt="%(asctime)s [%(levelname)s] %(name)s [%(request_id)s]: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -89,6 +100,7 @@ def setup_logging(
     root_logger = logging.getLogger("nightmarenet")
     root_logger.setLevel(level)
     root_logger.propagate = False
+    root_logger.addFilter(RequestIdFilter())
 
     if console:
         console_handler = logging.StreamHandler(sys.stdout)
