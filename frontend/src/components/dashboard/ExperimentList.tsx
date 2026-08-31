@@ -805,19 +805,6 @@ export function ExperimentList({
             ))}
           </div>
 
-          <Select
-            size="sm"
-            value={filter}
-            onChange={(v) => setFilter(v as typeof filter)}
-            className="w-32"
-            options={[
-              { value: "all", label: "All states" },
-              { value: "running", label: "Running" },
-              { value: "complete", label: "Complete" },
-              { value: "failed", label: "Failed" },
-              { value: "queued", label: "Queued" },
-            ]}
-          />
           <DateRangePicker value={dateRange} onChange={handleDateRangeChange} />
           <Select
             size="sm"
