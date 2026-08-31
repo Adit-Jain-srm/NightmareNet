@@ -257,6 +257,41 @@ def create_app() -> Optional[Any]:
         allow_headers=["*"],
     )
 
+    try:
+        from fastapi import Request
+        from fastapi.responses import JSONResponse
+
+        from nightmarenet_server.middleware.rate_limiting import (
+            RateLimitException,
+            RateLimitingMiddleware,
+        )
+
+        @app.exception_handler(RateLimitException)
+        async def rate_limit_exception_handler(request: Request, exc: RateLimitException):
+            headers = getattr(request.state, "rate_limit_headers", {})
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "Rate limit exceeded",
+                    "detail": exc.detail,
+                },
+                headers=headers,
+            )
+
+        app.add_middleware(RateLimitingMiddleware)
+        logger.info("Successfully registered RateLimitingMiddleware.")
+
+        if core_app is not None and hasattr(core_app, "state"):
+            core_limiter = getattr(core_app.state, "limiter", None)
+            if core_limiter is not None:
+                core_limiter.enabled = False
+                logger.info(
+                    "Disabled core slowapi limiter"
+                    " — hosted tiered middleware handles rate limiting."
+                )
+    except ImportError as e:
+        logger.warning("Could not register RateLimitingMiddleware: %s", e)
+
     if SessionMiddleware is not None:
         session_secret = os.environ.get(
             "NIGHTMARENET_SESSION_SECRET",
