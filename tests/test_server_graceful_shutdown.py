@@ -1,9 +1,11 @@
 import asyncio
 from unittest import mock
+
 import pytest
 
 try:
     from fastapi.testclient import TestClient
+
     _FASTAPI_AVAILABLE = True
 except ImportError:
     _FASTAPI_AVAILABLE = False
@@ -15,7 +17,7 @@ from nightmarenet_server.app import (
     set_shutting_down,
     trigger_graceful_shutdown,
 )
-from nightmarenet_server.realtime.websocket import RunBroker, close_all_websockets
+from nightmarenet_server.realtime.websocket import RunBroker
 
 
 @pytest.fixture(autouse=True)

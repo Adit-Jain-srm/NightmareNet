@@ -128,13 +128,12 @@ class RunBroker:
             sub.deliver(event)
         return len(subs)
 
-    async def close_all(
-        self, code: int = 1001, reason: str = "Server shutting down"
-    ) -> None:
+    async def close_all(self, code: int = 1001, reason: str = "Server shutting down") -> None:
         """Close all active WebSocket connections across all subscriptions."""
         with self._lock:
             subs = [sub for sub_list in self._subs.values() for sub in sub_list]
         for sub in subs:
+            sub.queue.put_nowait({"type": "__shutdown__"})
             if sub.websocket is not None:
                 try:
                     await sub.websocket.close(code=code, reason=reason)
@@ -155,9 +154,7 @@ def publish_event(run_id: str, event: Dict[str, Any]) -> int:
     return _BROKER.publish(run_id, event)
 
 
-async def close_all_websockets(
-    code: int = 1001, reason: str = "Server shutting down"
-) -> None:
+async def close_all_websockets(code: int = 1001, reason: str = "Server shutting down") -> None:
     """Close all active WebSocket connections on the process broker singleton."""
     await _BROKER.close_all(code=code, reason=reason)
 
@@ -177,6 +174,8 @@ def build_realtime_router() -> Optional[Any]:
         try:
             while True:
                 event = await sub.queue.get()
+                if event.get("type") == "__shutdown__":
+                    break
                 await websocket.send_text(json.dumps(event, default=str))
                 if event.get("type") in {"completed", "error"}:
                     break

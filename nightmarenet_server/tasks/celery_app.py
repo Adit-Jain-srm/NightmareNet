@@ -83,12 +83,35 @@ def build_celery_app() -> Optional[Any]:
     app.autodiscover_tasks(packages=_default_modules(), force=True)
 
     try:
-        from celery.signals import worker_shutting_down
+        from celery.signals import before_task_publish, task_prerun, worker_shutting_down
+
+        from nightmarenet.utils.logging_config import request_id_ctx
 
         @worker_shutting_down.connect
-        def _handle_worker_shutdown(sig: Any = None, how: Any = None, exitcode: Any = None, **kwargs: Any) -> None:
-            logger.info("Celery worker shutting down: revoking pending tasks and completing active tasks up to soft_time_limit.")
-    except Exception:
+        def _handle_worker_shutdown(
+            sig: Any = None, how: Any = None, exitcode: Any = None, **kwargs: Any
+        ) -> None:
+            logger.info(
+                "Celery worker shutting down: active tasks will complete up to soft_time_limit."
+            )
+
+        @before_task_publish.connect
+        def _inject_celery_headers(headers=None, **kwargs: Any) -> None:
+            req_id = request_id_ctx.get()
+            if req_id and headers is not None:
+                headers["x-correlation-id"] = req_id
+
+        @task_prerun.connect
+        def _extract_celery_headers(task_id: str, task: Any, *args: Any, **kwargs: Any) -> None:
+            if not hasattr(task, "request"):
+                return
+            req = task.request
+            headers = getattr(req, "headers", None)
+            if headers is None and hasattr(req, "get"):
+                headers = req.get("headers")
+            if isinstance(headers, dict) and "x-correlation-id" in headers:
+                request_id_ctx.set(headers["x-correlation-id"])
+    except ImportError:
         pass
 
     return app

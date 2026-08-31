@@ -39,6 +39,8 @@ dependencies = [
     "beautifulsoup4>=4.12.0",
     "requests>=2.31.0",
     "pydantic>=2.0",
+    "python-jose[cryptography]>=3.3.0",
+    "jsonschema>=4.0.0",
     "regex>=2023.0.0",
 ]
 
@@ -46,8 +48,10 @@ dependencies = [
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "nbmake>=1.5.0",
     "ruff>=0.4.0",
     "mypy>=1.8.0",
+    "mypy-baseline>=0.7.0",
     "types-PyYAML>=6.0",
     "hypothesis>=6.100.0",
 ]
@@ -129,7 +133,7 @@ nightmarenet-reindex-search = "nightmarenet_server.search.reindex:main"
 testpaths = ["tests"]
 addopts = "-v --tb=short -m 'not slow' --ignore=tests/test_distortion_vision.py"
 markers = [
-    "slow: marks tests as slow (deselect with '-m not slow')",
+    "slow: marks slow tests (deselect with '-m not slow')",
 ]
 
 [tool.ruff]
@@ -158,17 +162,47 @@ select = ["E", "F", "W", "I", "N", "UP", "B"]
 ignore = ["UP007", "UP006", "UP035", "UP045"]
 
 [tool.mypy]
+# Strict mode is the baseline going forward: it is what every *new* file is
+# held to. Pre-existing violations in older files are frozen in
+# mypy_baseline.txt (see docs/development/code-style.md) rather than
+# loosened here, so this section should not be relaxed again without
+# updating that document.
 python_version = "3.12"
-warn_return_any = false
+strict = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-check_untyped_defs = true
 ignore_missing_imports = true
+# import-untyped: redundant with ignore_missing_imports for our third-party
+#   surface (torch/transformers/etc. ship no stubs).
+disable_error_code = ["import-untyped"]
+
+[tool.mypy-baseline]
+baseline_path = "mypy_baseline.txt"
+# A contributor may legitimately fix an existing baseline error without
+# synchronizing the entire baseline in the same change. Report the reduction
+# as progress, but do not make it fail CI or local type checking.
+allow_unsynced = true
 
 [[tool.mypy.overrides]]
 module = ["torch.*", "transformers.*", "datasets.*", "tqdm.*", "sklearn.*"]
 follow_imports = "skip"
 follow_imports_for_stubs = false
+
+# Torch-heavy NightmareNet modules use dynamically-typed Tensor arithmetic.
+# Keep the operator suppression scoped to these project modules instead of
+# disabling the diagnostic globally.
+[[tool.mypy.overrides]]
+module = [
+    "nightmarenet.data.*",
+    "nightmarenet.compression.*",
+    "nightmarenet.distortions.*",
+    "nightmarenet.distributed.*",
+    "nightmarenet.evaluation.*",
+    "nightmarenet.export.*",
+    "nightmarenet.training.*",
+    "nightmarenet.transfer.*",
+    "nightmarenet.utils.*",
+]
+disable_error_code = ["operator"]
 
 [[tool.mypy.overrides]]
 module = [
@@ -193,5 +227,6 @@ strict_concatenate = true
 
 [tool.setuptools.packages.find]
 include = ["nightmarenet*", "nightmarenet_server*", "scripts"]
+
 [tool.setuptools.package-data]
-nightmarenet = ["py.typed"]
+nightmarenet = ["py.typed", "compliance/*.json"]

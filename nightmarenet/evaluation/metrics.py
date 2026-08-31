@@ -72,11 +72,14 @@ def categorize_failures_by_distortion(
             or "unknown"
         )
 
-        is_fail = rec.get("is_failure")
-        if is_fail is None:
-            is_fail = rec.get("failed")
-        if is_fail is None:
-            is_fail = not rec.get("correct") if "correct" in rec else True
+        if "is_failure" in rec:
+            is_fail = rec["is_failure"]
+        elif "failed" in rec:
+            is_fail = rec["failed"]
+        elif "correct" in rec:
+            is_fail = not rec["correct"]
+        else:
+            is_fail = False
         is_fail = bool(is_fail)
 
         raw_delta = rec.get("confidence_delta")
@@ -526,10 +529,6 @@ def robustness_score(
     if strengths is None:
         strengths = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
 
-    failure_categories = categorize_failures_by_distortion(
-        failure_records, total_samples_per_distortion
-    )
-
     is_vision = tokenizer is None or not hasattr(base_dataset, "map")
 
     all_failures = []
@@ -619,6 +618,16 @@ def robustness_score(
         if _trapz_fn is None:
             _trapz_fn = np.trapz  # type: ignore[attr-defined]
         auc = float(_trapz_fn(accuracies, strengths))
+
+        failure_categories = {}
+        if failure_records:
+            failure_categories = categorize_failures_by_distortion(
+                failure_records, total_samples_per_distortion
+            )
+        elif export_failures and failures_data:
+            failure_categories = categorize_failures_by_distortion(
+                failures_data, total_samples_per_distortion
+            )
 
         res = {
             "metric": "robustness",
@@ -759,6 +768,7 @@ def robustness_score(
                         "distortion_type": "text_distortion",
                         "distortion_strength": float(strength),
                         "seed": 42,
+                        "is_failure": int(orig_preds[i]) != int(dist_preds[i]),
                     }
                 )
 
@@ -771,6 +781,16 @@ def robustness_score(
     if _trapz_fn is None:
         _trapz_fn = np.trapz  # type: ignore[attr-defined]
     auc = float(_trapz_fn(inv_ppls, strengths))
+
+    failure_categories = {}
+    if failure_records:
+        failure_categories = categorize_failures_by_distortion(
+            failure_records, total_samples_per_distortion
+        )
+    elif export_failures and failures_data:
+        failure_categories = categorize_failures_by_distortion(
+            failures_data, total_samples_per_distortion
+        )
 
     res = {
         "metric": "robustness",
