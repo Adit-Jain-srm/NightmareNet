@@ -77,6 +77,13 @@ class AuthErrorResponse(BaseModel):
     detail: str = "Invalid or missing API key."
 
 
+class RateLimitError(BaseModel):
+    """Rate limit exceeded error response."""
+
+    error: str = "Rate limit exceeded"
+    detail: str = "Too many requests. Please try again later."
+
+
 # --- Training Config Schemas ---
 
 
