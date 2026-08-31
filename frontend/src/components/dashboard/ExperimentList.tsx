@@ -7,8 +7,6 @@ import {
   useRef,
   useState,
   type ReactNode,
-  type Dispatch,
-  type SetStateAction,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Panel } from "./Panel";
@@ -21,8 +19,6 @@ import { Select } from "@/components/ui/Select";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { useToast } from "@/components/ui/Toast";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { deleteExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
-import { searchExperiments } from "@/lib/api";
 import { searchExperiments, deleteExperiment, exportExperiment, createPipeline, type PipelineCreateRequest } from "@/lib/api";
 import {
   IconBeaker,
@@ -75,11 +71,6 @@ interface ToastApi {
 interface RowActionsMenuProps {
   row: Experiment;
   toast: ToastApi;
-  loadingActions: Set<string>;
-  setLoadingActions: React.Dispatch<React.SetStateAction<Set<string>>>;
-  experimentToDelete: string | null;
-  setExperimentToDelete: React.Dispatch<React.SetStateAction<string | null>>;
-  setDeleteConfirmOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onDelete: (id: string) => void;
   onRerun: (row: Experiment) => void;
   onExport: (id: string) => void;
@@ -102,15 +93,6 @@ interface MenuItemDef {
  * outside click. The trigger acts as a stable anchor so the popover can
  * absolutely-position relative to the cell without measuring DOM.
  */
-function RowActionsMenu({
-  row,
-  toast,
-  loadingActions,
-  setLoadingActions,
-  experimentToDelete,
-  setExperimentToDelete,
-  setDeleteConfirmOpen,
-}: RowActionsMenuProps) {
 function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, loading }: RowActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -142,89 +124,17 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
       {
         label: "Compare to baseline",
         ariaLabel: `Compare ${row.name} to baseline`,
-        onSelect: () => {
-          window.location.href = `/compare?ids=${row.id}`;
-          onCompare(row.id);
-        },
+        onSelect: () => onCompare(row.id),
       },
       {
         label: "Re-run with strength × 1.2",
         ariaLabel: `Re-run ${row.name} with strength × 1.2`,
-        onSelect: async () => {
-          setLoadingActions((prev) => new Set(prev).add(row.id));
-          try {
-            const baseConfig = row.config || {
-              source_type: "text" as const,
-              text_content: "",
-              model_name: row.model,
-              model_type: "causal_lm" as const,
-              num_cycles: row.cycles,
-              dream_strength: 0.25,
-              nightmare_strength: 0.8,
-            };
-            const config = {
-              ...baseConfig,
-              dream_strength: (baseConfig.dream_strength ?? 0.25) * 1.2,
-              nightmare_strength: (baseConfig.nightmare_strength ?? 0.8) * 1.2,
-            };
-            await createPipeline(config);
-            toast.push({
-              title: "Re-run queued",
-              description: `${row.name} will run at 1.2× the original strength.`,
-              variant: "success",
-            });
-          } catch (error) {
-            toast.push({
-              title: "Re-run failed",
-              description: error instanceof Error ? error.message : "Failed to queue re-run",
-              variant: "error",
-            });
-          } finally {
-            setLoadingActions((prev) => {
-              const next = new Set(prev);
-              next.delete(row.id);
-              return next;
-            });
-          }
-        onSelect: () => {
-          onRerun(row);
-        },
+        onSelect: () => onRerun(row),
       },
       {
         label: "Export run report (CSV)",
         ariaLabel: `Export ${row.name} run report as CSV`,
-        onSelect: async () => {
-          setLoadingActions((prev) => new Set(prev).add(row.id));
-          try {
-            const response = await exportExperiment(row.id, "csv");
-            const blob = new Blob([response.data], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${row.id}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-            toast.push({
-              title: "Export prepared",
-              description: `${row.id}.csv downloaded successfully.`,
-              variant: "info",
-            });
-          } catch (error) {
-            toast.push({
-              title: "Export failed",
-              description: error instanceof Error ? error.message : "Failed to export experiment",
-              variant: "error",
-            });
-          } finally {
-            setLoadingActions((prev) => {
-              const next = new Set(prev);
-              next.delete(row.id);
-              return next;
-            });
-          }
-        onSelect: () => {
-          onExport(row.id);
-        },
+        onSelect: () => onExport(row.id),
       },
       {
         label: "Open in new tab",
@@ -241,13 +151,10 @@ function RowActionsMenu({ row, toast, onDelete, onRerun, onExport, onCompare, lo
         label: "Delete",
         ariaLabel: `Delete ${row.name}`,
         variant: "danger",
-        onSelect: () => {
-          setExperimentToDelete(row.id);
-          setDeleteConfirmOpen(true);
-        },
+        onSelect: () => onDelete(row.id),
       },
     ],
-    [row, toast, setLoadingActions, setExperimentToDelete, setDeleteConfirmOpen]
+    [row, toast, onDelete, onRerun, onExport, onCompare]
           onDelete(row.id);
         },
       },
@@ -355,9 +262,6 @@ export function ExperimentList({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [experimentToDelete, setExperimentToDelete] = useState<string | null>(null);
   const toast = useToast();
-  const [loadingActions, setLoadingActions] = useState<Set<string>>(new Set());
-  const [experimentToDelete, setExperimentToDelete] = useState<string | null>(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!experimentToDelete) return;
