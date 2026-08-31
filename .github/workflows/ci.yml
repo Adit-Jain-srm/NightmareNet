@@ -101,6 +101,12 @@ jobs:
           fail_ci_if_error: false
           verbose: true
 
+      - name: Validate notebooks with nbmake
+        if: matrix.python-version == '3.12'
+        continue-on-error: true
+        run: >
+          pytest --nbmake notebooks/ --timeout=120
+
       - name: Check OpenAPI spec drift
         if: matrix.python-version == '3.12'
         run: PYTHONPATH=. python scripts/export_openapi.py --check
