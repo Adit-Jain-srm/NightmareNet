@@ -111,6 +111,17 @@ Learn how to use, extend, and deploy NightmareNet through our step-by-step tutor
 *   [Tutorial 5: Deployment](docs/tutorials/deployment.md) — Configure, run, and scale production-grade docker containers, configure keys, and integrate alerts.
 *   [Tutorial 6: CI Robustness Check](docs/tutorials/ci-robustness-check.md) — Gate PRs with the `robustness-check` GitHub Action (threshold, score table, Marketplace branding).
 
+### Feature Guides
+
+In-depth documentation for individual features lives in [`docs/features/`](docs/features/):
+
+*   [Distributed Training](docs/features/distributed-training.md) — multi-GPU setup, per-phase DDP/DataParallel strategies, device pool config, and atomic checkpoint resume.
+*   [Model Compression](docs/features/model-compression.md) — magnitude pruning, low-rank bottlenecks, and RSLAD-style robust distillation.
+*   [Transfer Learning](docs/features/transfer-learning.md) — foundation registry, head factory, layer freezing, and transfer-efficiency measurement.
+*   [Hyperparameter Optimization](docs/features/hpo.md) — Optuna integration, search spaces, and study persistence.
+*   [Semantic Experiment Search](docs/features/search.md) — natural-language search API, indexing, and query syntax.
+*   [Webhook Notifications](docs/features/webhooks.md) — real-time alerts to Slack, Discord, and Teams.
+
 Client developers can also use the committed OpenAPI spec at [`docs/api/openapi.json`](docs/api/openapi.json) (regenerate with `make openapi`).
 
 ### Developer Guide
@@ -123,6 +134,11 @@ Contributor workflow documentation lives in [`docs/development/`](docs/developme
 *   [Architecture](docs/development/architecture.md) — module dependency and pipeline-flow diagrams.
 *   [Code Style](docs/development/code-style.md) — Ruff, pre-commit hooks, the mypy baseline policy, and commit conventions.
 *   [Local Stack](docs/development/local-stack.md) — run the API and frontend locally.
+
+### Configuration & Notebooks
+
+*   [Configuration Guide](configs/README.md) — config schema (all top-level keys), the defaults inheritance/override model, validation rules, and annotated example configs.
+*   [Notebooks Guide](notebooks/README.md) — the Colab-ready walkthrough notebooks with prerequisites, runtime, and expected output.
 
 ### GitHub Action (robustness gate)
 

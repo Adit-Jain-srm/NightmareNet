@@ -11,13 +11,20 @@ const apiOrigin = process.env.NEXT_PUBLIC_API_URL
   ? new URL(process.env.NEXT_PUBLIC_API_URL).origin
   : "";
 
+const sentryConnectOrigin = (() => {
+  const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN?.trim();
+  if (!dsn) return "";
+  const match = dsn.match(/@([^/]+)/);
+  return match ? ` https://${match[1]}` : "";
+})();
+
 const cspHeader = `
   default-src 'self';
   script-src 'self' 'unsafe-eval' 'unsafe-inline';
   style-src 'self' 'unsafe-inline';
   img-src 'self' blob: data:;
   font-src 'self';
-  connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""};
+  connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}${sentryConnectOrigin};
   object-src 'none';
   base-uri 'self';
   form-action 'self';

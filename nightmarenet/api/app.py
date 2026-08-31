@@ -67,6 +67,12 @@ try:
         TrainingPhasePreview,
         UploadResponse,
     )
+    from nightmarenet.api.versioning import (
+        API_VERSION_HEADER,
+        API_VERSION_VALUE,
+        deprecated,
+        get_deprecation_headers,
+    )
     from nightmarenet.api.webhooks import router
 except ImportError as e:
     raise ImportError(
@@ -216,9 +222,12 @@ app.add_middleware(
 # --- API Version Header Middleware ---
 @app.middleware("http")
 async def add_api_version_header(request: Request, call_next):
-    """Automatically attach the X-API-Version header to all responses."""
+    """Automatically attach API version and deprecation headers to all responses."""
     response = await call_next(request)
+    response.headers[API_VERSION_HEADER] = API_VERSION_VALUE
     response.headers["X-API-Version"] = __version__
+    for name, value in get_deprecation_headers(request.scope.get("endpoint")).items():
+        response.headers[name] = value
     return response
 
 
@@ -685,7 +694,9 @@ async def preview_training_config(
         500: {"model": ErrorResponse},
     },
     tags=["Evaluation"],
+    deprecated=True,
 )
+@deprecated(sunset="2026-12-01", alternative="/api/v1/evaluate/robustness")
 @limiter.limit("10/minute")
 async def compare_distortions(
     request: Request, body: CompareRequest = _COMPARE_BODY

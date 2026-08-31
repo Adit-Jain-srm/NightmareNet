@@ -1,0 +1,66 @@
+# Transfer learning
+# Robustness transfer reuses a hardened backbone instead of re-running the full
+# cycle for every task. This file is a valid *pipeline* config that first
+# hardens a foundation on SST-2; the header shows how to register it and then
+# fine-tune onto a downstream task via the transfer CLI.
+#
+# NOTE: the `nightmarenet transfer` step uses a separate, flat transfer schema
+# (see configs/transfer_ag_news.yaml), which is NOT validated by this pipeline
+# loader. This example intentionally stays a valid pipeline config.
+#
+# Validate config:
+#   python -c "from nightmarenet.utils.config import load_config; load_config('configs/examples/transfer-learning.yaml')"
+#
+# 1. Harden a foundation backbone with the full cycle:
+#   nightmarenet train --config configs/examples/transfer-learning.yaml \
+#       --output ./output/sst2-hardened
+#
+# 2. Register the hardened model as a reusable foundation backbone:
+#   nightmarenet foundation register --model ./output/sst2-hardened --name sst2-robust
+#
+# 3. Fine-tune the foundation onto a downstream task (freezing bottom layers
+#    to preserve transferred robustness). Uses the flat transfer config:
+#   nightmarenet transfer --foundation sst2-robust --config configs/transfer_ag_news.yaml
+
+model:
+  name: distilbert-base-uncased
+  type: seq_classification
+  num_labels: 2
+  max_length: 128
+  device: auto
+
+dataset:
+  name: glue
+  config: sst2
+  text_column: sentence
+  label_column: label
+  max_samples: 500
+  streaming: false
+
+training:
+  wake_epochs: 1
+  dream_epochs: 1
+  nightmare_epochs: 1
+  compression_rounds: 1
+  num_cycles: 3            # a few cycles so the backbone accumulates robustness
+  batch_size: 8
+  learning_rate: 2.0e-5
+  checkpoint_dir: checkpoints/transfer_foundation
+  log_dir: logs/transfer_foundation
+
+distortion:
+  dream_strength: 0.25
+  nightmare_strength: 0.8
+
+compression:
+  pruning_ratio: 0.2
+
+evaluation:
+  metrics: [recall, robustness]
+  robustness_strengths: [0.1, 0.3, 0.5, 0.7, 0.9]
+
+# The downstream fine-tune (step 3) is configured separately. For reference,
+# configs/transfer_ag_news.yaml sets: task_type, dataset, num_labels,
+# freeze_bottom_n (layers to freeze), unfreeze_after_epoch, and learning_rate.
+
+seed: 42

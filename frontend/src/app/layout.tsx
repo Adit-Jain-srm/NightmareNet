@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { ThemeProvider } from "@/lib/theme";
 import SkipLink from "@/components/a11y/SkipLink";
+import { ErrorReportingInit } from "@/components/ErrorReportingInit";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { OfflineBanner } from "@/components/ui/OfflineBanner";
 import "./globals.css";
@@ -72,6 +73,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
       <OfflineBanner />
+      <ErrorReportingInit />
 
   <ErrorBoundary
     fallbackTitle="NightmareNet encountered an unexpected error"
