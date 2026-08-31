@@ -157,9 +157,14 @@ class ArtifactManager:
                         # Resolve absolute path to the actual artifact
                         rel_path = Path(meta["artifact_path"])
                         if rel_path.is_absolute():
-                            meta["absolute_artifact_path"] = rel_path
+                            resolved = rel_path.resolve()
                         else:
-                            meta["absolute_artifact_path"] = self.root_dir / rel_path
+                            resolved = (self.root_dir / rel_path).resolve()
+
+                        if not str(resolved).startswith(str(self.root_dir.resolve())):
+                            logger.warning("Skipping out-of-scope artifact path: %s", rel_path)
+                            continue
+                        meta["absolute_artifact_path"] = resolved
 
                         if run_id is None or meta.get("run_id") == run_id:
                             artifacts.append(meta)
@@ -208,9 +213,9 @@ class ArtifactManager:
 
                 try:
                     # Strip Z and parse as UTC datetime
-                    creation_time = datetime.fromisoformat(
-                        creation_str.rstrip("Z")
-                    ).replace(tzinfo=timezone.utc)
+                    creation_time = datetime.fromisoformat(creation_str.rstrip("Z")).replace(
+                        tzinfo=timezone.utc
+                    )
                 except ValueError:
                     # Fallback to filesystem ctime if iso format is corrupted
                     creation_time = datetime.fromtimestamp(
@@ -257,19 +262,24 @@ class ArtifactManager:
 
         # Perform actual deletions
         for art_path, meta_path, reason in to_delete:
+            art_deleted = False
             if art_path.exists():
                 try:
                     if art_path.is_file():
                         art_path.unlink()
                     elif art_path.is_dir():
                         import shutil
+
                         shutil.rmtree(art_path)
                     logger.info("Cleaned artifact: %s (%s)", art_path, reason)
                     deleted_paths.append(art_path)
+                    art_deleted = True
                 except Exception as e:
                     logger.error("Failed to clean artifact at %s: %s", art_path, e)
+            else:
+                art_deleted = True
 
-            if meta_path.exists():
+            if art_deleted and meta_path.exists():
                 try:
                     meta_path.unlink()
                 except Exception as e:

@@ -1,0 +1,29 @@
+{
+  "model": "distilbert-base-uncased",
+  "device": "cpu",
+  "strength": 0.7,
+  "seed": 42,
+  "repeats": 3,
+  "attention": {
+    "strategy": "attention",
+    "samples": 24,
+    "mean_seconds_per_sample": 0.17897420000493489,
+    "median_seconds_per_sample": 0.17271374999836553,
+    "mean_target_loss_before": 2.7623345851898193,
+    "mean_target_loss_after": 3.0809443593025208,
+    "mean_target_loss_increase": 0.3186097741127014,
+    "changed_outputs": 24
+  },
+  "gradient": {
+    "strategy": "gradient",
+    "samples": 24,
+    "mean_seconds_per_sample": 0.1268412583352377,
+    "median_seconds_per_sample": 0.12643950000347104,
+    "mean_target_loss_before": 2.7623345851898193,
+    "mean_target_loss_after": 3.7494081258773804,
+    "mean_target_loss_increase": 0.987073540687561,
+    "changed_outputs": 24
+  },
+  "gradient_to_attention_slowdown": 0.7087125313689923,
+  "within_requested_3x_budget": true
+}

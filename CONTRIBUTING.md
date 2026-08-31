@@ -90,7 +90,7 @@ To request assignment on an issue, comment with:
 2. Which files you'll modify
 3. Estimated timeline (days, not weeks)
 
-**Bad:** "Please assign this to me."
+**Bad:** "Please assign me."
 **Good:** "I'd like to work on this. Plan: add a `healthcheck` directive to the `api` service in docker-compose.yml using curl against /api/v1/health. Will also add a `start_period` of 15s. Should take about 1 hour."
 
 ### Assignment Priority
@@ -218,12 +218,24 @@ EOF
 pre-commit install
 ```
 
-Or simply run `make lint` before committing.
+Or simply run `nightmarenet dev lint` (or `make lint`) before committing.
+
 
 ### Verify the environment
 
-The Makefile mirrors exactly what CI runs — use it instead of memorizing
-individual commands:
+Prefer the unified developer CLI (cross-platform; mirrors CI):
+
+```bash
+nightmarenet dev --help
+nightmarenet dev check          # python lint + pytest — like make check
+nightmarenet dev lint           # ruff + mypy + frontend ESLint
+nightmarenet dev test           # pytest -m "not slow" with coverage
+nightmarenet dev test --frontend
+nightmarenet dev format
+nightmarenet dev serve          # API + Next.js
+```
+
+Makefile targets remain supported and still mirror CI:
 
 ```bash
 make check          # lint + typecheck + test (what CI runs on every PR)
@@ -238,6 +250,7 @@ If you also touched the dashboard:
 ```bash
 make frontend-build  # production build (cd frontend && npm ci && npm run build)
 make frontend-test   # frontend test suite
+# or: nightmarenet dev test --frontend
 ```
 
 Or run everything, Python + frontend:
@@ -249,6 +262,8 @@ make all
 ### Start the API for ad-hoc testing
 
 ```bash
+nightmarenet dev serve --api-only
+# or:
 uvicorn nightmarenet.api.app:app --reload --port 8000 --env-file .env
 ```
 
@@ -350,17 +365,20 @@ Mirror the package layout under `tests/`. At minimum:
 - **Type hints & Mypy:**
   - NightmareNet uses a **gradual typing** approach.
   - **Strict Modules:** Specific core modules (including `nightmarenet/phases/`, `nightmarenet/compliance/`, `nightmarenet/hub/`, and `nightmarenet/evaluation/certification.py`) are strictly typed and must pass mypy without errors.
-  - **Legacy Modules:** Older components like `nightmarenet/cli.py` and `nightmarenet/api/app.py` remain in relaxed mode.
+  - **Legacy Modules:** Older components like `nightmarenet/cli.py` and `nightmarenet/api/app.py` remain covered by strict checking, with their pre-existing diagnostics captured in `mypy_baseline.txt`.
   - Use `Union[X, Y]` and `Optional[X]` — **not** `X | Y` — in any code path that runs on Python 3.9.
   - Use `from __future__ import annotations` everywhere **except** modules under `nightmarenet/api/` that use FastAPI `Body(...)`. The future import breaks Pydantic v2 at runtime there. Prefer module-level singletons for `Body(...)` defaults to satisfy `B008`.
 - **Docstrings:** Google style on public APIs only. Internal helpers can be terse.
+- **Type checking:** `nightmarenet/` is checked with `mypy --strict`. Pre-existing errors are frozen in `mypy_baseline.txt` and don't block CI, but **new files and new lines must be clean** — see [`docs/development/code-style.md`](docs/development/code-style.md) for the full policy and how to update the baseline.
+- **Local verification:** Run `mypy nightmarenet/ --python-version 3.12 | mypy-baseline filter` to mirror CI's baseline-aware type check. For frontend verification, run `npx tsc --noEmit` from the `frontend/` directory.
 - **Errors:** raise with context (`raise X("...") from e`); never bare `raise X`.
 - **No NaN/Inf in metrics:** wrap suspicious arithmetic with the helpers in `nightmarenet/evaluation/metrics.py`.
 - **Logging:** use module loggers (`logger = logging.getLogger(__name__)`); don't `print` in library code.
 
 ### Frontend
 
-- TypeScript only. No `any` in committed code.
+- TypeScript only. No `any` in committed code — `@typescript-eslint/no-explicit-any` is enforced as a warning (see [`docs/development/code-style.md`](docs/development/code-style.md)); new code should not introduce new `any` usages even though the rule doesn't yet fail CI.
+- `strict: true` in `tsconfig.json` is required; don't disable it, repo-wide or per-file.
 - Tailwind v4 — theme lives in the `@theme inline` block, not a `tailwind.config.js`.
 - Animations via Framer Motion; respect `prefers-reduced-motion`.
 - Keep client bundles lean; lazy-load heavy charts where possible.
@@ -482,13 +500,13 @@ Initial release.
 
 > **Assignment is mandatory.** Do NOT open a PR for an issue you are not assigned to. Request assignment first (see [Issue Assignment Rules](#issue-assignment-rules)). Unassigned PRs will be closed without review.
 
-> **CI runs `make check` on every PR and will block merge if it fails.** Run it locally before pushing to avoid failed checks.
+> **CI mirrors `nightmarenet dev check` / `make check` on every PR and will block merge if it fails.** Run it locally before pushing to avoid failed checks.
 
 Before requesting review, confirm every box.
 
 - [ ] I am **assigned** to the linked issue.
 - [ ] I have **starred the repo** and **followed [@Adit-Jain-srm](https://github.com/Adit-Jain-srm)**.
-- [ ] `make check` — green locally (runs lint + typecheck + test).
+- [ ] `nightmarenet dev check` or `make check` — green locally (lint + typecheck + test).
 - [ ] If frontend changed: `make frontend-build` succeeds.
 - [ ] No `from __future__ import annotations` added under `nightmarenet/api/`.
 - [ ] No new `nightmarenet/` import of a hosted-only library (`sqlalchemy`, `redis`, `celery`, `psycopg2`, `stripe`).
@@ -574,7 +592,8 @@ These are applied by maintainers at merge time based on quality. **Do not reques
 
 6. **One PR per issue.** Don't bundle unrelated fixes. If you find something else while working, open a separate issue for it.
 
-7. **Run CI locally before pushing.** `make check` (lint + typecheck + test). PRs that fail CI on first push suggest you didn't test locally.
+7. **Run CI locally before pushing.** `nightmarenet dev check` (or `make check`). PRs that fail CI on first push suggest you didn't test locally.
+
 
 8. **Disclose AI usage.** If you used AI tools (Copilot, ChatGPT, Claude, Cursor), state it in the PR description. We welcome AI-assisted contributions. We reject blindly pasted output.
 
@@ -608,11 +627,13 @@ These are applied by maintainers at merge time based on quality. **Do not reques
 ## Where to ask for help
 
 - **GitHub Discussions** — `https://github.com/Adit-Jain-srm/NightmareNet/discussions`
-  - `q-and-a` for "how do I..." questions
+  - `q-a` for "how do I..." questions
   - `ideas` for feature proposals (RFC threads welcome)
-  - `research` for paper-related discussion, benchmark proposals, citation requests
+  - `show-and-tell` to share what you've built
+  - `general` for community chat and paper/benchmark discussion
 - **GitHub Issues** — bug reports and concrete tasks
 - **Direct contact** — for security disclosures, email the maintainers per [`SECURITY.md`](SECURITY.md). Do **not** open public issues for vulnerabilities.
+
 
 We respond fastest to issues that include a minimal reproducible example, the relevant config snippet, and the output of `pip list | findstr nightmarenet` (or `pip freeze | grep nightmarenet` on Unix).
 

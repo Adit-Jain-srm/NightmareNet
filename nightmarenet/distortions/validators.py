@@ -132,6 +132,37 @@ def validate_base_distortion(engine_cls: type) -> List[str]:
     return failures
 
 
+def validate_language(language: Any) -> List[str]:
+    """Validate a distortion language name or ISO code."""
+    from nightmarenet.distortions.multilingual.keyboard_layouts import LANGUAGE_LAYOUTS
+
+    failures: List[str] = []
+    if not isinstance(language, str) or not language.strip():
+        failures.append("language must be a non-empty string")
+        return failures
+    key = language.strip().lower()
+    if key not in LANGUAGE_LAYOUTS:
+        supported = ", ".join(sorted({k for k in LANGUAGE_LAYOUTS if len(k) > 2}))
+        failures.append(f"unsupported language '{language}' (supported: {supported})")
+    return failures
+
+
+def validate_keyboard_layout(layout: Any) -> List[str]:
+    """Validate that a keyboard layout id is known (builtin or custom)."""
+    from nightmarenet.distortions.multilingual.keyboard_layouts import list_layouts
+
+    failures: List[str] = []
+    if not isinstance(layout, str) or not layout.strip():
+        failures.append("keyboard_layout must be a non-empty string")
+        return failures
+    key = layout.strip().lower()
+    if key not in list_layouts():
+        failures.append(
+            f"unknown keyboard_layout '{layout}' (available: {', '.join(list_layouts())})"
+        )
+    return failures
+
+
 def validate_plugin_package(
     package_name: str,
 ) -> List[str]:

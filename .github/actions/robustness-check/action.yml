@@ -1,0 +1,131 @@
+name: NightmareNet Robustness Check
+description: >-
+  Run NightmareNet robustness evaluation against a model (Hugging Face ID,
+  .pt, or .bin) and fail the job when the aggregate score falls below a
+  configurable threshold. Posts a markdown score table on pull requests.
+author: NightmareNet
+
+branding:
+  icon: shield
+  color: purple
+
+inputs:
+  model_path:
+    description: >-
+      Path to a PyTorch checkpoint (.pt / .bin) or Hugging Face model ID to
+      evaluate. Required unless config_path supplies model.name.
+    required: false
+    default: ""
+  config_path:
+    description: Optional NightmareNet YAML config for full evaluator runs.
+    required: false
+    default: ""
+  threshold:
+    description: Minimum acceptable robustness score in [0, 1]. Default 0.7.
+    required: false
+    default: "0.7"
+  distortion_types:
+    description: Comma-separated distortion families to score (dream, nightmare).
+    required: false
+    default: "dream,nightmare"
+  strengths:
+    description: Comma-separated distortion strengths for the sweep.
+    required: false
+    default: "0.1,0.3,0.5,0.7,0.9"
+  text:
+    description: Optional probe text (fast path without config_path).
+    required: false
+    default: ""
+  dataset:
+    description: Dataset name for evaluate (informational / config default).
+    required: false
+    default: "sst2"
+  python-version:
+    description: Python version when the runner has not already set one up.
+    required: false
+    default: "3.12"
+  install-source:
+    description: >-
+      Install nightmarenet from the checked-out repo (local) or from PyPI (pypi).
+    required: false
+    default: "local"
+  post-comment:
+    description: Post or update a PR comment with the score table (true/false).
+    required: false
+    default: "true"
+  github_token:
+    description: Token used to post the PR comment.
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  robustness_score:
+    description: Aggregate robustness score in [0, 1].
+    value: ${{ steps.run.outputs.robustness_score }}
+  passed:
+    description: Whether the score met the threshold (true/false).
+    value: ${{ steps.run.outputs.passed }}
+  report_path:
+    description: Path to the JSON report artifact on the runner.
+    value: ${{ steps.run.outputs.report_path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python ${{ inputs.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+
+    - name: Install nightmarenet
+      shell: bash
+      env:
+        INSTALL_SOURCE: ${{ inputs.install-source }}
+      run: |
+        set -euo pipefail
+        python -m pip install --upgrade pip
+        if [ "${INSTALL_SOURCE}" = "local" ]; then
+          pip install -e "."
+        else
+          pip install "nightmarenet"
+        fi
+
+    - name: Run robustness check
+      id: run
+      shell: bash
+      env:
+        INPUT_MODEL_PATH: ${{ inputs.model_path }}
+        INPUT_CONFIG_PATH: ${{ inputs.config_path }}
+        INPUT_THRESHOLD: ${{ inputs.threshold }}
+        INPUT_DISTORTION_TYPES: ${{ inputs.distortion_types }}
+        INPUT_STRENGTHS: ${{ inputs.strengths }}
+        INPUT_TEXT: ${{ inputs.text }}
+        INPUT_DATASET: ${{ inputs.dataset }}
+        INPUT_COMMENT_PATH: ${{ runner.temp }}/robustness-comment.md
+      run: |
+        set -euo pipefail
+        python "${{ github.action_path }}/entrypoint.py"
+
+    - name: Upload robustness report
+      if: always() && steps.run.outputs.report_path != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: nightmarenet-robustness-report
+        path: ${{ steps.run.outputs.report_path }}
+        if-no-files-found: warn
+
+    - name: Post PR comment
+      if: always() && inputs.post-comment == 'true'
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        INPUT_COMMENT_PATH: ${{ runner.temp }}/robustness-comment.md
+        COMMENT_PATH: ${{ runner.temp }}/robustness-comment.md
+      run: |
+        set -euo pipefail
+        if [ -f "${COMMENT_PATH}" ]; then
+          python "${{ github.action_path }}/post_comment.py"
+        else
+          echo "No comment body available; skipping PR comment."
+        fi

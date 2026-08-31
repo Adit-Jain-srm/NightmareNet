@@ -418,8 +418,14 @@ class Pipeline:
         hf_subset: Optional[str] = None,
         export_dir: Optional[str] = None,
     ) -> dict:
+        """Execute the full pipeline end-to-end.
+
+        Returns:
+            The evaluation comparison dict.
+        """
         # Auto-register training log file if active
         from nightmarenet.utils.logging_config import get_active_log_file
+
         log_file = get_active_log_file()
         if log_file:
             try:

@@ -78,3 +78,11 @@ curl -X POST "http://127.0.0.1:8000/api/v1/notifications/test-webhook" \
      -H "Content-Type: application/json" \
      -d '{"url": "https://hooks.slack.com/services/...", "event_type": "run_complete"}'
 ```
+
+---
+
+## Rate Limiting
+
+To prevent abuse, webhook-related endpoints are subject to rate limiting:
+- Webhook settings updates (`POST /api/v1/settings/webhooks`) and test requests (`POST /api/v1/notifications/test-webhook`) are governed by the **MODERATE** rate limit tier (30 requests/minute).
+

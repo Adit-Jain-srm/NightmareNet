@@ -139,10 +139,11 @@ def setup_logging_from_config(config: dict) -> None:
 
 def reset_logging() -> None:
     """Reset logging configuration (primarily for testing)."""
-    global _INITIALIZED
+    global _INITIALIZED, _ACTIVE_LOG_FILE
     root_logger = logging.getLogger("nightmarenet")
     for handler in list(root_logger.handlers):
         handler.close()
         root_logger.removeHandler(handler)
     root_logger.propagate = True
     _INITIALIZED = False
+    _ACTIVE_LOG_FILE = None

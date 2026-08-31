@@ -104,7 +104,11 @@ remain the dominant defenses but trade clean for adversarial accuracy.
 **Curriculum Adversarial Training (CAT)** [Cai et al., 2018] schedules
 perturbation budgets from small to large, with follow-up dynamic-strength work
 [Wang et al., 2019; Zhang et al., 2020]. **FreeLB** [Zhu et al., 2020]
-amortizes adversarial cost via free large-batch updates. NightmareNet
+amortizes adversarial cost via free large-batch updates. Multilingual typo
+robustness work such as MulTypo [Zhao et al., ACL 2026] shows that
+keyboard-layout noise hits low-resource languages hardest; NightmareNet
+exposes a clean-room layout-aware `keyboard_typo` engine for the same
+evaluation setting. NightmareNet
 inherits curriculum scheduling inside its Nightmare phase, but the surrounding
 Dream and Compress phases address two failure modes that curriculum training
 alone cannot: (a) distribution-shift sensitivity (handled by Dream) and
