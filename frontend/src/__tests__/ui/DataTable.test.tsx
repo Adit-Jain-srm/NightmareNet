@@ -137,8 +137,8 @@ describe("DataTable Component", () => {
     // First click: Sort Ascending
     fireEvent.click(nameHeader!);
     expect(nameHeader).toHaveAttribute("aria-sort", "ascending");
-    let tableCells = screen.getAllByRole("cell");
-    let firstRowName = tableCells.find((c) => c.textContent?.includes("Model Alpha"));
+    const tableCells = screen.getAllByRole("cell");
+    const firstRowName = tableCells.find((c) => c.textContent?.includes("Model Alpha"));
     expect(firstRowName).toBeInTheDocument();
 
     // Second click: Sort Descending
