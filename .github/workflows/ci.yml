@@ -85,7 +85,7 @@ jobs:
 
       - name: Upload Pytest Log
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pytest-log-${{ matrix.python-version }}
           path: pytest_output.txt
