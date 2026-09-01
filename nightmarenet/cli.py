@@ -15,6 +15,7 @@ import logging
 import os
 import sys
 from pathlib import Path
+from time import time
 from typing import Optional
 from rich.console import Console
 
@@ -24,7 +25,6 @@ from nightmarenet import __version__
 from nightmarenet.hub.core import pull_model, push_model
 
 logger = logging.getLogger(__name__)
-
 
 def cmd_train(args: argparse.Namespace) -> int:
     """Run the full 4-phase training pipeline."""
@@ -1145,6 +1145,17 @@ def build_parser() -> argparse.ArgumentParser:
         prog="nightmarenet",
         description="NightmareNet — Autonomous AI Self-Improvement Platform",
     )
+    # batch
+    batch_parser = subparsers.add_parser("batch", help="Run multiple experiment configs sequentially")
+    batch_parser.add_argument(
+        "--configs",
+        help="Directory containing YAML configs or a single config file path",
+    )
+    batch_parser.add_argument(
+        "config_list",
+        nargs="*",
+        help="List of individual YAML configuration files",
+    )
     parser.add_argument(
         "--version",
         action="version",
@@ -1446,3 +1457,84 @@ def main(argv: Optional[list] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+def cmd_batch(args: argparse.Namespace) -> int:
+    """Run multiple experiment configurations sequentially with a summary."""
+    import yaml
+    from nightmarenet.pipeline import Pipeline
+
+    config_paths = []
+    if getattr(args, "configs", None):
+        target = Path(args.configs)
+        if target.is_dir():
+            config_paths = sorted(list(target.glob("*.yaml")) + list(target.glob("*.yml")))
+        elif target.is_file():
+            config_paths = [target]
+        else:
+            logger.error("Path not found or invalid: %s", target)
+            return 1
+    elif getattr(args, "config_list", None):
+        for p in args.config_list:
+            path = Path(p)
+            if path.exists():
+                config_paths.append(path)
+            else:
+                logger.warning("Config path not found, skipping: %s", path)
+
+    if not config_paths:
+        logger.error("No valid configuration files found for batch run.")
+        return 1
+
+    total = len(config_paths)
+    results_summary = []
+
+    for idx, config_path in enumerate(config_paths, 1):
+        logger.info("[%d/%d] Running config: %s...", idx, total, config_path.name)
+        
+        try:
+            with open(config_path) as f:
+                config = yaml.safe_load(f) or {}
+
+            if not isinstance(config, dict):
+                raise ValueError("Config file is not a valid YAML mapping")
+
+            run_id = f"batch-{config_path.stem}-{int(time.time())}" # type: ignore
+            pipeline = Pipeline(config=config)
+            pipeline.run()
+
+            # Attempt to retrieve metrics or robustness score
+            metrics = getattr(pipeline, "metrics", None)
+            status = getattr(metrics, "status", "complete")
+            robustness_score = getattr(metrics, "robustness_score", None)
+            
+            # Fallback if robustness_score is in extra results dictionary
+            if robustness_score is None and hasattr(pipeline, "results"):
+                robustness_score = pipeline.results.get("robustness_score", 0.0)
+
+            results_summary.append({
+                "config": config_path.name,
+                "run_id": run_id,
+                "status": status,
+                "robustness_score": robustness_score if robustness_score is not None else 0.0
+            })
+        except Exception as e:
+            logger.error("Error executing config %s: %s", config_path.name, e)
+            results_summary.append({
+                "config": config_path.name,
+                "run_id": "failed",
+                "status": "failed",
+                "robustness_score": 0.0
+            })
+
+    # Print Summary Table
+    logger.info("")
+    logger.info("==================================================")
+    logger.info("              BATCH EXPERIMENT SUMMARY            ")
+    logger.info("==================================================")
+    logger.info(f"{'CONFIG':<25} | {'RUN ID':<20} | {'STATUS':<10} | {'ROBUSTNESS':<10}")
+    logger.info("-" * 75)
+    for res in results_summary:
+        rob_str = f"{res['robustness_score']:.4f}" if isinstance(res['robustness_score'], (int, float)) else "N/A"
+        logger.info(f"{res['config']:<25} | {res['run_id']:<20} | {res['status']:<10} | {rob_str:<10}")
+    logger.info("==================================================")
+
+    return 0
