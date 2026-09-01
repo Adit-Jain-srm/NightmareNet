@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.5.0...nightmarenet-v0.6.0) (2026-09-01)
+
+
+### Features
+
+* add experiment status filter ([#582](https://github.com/Adit-Jain-srm/NightmareNet/issues/582)) ([bed9608](https://github.com/Adit-Jain-srm/NightmareNet/commit/bed96089114d3f64f36676f2ceab97cb58fc52b2))
+* add homoglyph/typo distortion to the generation registry ([#568](https://github.com/Adit-Jain-srm/NightmareNet/issues/568)) ([26e0e8d](https://github.com/Adit-Jain-srm/NightmareNet/commit/26e0e8dac46378e2a2495864a1aecff40a1a1542))
+
+
+### Bug Fixes
+
+* reconcile optimistic rename, handle malformed JSON, add aria-lab… ([#472](https://github.com/Adit-Jain-srm/NightmareNet/issues/472)) ([fd9e111](https://github.com/Adit-Jain-srm/NightmareNet/commit/fd9e111073328fd02b8cba7cbde30b3a35f1cba4))
+* regenerate OpenAPI spec and fix npm audit vulnerabilities ([7411109](https://github.com/Adit-Jain-srm/NightmareNet/commit/7411109dc921c5898f137a99caf1efa2082d5a1e))
+* remove duplicate function definitions in api.ts breaking Vercel build ([a6dee65](https://github.com/Adit-Jain-srm/NightmareNet/commit/a6dee65b26466807d386dcd222b5b6a5835c4fd3))
+* update mypy baseline and acknowledge ecdsa vulnerability ([67ac6f6](https://github.com/Adit-Jain-srm/NightmareNet/commit/67ac6f68e6fe655a76fb0985c87e9a3eda836830))
+* use const for non-reassigned variables (ESLint prefer-const) ([412c705](https://github.com/Adit-Jain-srm/NightmareNet/commit/412c70586186df0ef9e2c4b3d38292d5a56f49ed))
+
 ## [0.5.0](https://github.com/Adit-Jain-srm/NightmareNet/compare/nightmarenet-v0.4.0...nightmarenet-v0.5.0) (2026-08-31)
 
 
