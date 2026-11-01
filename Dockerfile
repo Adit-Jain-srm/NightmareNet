@@ -1,5 +1,5 @@
 # --- Builder stage ---
-FROM python:3.14-slim AS builder
+FROM python:3.15-slim AS builder
 
 WORKDIR /build
 
@@ -10,7 +10,7 @@ COPY scripts/ scripts/
 RUN pip install --no-cache-dir --prefix=/install ".[api]"
 
 # --- Runtime stage ---
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 WORKDIR /app
 
